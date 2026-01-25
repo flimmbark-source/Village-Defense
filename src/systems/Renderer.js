@@ -681,18 +681,21 @@ export class Renderer {
         ctx.textAlign = 'center';
         ctx.fillText(`Level ${levelUpSystem.level}`, this.canvas.width / 2, xpBarY + xpBarHeight + 16);
 
-        // Weapon icons (bottom right)
+        // Weapon inventory (bottom center)
         const iconSize = 40;
         const iconPadding = 8;
-        const startX = this.canvas.width - padding - iconSize;
+        const slotCount = CONFIG.INVENTORY_SIZE;
+        const totalWidth = iconSize * slotCount + iconPadding * (slotCount - 1);
+        const startX = (this.canvas.width - totalWidth) / 2;
         const startY = this.canvas.height - padding - iconSize;
 
-        hero.weapons.forEach((weapon, i) => {
-            const x = startX - i * (iconSize + iconPadding);
+        for (let i = 0; i < slotCount; i++) {
+            const x = startX + i * (iconSize + iconPadding);
             const y = startY;
+            const weapon = hero.weapons[i];
 
             // Background
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.fillStyle = weapon ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.45)';
             ctx.fillRect(x, y, iconSize, iconSize);
 
             // Border
@@ -700,25 +703,27 @@ export class Renderer {
             ctx.lineWidth = 2;
             ctx.strokeRect(x, y, iconSize, iconSize);
 
-            // Icon
-            ctx.font = '24px serif';
-            ctx.textAlign = 'center';
-            ctx.fillStyle = '#fff';
-            ctx.fillText(weapon.icon, x + iconSize / 2, y + iconSize / 2 + 8);
+            if (weapon) {
+                // Icon
+                ctx.font = '24px serif';
+                ctx.textAlign = 'center';
+                ctx.fillStyle = '#fff';
+                ctx.fillText(weapon.icon, x + iconSize / 2, y + iconSize / 2 + 8);
 
-            // Level badge
-            if (weapon.level > 1) {
-                ctx.font = 'bold 10px Inter';
-                ctx.fillStyle = '#ffd700';
-                ctx.fillText(`+${weapon.level - 1}`, x + iconSize - 8, y + 12);
-            }
+                // Level badge
+                if (weapon.level > 1) {
+                    ctx.font = 'bold 10px Inter';
+                    ctx.fillStyle = '#ffd700';
+                    ctx.fillText(`+${weapon.level - 1}`, x + iconSize - 8, y + 12);
+                }
 
-            // Cooldown overlay
-            if (weapon.cooldownTimer > 0) {
-                const cooldownRatio = weapon.cooldownTimer / weapon.getCooldown();
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-                ctx.fillRect(x, y + iconSize * (1 - cooldownRatio), iconSize, iconSize * cooldownRatio);
+                // Cooldown overlay
+                if (weapon.cooldownTimer > 0) {
+                    const cooldownRatio = weapon.cooldownTimer / weapon.getCooldown();
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+                    ctx.fillRect(x, y + iconSize * (1 - cooldownRatio), iconSize, iconSize * cooldownRatio);
+                }
             }
-        });
+        }
     }
 }
