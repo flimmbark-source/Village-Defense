@@ -129,7 +129,7 @@ export const WEAPONS = {
         type: 'melee',
         damage: 15,
         cooldown: 0.8,
-        range: 60,
+        range: 100,
         attackPattern: 'slash',
         effects: {
             slashArc: 120,
@@ -335,5 +335,7 @@ export const COLORS = {
     TEXT_MILITIA: 'rgba(173, 216, 230, 1)',
     TEXT_XP: 'rgba(127, 255, 127, 1)',
     TEXT_LEVEL_UP: 'rgba(255, 215, 0, 1)',
-    TEXT_DAMAGE: 'rgba(255, 100, 100, 1)'
+    TEXT_DAMAGE: 'rgba(255, 100, 100, 1)',
+    PROJECTILE_HERO: '#ffffff',
+    PROJECTILE_MILITIA: '#ffd27f'
 };

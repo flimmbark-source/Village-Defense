@@ -220,6 +220,21 @@ export class Renderer {
         });
     }
 
+        /**
+     * Draw militia/hero projectiles
+     * @param {Array} projectiles - Projectile entities
+     */
+    drawProjectiles(projectiles) {
+        const ctx = this.ctx;
+
+        projectiles.forEach(projectile => {
+            ctx.beginPath();
+            ctx.arc(projectile.x, projectile.y, projectile.radius, 0, Math.PI * 2);
+            ctx.fillStyle = projectile.color;
+            ctx.fill();
+        });
+    }
+
     /**
      * Draw attacks
      * @param {Array} attacks - Attack instances

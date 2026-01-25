@@ -286,6 +286,7 @@ export class Game {
 
             // Process damage events
             for (const event of damageEvents) {
+                event.enemy.takeDamage(event.damage);
                 this.effects.spawnDamageNumber(event.enemy.x, event.enemy.y, event.damage);
 
                 // Check if enemy died
