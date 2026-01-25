@@ -31,6 +31,15 @@ export class Hero {
         this.hpRegen = 0;
         this.regenTimer = 0;
 
+        // New stats from passives
+        this.damageReduction = 0;
+        this.critChance = 0;
+        this.lifesteal = 0;
+        this.goldMultiplier = 0;
+        this.xpMultiplier = 0;
+        this.thorns = 0;
+        this.attackRangeMultiplier = 1;
+
         // Weapons (inventory of WeaponInstances)
         this.weapons = [];
 
@@ -162,15 +171,25 @@ export class Hero {
     /**
      * Take damage
      * @param {number} amount - Amount of damage to take
-     * @returns {boolean} True if hero died
+     * @returns {Object} Result { died, actualDamage, thornsReflect }
      */
     takeDamage(amount) {
-        this.hp -= amount;
+        // Apply damage reduction
+        const actualDamage = Math.max(1, amount * (1 - this.damageReduction));
+        this.hp -= actualDamage;
+
+        const result = {
+            died: false,
+            actualDamage: actualDamage,
+            thornsReflect: this.thorns
+        };
+
         if (this.hp <= 0) {
             this.hp = 0;
-            return true;
+            result.died = true;
         }
-        return false;
+
+        return result;
     }
 
     /**
@@ -197,6 +216,27 @@ export class Hero {
                 break;
             case 'hpRegen':
                 this.hpRegen += effect.value;
+                break;
+            case 'damageReduction':
+                this.damageReduction = Math.min(0.75, this.damageReduction + effect.value);
+                break;
+            case 'critChance':
+                this.critChance = Math.min(1.0, this.critChance + effect.value);
+                break;
+            case 'lifesteal':
+                this.lifesteal += effect.value;
+                break;
+            case 'goldMultiplier':
+                this.goldMultiplier += effect.value;
+                break;
+            case 'xpMultiplier':
+                this.xpMultiplier += effect.value;
+                break;
+            case 'thorns':
+                this.thorns += effect.value;
+                break;
+            case 'attackRange':
+                this.attackRangeMultiplier += effect.value;
                 break;
         }
     }

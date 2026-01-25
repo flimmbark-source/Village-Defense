@@ -200,6 +200,8 @@ export const WEAPONS = {
         cooldown: 0.8,
         range: 100,
         attackPattern: 'slash',
+        cost: 0, // Starting weapon
+        upgradeCost: 25,
         effects: {
             slashArc: 120,
             slashWidth: 50,
@@ -218,6 +220,8 @@ export const WEAPONS = {
         range: 250,
         projectileSpeed: 10,
         attackPattern: 'projectile',
+        cost: 50,
+        upgradeCost: 30,
         effects: {
             size: 8,
             color: '#c0c0c0',
@@ -236,6 +240,8 @@ export const WEAPONS = {
         range: 300,
         projectileSpeed: 5,
         attackPattern: 'homing',
+        cost: 75,
+        upgradeCost: 40,
         effects: {
             size: 10,
             color: '#9966ff',
@@ -254,6 +260,8 @@ export const WEAPONS = {
         cooldown: 2.0,
         range: 100,
         attackPattern: 'nova',
+        cost: 100,
+        upgradeCost: 50,
         effects: {
             color: '#ff6600',
             particleCount: 12,
@@ -273,6 +281,8 @@ export const WEAPONS = {
         projectileSpeed: 12,
         attackPattern: 'pierce',
         pierceCount: 3,
+        cost: 80,
+        upgradeCost: 45,
         effects: {
             size: 6,
             length: 20,
@@ -290,6 +300,8 @@ export const WEAPONS = {
         cooldown: 1.2,
         range: 100,
         attackPattern: 'whip',
+        cost: 60,
+        upgradeCost: 35,
         effects: {
             segments: 8,
             color: '#8b4513',
@@ -309,6 +321,8 @@ export const WEAPONS = {
         attackPattern: 'lightning',
         chainCount: 2,
         chainRange: 80,
+        cost: 120,
+        upgradeCost: 60,
         effects: {
             color: '#ffff00',
             glowColor: '#ffffff',
@@ -327,6 +341,8 @@ export const WEAPONS = {
         range: 200,
         projectileSpeed: 6,
         attackPattern: 'boomerang',
+        cost: 90,
+        upgradeCost: 50,
         effects: {
             size: 12,
             color: '#cd853f',
@@ -335,57 +351,146 @@ export const WEAPONS = {
     }
 };
 
-// Upgrade items (non-weapons)
-export const UPGRADES = [
+// Passive upgrades (special abilities)
+export const PASSIVE_UPGRADES = [
     {
-        id: 'max_hp_1',
-        name: 'Vitality',
-        description: '+20 Max HP',
-        icon: '❤️',
-        effect: { stat: 'maxHp', value: 20 },
-        maxStacks: 5
-    },
-    {
-        id: 'speed_1',
-        name: 'Swift Boots',
-        description: '+0.4 Speed',
-        icon: '👢',
-        effect: { stat: 'speed', value: 0.4 },
-        maxStacks: 5
-    },
-    {
-        id: 'damage_1',
-        name: 'Power Crystal',
-        description: '+15% Damage',
-        icon: '💎',
-        effect: { stat: 'damageMultiplier', value: 0.15 },
-        maxStacks: 5
-    },
-    {
-        id: 'cooldown_1',
-        name: 'Chrono Shard',
-        description: '-10% Cooldowns',
-        icon: '⏱️',
-        effect: { stat: 'cooldownMultiplier', value: -0.10 },
-        maxStacks: 5
-    },
-    {
-        id: 'pickup_range_1',
+        id: 'magnet',
         name: 'Magnet',
-        description: '+30% Pickup Range',
+        description: '+50% Pickup Range',
         icon: '🧲',
-        effect: { stat: 'pickupRange', value: 0.30 },
-        maxStacks: 3
+        effect: { stat: 'pickupRange', value: 0.50 },
+        cost: 40,
+        maxStacks: 3,
+        rarity: 'common'
     },
     {
-        id: 'regen_1',
+        id: 'regen',
         name: 'Regeneration',
-        description: '+1 HP/sec',
+        description: '+2 HP/sec',
         icon: '💚',
-        effect: { stat: 'hpRegen', value: 1 },
-        maxStacks: 5
+        effect: { stat: 'hpRegen', value: 2 },
+        cost: 60,
+        maxStacks: 4,
+        rarity: 'common'
+    },
+    {
+        id: 'armor',
+        name: 'Iron Skin',
+        description: '-15% Damage Taken',
+        icon: '🛡️',
+        effect: { stat: 'damageReduction', value: 0.15 },
+        cost: 75,
+        maxStacks: 3,
+        rarity: 'uncommon'
+    },
+    {
+        id: 'crit_chance',
+        name: 'Lucky Charm',
+        description: '+10% Crit Chance',
+        icon: '🍀',
+        effect: { stat: 'critChance', value: 0.10 },
+        cost: 80,
+        maxStacks: 5,
+        rarity: 'uncommon'
+    },
+    {
+        id: 'lifesteal',
+        name: 'Vampire Fang',
+        description: '+5% Lifesteal',
+        icon: '🦇',
+        effect: { stat: 'lifesteal', value: 0.05 },
+        cost: 100,
+        maxStacks: 3,
+        rarity: 'rare'
+    },
+    {
+        id: 'gold_find',
+        name: 'Golden Touch',
+        description: '+25% Gold Find',
+        icon: '👑',
+        effect: { stat: 'goldMultiplier', value: 0.25 },
+        cost: 50,
+        maxStacks: 4,
+        rarity: 'common'
+    },
+    {
+        id: 'xp_boost',
+        name: 'Wisdom Tome',
+        description: '+20% XP Gain',
+        icon: '📚',
+        effect: { stat: 'xpMultiplier', value: 0.20 },
+        cost: 65,
+        maxStacks: 3,
+        rarity: 'uncommon'
+    },
+    {
+        id: 'thorns',
+        name: 'Thorns Aura',
+        description: 'Reflect 10 damage when hit',
+        icon: '🌹',
+        effect: { stat: 'thorns', value: 10 },
+        cost: 70,
+        maxStacks: 4,
+        rarity: 'uncommon'
     }
 ];
+
+// Stat upgrades (simple stat boosts)
+export const STAT_UPGRADES = [
+    {
+        id: 'max_hp',
+        name: 'Max HP',
+        description: '+25 Max HP',
+        icon: '❤️',
+        effect: { stat: 'maxHp', value: 25 },
+        cost: 20,
+        maxStacks: 10,
+        rarity: 'common'
+    },
+    {
+        id: 'speed',
+        name: 'Speed',
+        description: '+0.5 Speed',
+        icon: '👢',
+        effect: { stat: 'speed', value: 0.5 },
+        cost: 25,
+        maxStacks: 6,
+        rarity: 'common'
+    },
+    {
+        id: 'damage',
+        name: 'Damage',
+        description: '+10% Damage',
+        icon: '⚔️',
+        effect: { stat: 'damageMultiplier', value: 0.10 },
+        cost: 30,
+        maxStacks: 8,
+        rarity: 'common'
+    },
+    {
+        id: 'cooldown',
+        name: 'Cooldown',
+        description: '-8% Cooldowns',
+        icon: '⏱️',
+        effect: { stat: 'cooldownMultiplier', value: -0.08 },
+        cost: 35,
+        maxStacks: 6,
+        rarity: 'common'
+    },
+    {
+        id: 'attack_range',
+        name: 'Range',
+        description: '+10% Attack Range',
+        icon: '🎯',
+        effect: { stat: 'attackRange', value: 0.10 },
+        cost: 30,
+        maxStacks: 5,
+        rarity: 'common'
+    }
+];
+
+// Combined for backward compatibility
+export const UPGRADES = [...PASSIVE_UPGRADES, ...STAT_UPGRADES];
 
 // Colors used for rendering
 export const COLORS = {

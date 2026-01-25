@@ -64,14 +64,54 @@
             </div>
         </div>
 
-        <!-- Level Up Panel -->
-        <div id="levelUpPanel" class="hidden">
-            <div class="level-up-overlay"></div>
-            <div class="level-up-content">
-                <h2 class="font-medieval" id="levelUpLevelText">Level 2</h2>
-                <p>Choose an upgrade:</p>
-                <div id="levelUpChoices" class="level-up-choices">
-                    <!-- Choices will be populated by JavaScript -->
+        <!-- Level Up Animation Overlay -->
+        <div id="levelUpAnimation" class="hidden">
+            <div class="level-up-text font-medieval">LEVEL UP!</div>
+        </div>
+
+        <!-- Shop Panel -->
+        <div id="shopPanel" class="hidden">
+            <div class="shop-overlay"></div>
+            <div class="shop-content">
+                <!-- Header -->
+                <div class="shop-header">
+                    <h2 class="font-medieval" id="shopLevelText">Level 2</h2>
+                    <div class="shop-gold">
+                        <span class="gold-icon">🪙</span>
+                        <span id="shopGoldAmount">0</span>
+                    </div>
+                </div>
+
+                <!-- Shop Sections -->
+                <div class="shop-sections">
+                    <!-- Weapons Section -->
+                    <div class="shop-section weapons-section">
+                        <h3 class="section-title font-medieval">Weapons</h3>
+                        <div id="shopWeapons" class="shop-cards">
+                            <!-- Weapon cards populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Passives Section -->
+                    <div class="shop-section passives-section">
+                        <h3 class="section-title font-medieval">Passives</h3>
+                        <div id="shopPassives" class="shop-cards">
+                            <!-- Passive cards populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Stats Section -->
+                    <div class="shop-section stats-section">
+                        <h3 class="section-title font-medieval">Stats</h3>
+                        <div id="shopStats" class="shop-cards">
+                            <!-- Stat cards populated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Done Button -->
+                <div class="shop-footer">
+                    <button id="shopDoneButton" class="game-button shop-done-btn">Done Shopping</button>
                 </div>
             </div>
         </div>

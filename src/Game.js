@@ -64,6 +64,8 @@ export class Game {
         this.victoryRestartButton = document.getElementById('victoryRestartButton');
         this.gameOverTitle = document.querySelector('#gameOverScreen h2');
         this.gameOverText = document.querySelector('#gameOverScreen p');
+        this.shopDoneButton = document.getElementById('shopDoneButton');
+        this.levelUpAnimation = document.getElementById('levelUpAnimation');
 
         this.initialize();
     }
@@ -96,17 +98,28 @@ export class Game {
 
         // Setup level up system
         this.levelUpSystem.initialize();
+        this.levelUpSystem.setHeroRef(this.hero);
         this.levelUpSystem.setLevelUpHandler((level) => {
             this.state = GameState.PAUSED;
-            this.levelUpSystem.filterChoicesForHero(this.hero.weapons);
+            // Show level up animation
+            this.showLevelUpAnimation();
+            // Spawn particle effect
             const heroCenter = this.hero.getCenter();
             this.effects.spawnLevelUp(heroCenter.x, heroCenter.y);
         });
 
         this.levelUpSystem.setChoiceSelectedHandler((choice) => {
             this.handleLevelUpChoice(choice);
-            this.state = GameState.PLAYING;
+            // Don't change state - shop stays open until done
         });
+
+        // Setup shop done button
+        if (this.shopDoneButton) {
+            this.shopDoneButton.onclick = () => {
+                this.levelUpSystem.closeShop();
+                this.state = GameState.PLAYING;
+            };
+        }
 
         // Setup restart buttons
         if (this.restartButton) {
@@ -169,7 +182,20 @@ export class Game {
     }
 
     /**
-     * Handle level up choice selection
+     * Show level up animation
+     */
+    showLevelUpAnimation() {
+        if (this.levelUpAnimation) {
+            this.levelUpAnimation.classList.remove('hidden');
+            // Hide after animation completes
+            setTimeout(() => {
+                this.levelUpAnimation.classList.add('hidden');
+            }, 1500);
+        }
+    }
+
+    /**
+     * Handle level up choice selection (purchase from shop)
      * @param {Object} choice - Selected choice
      */
     handleLevelUpChoice(choice) {
@@ -177,7 +203,7 @@ export class Game {
             this.hero.addWeapon(choice.data.id);
         } else if (choice.type === 'weapon_upgrade') {
             this.hero.upgradeWeapon(choice.weaponId);
-        } else if (choice.type === 'upgrade') {
+        } else if (choice.type === 'passive' || choice.type === 'stat') {
             this.hero.applyUpgrade(choice.data.effect);
         }
     }
@@ -349,13 +375,20 @@ export class Game {
 
                 // Apply damage based on target type
                 if (attackEvent.type === 'hero') {
-                    const died = this.hero.takeDamage(attackEvent.damage);
+                    const result = this.hero.takeDamage(attackEvent.damage);
                     this.effects.spawnDamageNumber(
                         this.hero.x + this.hero.width / 2,
                         this.hero.y,
-                        attackEvent.damage
+                        Math.round(result.actualDamage)
                     );
-                    if (died) {
+
+                    // Apply thorns damage back to attacker
+                    if (result.thornsReflect > 0) {
+                        scout.takeDamage(result.thornsReflect);
+                        this.effects.spawnDamageNumber(scout.x, scout.y - 10, result.thornsReflect, true);
+                    }
+
+                    if (result.died) {
                         this.defeat();
                         return;
                     }
@@ -480,11 +513,13 @@ export class Game {
 
             if (result) {
                 if (result.type === PickupType.XP) {
-                    const leveledUp = this.levelUpSystem.addXP(result.value);
+                    this.levelUpSystem.addXP(result.value);
                     this.effects.spawnXPPickup(pickup.x, pickup.y, result.value);
                 } else if (result.type === PickupType.GOLD) {
-                    this.hero.addGold(result.value);
-                    this.effects.spawnGoldPickup(pickup.x, pickup.y, result.value);
+                    // Apply gold multiplier
+                    const goldAmount = Math.floor(result.value * (1 + this.hero.goldMultiplier));
+                    this.hero.addGold(goldAmount);
+                    this.effects.spawnGoldPickup(pickup.x, pickup.y, goldAmount);
                 }
             }
 
@@ -695,6 +730,9 @@ export class Game {
             CONFIG.WORLD.HEIGHT / 2 + 300
         );
         this.hero.addStartingWeapon('basic_sword');
+
+        // Update level up system hero reference
+        this.levelUpSystem.setHeroRef(this.hero);
 
         // Hide end screens
         if (this.gameOverScreen) {
