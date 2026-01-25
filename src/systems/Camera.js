@@ -1,5 +1,6 @@
 /**
  * Grimm Dominion - Camera System
+ * Supports following targets and zoom
  */
 
 import { CONFIG } from '../config.js';
@@ -9,8 +10,15 @@ export class Camera {
     constructor() {
         this.x = 0;
         this.y = 0;
-        this.width = CONFIG.CAMERA.DEFAULT_WIDTH;
-        this.height = CONFIG.CAMERA.DEFAULT_HEIGHT;
+        this.baseWidth = CONFIG.CAMERA.DEFAULT_WIDTH;
+        this.baseHeight = CONFIG.CAMERA.DEFAULT_HEIGHT;
+        this.width = this.baseWidth;
+        this.height = this.baseHeight;
+
+        // Zoom
+        this.zoom = 1;
+        this.targetZoom = 1;
+        this.zoomSpeed = 0.1; // Smoothing speed
     }
 
     /**
@@ -18,6 +26,7 @@ export class Camera {
      * @param {Object} target - Entity with x, y properties
      */
     follow(target) {
+        // Center camera on target
         this.x = target.x - this.width / 2;
         this.y = target.y - this.height / 2;
 
@@ -27,13 +36,50 @@ export class Camera {
     }
 
     /**
+     * Update camera (for smooth zoom)
+     * @param {number} deltaTime - Time since last frame
+     */
+    update(deltaTime) {
+        // Smooth zoom interpolation
+        if (Math.abs(this.zoom - this.targetZoom) > 0.001) {
+            this.zoom += (this.targetZoom - this.zoom) * this.zoomSpeed * 60 * deltaTime;
+            this.updateViewport();
+        }
+    }
+
+    /**
+     * Update viewport size based on zoom
+     */
+    updateViewport() {
+        this.width = this.baseWidth / this.zoom;
+        this.height = this.baseHeight / this.zoom;
+    }
+
+    /**
+     * Set zoom level
+     * @param {number} zoom - New zoom level
+     */
+    setZoom(zoom) {
+        this.targetZoom = clamp(zoom, CONFIG.CAMERA.MIN_ZOOM, CONFIG.CAMERA.MAX_ZOOM);
+    }
+
+    /**
+     * Adjust zoom by delta
+     * @param {number} delta - Zoom delta (positive = zoom in, negative = zoom out)
+     */
+    adjustZoom(delta) {
+        this.setZoom(this.targetZoom + delta * CONFIG.CAMERA.ZOOM_SPEED);
+    }
+
+    /**
      * Resize the camera viewport
-     * @param {number} width - New width
-     * @param {number} height - New height
+     * @param {number} width - New base width
+     * @param {number} height - New base height
      */
     resize(width, height) {
-        this.width = width;
-        this.height = height;
+        this.baseWidth = width;
+        this.baseHeight = height;
+        this.updateViewport();
     }
 
     /**
@@ -79,5 +125,18 @@ export class Camera {
                worldX <= this.x + this.width + margin &&
                worldY >= this.y - margin &&
                worldY <= this.y + this.height + margin;
+    }
+
+    /**
+     * Get the visible world bounds
+     * @returns {Object} Bounds { left, top, right, bottom }
+     */
+    getBounds() {
+        return {
+            left: this.x,
+            top: this.y,
+            right: this.x + this.width,
+            bottom: this.y + this.height
+        };
     }
 }

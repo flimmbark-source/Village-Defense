@@ -45,12 +45,6 @@
     <div id="gameContainer">
         <canvas id="gameCanvas"></canvas>
 
-        <!-- Header UI -->
-        <div id="headerPanel" class="ui-panel">
-            <h1 class="font-medieval">Grimm Dominion</h1>
-            <p>Defend the villages from the Dark Lord's scouts!</p>
-        </div>
-
         <!-- Hero UI (Bottom Left) -->
         <div id="heroPanel">
             <div class="hero-stats ui-panel">
@@ -68,31 +62,31 @@
                     <span id="heroHealthText">100/100</span>
                 </div>
             </div>
+        </div>
 
-            <!-- Inventory Panel -->
-            <div id="inventoryPanel" class="ui-panel">
-                <!-- Inventory slots will be populated by JavaScript -->
+        <!-- Level Up Panel -->
+        <div id="levelUpPanel" class="hidden">
+            <div class="level-up-overlay"></div>
+            <div class="level-up-content">
+                <h2 class="font-medieval" id="levelUpLevelText">Level 2</h2>
+                <p>Choose an upgrade:</p>
+                <div id="levelUpChoices" class="level-up-choices">
+                    <!-- Choices will be populated by JavaScript -->
+                </div>
             </div>
         </div>
-
-        <!-- Shop UI -->
-        <div id="shopPanel" class="ui-panel hidden">
-            <h2 class="font-medieval">Secret Tavern</h2>
-            <div id="shopItemsContainer"></div>
-        </div>
-
-        <!-- Tooltip UI -->
-        <div id="tooltipPanel" class="ui-panel hidden"></div>
 
         <!-- Game Over Screen -->
         <div id="gameOverScreen" class="hidden">
             <h2 class="font-medieval">You Have Perished</h2>
             <p>The Dark Lord's forces have overcome you.</p>
-            <button id="restartButton" class="shop-button">Play Again</button>
+            <button id="restartButton" class="game-button">Play Again</button>
         </div>
 
-        <!-- Dragged Item Icon -->
-        <div id="draggedItemIcon" class="item-icon hidden"></div>
+        <!-- Controls hint -->
+        <div id="controlsHint" class="ui-panel">
+            <span>Click to move | Scroll to zoom</span>
+        </div>
     </div>
 
     <!-- Game Script -->

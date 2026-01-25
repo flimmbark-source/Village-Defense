@@ -1,5 +1,6 @@
 /**
  * Grimm Dominion - Renderer System
+ * Handles all drawing operations including attacks, pickups, and effects
  */
 
 import { CONFIG, COLORS } from '../config.js';
@@ -9,6 +10,15 @@ export class Renderer {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
         this.camera = camera;
+        this.time = 0;
+    }
+
+    /**
+     * Update renderer time (for animations)
+     * @param {number} deltaTime - Time since last frame
+     */
+    update(deltaTime) {
+        this.time += deltaTime;
     }
 
     /**
@@ -23,6 +33,9 @@ export class Renderer {
      */
     beginCamera() {
         this.ctx.save();
+        // Apply zoom scaling
+        const scale = this.camera.zoom;
+        this.ctx.scale(scale, scale);
         this.ctx.translate(-this.camera.x, -this.camera.y);
     }
 
@@ -82,29 +95,6 @@ export class Renderer {
     }
 
     /**
-     * Draw the shop
-     * @param {Object} shop - Shop object
-     */
-    drawShop(shop) {
-        // Ground
-        this.ctx.fillStyle = COLORS.SHOP_GROUND;
-        this.ctx.beginPath();
-        this.ctx.arc(shop.x, shop.y, shop.radius, 0, Math.PI * 2);
-        this.ctx.fill();
-
-        // Border
-        this.ctx.strokeStyle = COLORS.SHOP_ACCENT;
-        this.ctx.lineWidth = 5;
-        this.ctx.stroke();
-
-        // Icon
-        this.ctx.font = '50px MedievalSharp';
-        this.ctx.textAlign = 'center';
-        this.ctx.fillStyle = COLORS.SHOP_ACCENT;
-        this.ctx.fillText('🍺', shop.x, shop.y + 15);
-    }
-
-    /**
      * Draw villages
      * @param {Array} villages - Village entities
      */
@@ -143,20 +133,56 @@ export class Renderer {
      * @param {Object} hero - Hero entity
      */
     drawHero(hero) {
-        this.ctx.fillStyle = hero.color;
-        this.ctx.fillRect(hero.x, hero.y, hero.width, hero.height);
+        const ctx = this.ctx;
+        const center = hero.getCenter();
+
+        // Draw hero body
+        ctx.fillStyle = hero.color;
+        ctx.fillRect(hero.x, hero.y, hero.width, hero.height);
+
+        // Draw pickup range indicator (subtle)
+        ctx.beginPath();
+        ctx.arc(center.x, center.y, hero.getPickupMagnetRange(), 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(127, 255, 127, 0.1)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
     }
 
     /**
-     * Draw projectiles
-     * @param {Array} projectiles - Projectile entities
+     * Draw pickups
+     * @param {Array} pickups - Pickup entities
      */
-    drawProjectiles(projectiles) {
-        projectiles.forEach(p => {
-            this.ctx.beginPath();
-            this.ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-            this.ctx.fillStyle = p.color;
-            this.ctx.fill();
+    drawPickups(pickups) {
+        const ctx = this.ctx;
+
+        pickups.forEach(pickup => {
+            const alpha = pickup.getAlpha();
+
+            // Glow
+            ctx.beginPath();
+            ctx.arc(pickup.x, pickup.y, pickup.radius * 1.5, 0, Math.PI * 2);
+            const gradient = ctx.createRadialGradient(
+                pickup.x, pickup.y, 0,
+                pickup.x, pickup.y, pickup.radius * 1.5
+            );
+            gradient.addColorStop(0, pickup.glowColor.replace(')', `, ${alpha * 0.5})`).replace('rgb', 'rgba'));
+            gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = gradient;
+            ctx.fill();
+
+            // Body
+            ctx.beginPath();
+            ctx.arc(pickup.x, pickup.y, pickup.radius, 0, Math.PI * 2);
+            ctx.fillStyle = pickup.color;
+            ctx.globalAlpha = alpha;
+            ctx.fill();
+            ctx.globalAlpha = 1;
+
+            // Shine
+            ctx.beginPath();
+            ctx.arc(pickup.x - pickup.radius * 0.3, pickup.y - pickup.radius * 0.3, pickup.radius * 0.3, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.5})`;
+            ctx.fill();
         });
     }
 
@@ -195,15 +221,283 @@ export class Renderer {
     }
 
     /**
-     * Draw world text effects
-     * @param {Array} effects - Text effect objects
+     * Draw attacks
+     * @param {Array} attacks - Attack instances
      */
-    drawWorldTextEffects(effects) {
-        effects.forEach(effect => {
-            this.ctx.font = effect.font;
-            this.ctx.fillStyle = effect.color;
-            this.ctx.textAlign = 'center';
-            this.ctx.fillText(effect.text, effect.x, effect.y);
+    drawAttacks(attacks) {
+        const ctx = this.ctx;
+
+        attacks.forEach(attack => {
+            const pattern = attack.weapon.attackPattern;
+            const effects = attack.weapon.effects;
+
+            switch (pattern) {
+                case 'slash':
+                    this.drawSlashAttack(attack, effects);
+                    break;
+                case 'projectile':
+                case 'pierce':
+                    this.drawProjectileAttack(attack, effects);
+                    break;
+                case 'homing':
+                    this.drawHomingAttack(attack, effects);
+                    break;
+                case 'nova':
+                    this.drawNovaAttack(attack, effects);
+                    break;
+                case 'whip':
+                    this.drawWhipAttack(attack, effects);
+                    break;
+                case 'lightning':
+                    this.drawLightningAttack(attack, effects);
+                    break;
+                case 'boomerang':
+                    this.drawBoomerangAttack(attack, effects);
+                    break;
+            }
+        });
+    }
+
+    drawSlashAttack(attack, effects) {
+        const ctx = this.ctx;
+        const progress = attack.slashProgress;
+
+        ctx.save();
+        ctx.translate(attack.startX, attack.startY);
+
+        // Draw arc
+        const currentAngle = attack.startAngle + (attack.endAngle - attack.startAngle) * progress;
+        const arcLength = 0.5; // Visible arc length
+
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, attack.weapon.range, currentAngle - arcLength, currentAngle);
+        ctx.closePath();
+
+        // Gradient fill
+        const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, attack.weapon.range);
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 0)');
+        gradient.addColorStop(0.5, effects.trailColor);
+        gradient.addColorStop(1, effects.color);
+        ctx.fillStyle = gradient;
+        ctx.fill();
+
+        ctx.restore();
+    }
+
+    drawProjectileAttack(attack, effects) {
+        const ctx = this.ctx;
+
+        // Draw trail
+        if (attack.trail && attack.trail.length > 1) {
+            ctx.beginPath();
+            ctx.moveTo(attack.trail[0].x, attack.trail[0].y);
+            for (let i = 1; i < attack.trail.length; i++) {
+                ctx.lineTo(attack.trail[i].x, attack.trail[i].y);
+            }
+            ctx.strokeStyle = effects.trailColor || 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = effects.size * 0.6;
+            ctx.stroke();
+        }
+
+        // Draw projectile
+        ctx.save();
+        ctx.translate(attack.x, attack.y);
+        if (effects.rotation) {
+            ctx.rotate(attack.rotation);
+        }
+
+        ctx.beginPath();
+        if (effects.length) {
+            // Elongated shard
+            ctx.ellipse(0, 0, effects.size, effects.length / 2, attack.angle, 0, Math.PI * 2);
+        } else {
+            ctx.arc(0, 0, effects.size, 0, Math.PI * 2);
+        }
+        ctx.fillStyle = effects.color;
+        ctx.fill();
+
+        ctx.restore();
+    }
+
+    drawHomingAttack(attack, effects) {
+        const ctx = this.ctx;
+        const pulse = Math.sin(this.time * effects.pulseSpeed) * 0.3 + 0.7;
+
+        // Draw trail
+        if (attack.trail && attack.trail.length > 1) {
+            ctx.beginPath();
+            ctx.moveTo(attack.trail[0].x, attack.trail[0].y);
+            for (let i = 1; i < attack.trail.length; i++) {
+                ctx.lineTo(attack.trail[i].x, attack.trail[i].y);
+            }
+            ctx.strokeStyle = effects.glowColor;
+            ctx.lineWidth = effects.size * 0.4;
+            ctx.globalAlpha = 0.5;
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+        }
+
+        // Glow
+        ctx.beginPath();
+        ctx.arc(attack.x, attack.y, effects.size * 1.5 * pulse, 0, Math.PI * 2);
+        ctx.fillStyle = effects.glowColor;
+        ctx.globalAlpha = 0.3;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        // Body
+        ctx.beginPath();
+        ctx.arc(attack.x, attack.y, effects.size * pulse, 0, Math.PI * 2);
+        ctx.fillStyle = effects.color;
+        ctx.fill();
+    }
+
+    drawNovaAttack(attack, effects) {
+        const ctx = this.ctx;
+        const alpha = 1 - attack.time / attack.duration;
+
+        // Draw expanding ring
+        ctx.beginPath();
+        ctx.arc(attack.startX, attack.startY, attack.radius, 0, Math.PI * 2);
+        ctx.strokeStyle = effects.color;
+        ctx.lineWidth = 10;
+        ctx.globalAlpha = alpha;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+
+        // Draw particles
+        attack.particles.forEach(p => {
+            const x = attack.startX + Math.cos(p.angle) * p.dist;
+            const y = attack.startY + Math.sin(p.angle) * p.dist;
+
+            ctx.beginPath();
+            ctx.arc(x, y, 5, 0, Math.PI * 2);
+            ctx.fillStyle = effects.color;
+            ctx.globalAlpha = alpha;
+            ctx.fill();
+            ctx.globalAlpha = 1;
+        });
+    }
+
+    drawWhipAttack(attack, effects) {
+        const ctx = this.ctx;
+
+        if (attack.segments.length < 2) return;
+
+        // Draw chain
+        ctx.beginPath();
+        ctx.moveTo(attack.startX, attack.startY);
+        for (const seg of attack.segments) {
+            ctx.lineTo(seg.x, seg.y);
+        }
+        ctx.strokeStyle = effects.color;
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        // Draw tip
+        const tip = attack.segments[attack.segments.length - 1];
+        ctx.beginPath();
+        ctx.arc(tip.x, tip.y, 8, 0, Math.PI * 2);
+        ctx.fillStyle = effects.hitColor;
+        ctx.fill();
+    }
+
+    drawLightningAttack(attack, effects) {
+        const ctx = this.ctx;
+        const alpha = 1 - attack.time / attack.duration;
+
+        attack.chains.forEach(chain => {
+            // Draw jagged line
+            ctx.beginPath();
+            ctx.moveTo(chain.startX, chain.startY);
+
+            // Add some randomness for lightning effect
+            const segments = 5;
+            const dx = (chain.endX - chain.startX) / segments;
+            const dy = (chain.endY - chain.startY) / segments;
+
+            for (let i = 1; i < segments; i++) {
+                const x = chain.startX + dx * i + (Math.random() - 0.5) * 20;
+                const y = chain.startY + dy * i + (Math.random() - 0.5) * 20;
+                ctx.lineTo(x, y);
+            }
+            ctx.lineTo(chain.endX, chain.endY);
+
+            // Glow
+            ctx.strokeStyle = effects.glowColor;
+            ctx.lineWidth = effects.thickness * 3;
+            ctx.globalAlpha = alpha * 0.5;
+            ctx.stroke();
+
+            // Core
+            ctx.strokeStyle = effects.color;
+            ctx.lineWidth = effects.thickness;
+            ctx.globalAlpha = alpha;
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+        });
+    }
+
+    drawBoomerangAttack(attack, effects) {
+        const ctx = this.ctx;
+
+        ctx.save();
+        ctx.translate(attack.x, attack.y);
+        ctx.rotate(attack.rotation);
+
+        // Draw boomerang shape
+        ctx.beginPath();
+        ctx.moveTo(-effects.size, 0);
+        ctx.quadraticCurveTo(0, -effects.size * 0.5, effects.size, 0);
+        ctx.quadraticCurveTo(0, effects.size * 0.5, -effects.size, 0);
+        ctx.fillStyle = effects.color;
+        ctx.fill();
+
+        ctx.restore();
+    }
+
+    /**
+     * Draw particles
+     * @param {Array} particles - Particle array
+     */
+    drawParticles(particles) {
+        const ctx = this.ctx;
+
+        particles.forEach(p => {
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rotation);
+            ctx.globalAlpha = p.alpha;
+
+            ctx.beginPath();
+            if (p.shape === 'square') {
+                ctx.fillRect(-p.currentSize / 2, -p.currentSize / 2, p.currentSize, p.currentSize);
+            } else {
+                ctx.arc(0, 0, p.currentSize, 0, Math.PI * 2);
+            }
+            ctx.fillStyle = p.color;
+            ctx.fill();
+
+            ctx.globalAlpha = 1;
+            ctx.restore();
+        });
+    }
+
+    /**
+     * Draw floating texts
+     * @param {Array} texts - Floating text array
+     */
+    drawFloatingTexts(texts) {
+        const ctx = this.ctx;
+
+        texts.forEach(t => {
+            ctx.font = t.font;
+            ctx.fillStyle = t.color;
+            ctx.globalAlpha = t.alpha;
+            ctx.textAlign = 'center';
+            ctx.fillText(t.text, t.x, t.y);
+            ctx.globalAlpha = 1;
         });
     }
 
@@ -223,18 +517,21 @@ export class Renderer {
             this.ctx.font = 'bold 16px Inter';
             this.ctx.textAlign = 'center';
             if (remainingAttackers > 0) {
-                this.ctx.fillText('Help Needed!', screenPos.x, screenPos.y - 50);
+                this.ctx.fillText('Help Needed!', screenPos.x * this.camera.zoom, screenPos.y * this.camera.zoom - 50);
             }
 
             // Off-screen indicator
             if (!this.camera.isVisible(v.x, v.y)) {
+                const scaledWidth = this.canvas.width / this.camera.zoom;
+                const scaledHeight = this.canvas.height / this.camera.zoom;
+
                 const angle = Math.atan2(
-                    screenPos.y - this.camera.height / 2,
-                    screenPos.x - this.camera.width / 2
+                    screenPos.y - scaledHeight / 2,
+                    screenPos.x - scaledWidth / 2
                 );
-                const distFromCenter = Math.min(this.camera.width / 2 - 30, this.camera.height / 2 - 30);
-                const indicatorX = this.camera.width / 2 + distFromCenter * Math.cos(angle);
-                const indicatorY = this.camera.height / 2 + distFromCenter * Math.sin(angle);
+                const distFromCenter = Math.min(this.canvas.width / 2 - 30, this.canvas.height / 2 - 30);
+                const indicatorX = this.canvas.width / 2 + distFromCenter * Math.cos(angle);
+                const indicatorY = this.canvas.height / 2 + distFromCenter * Math.sin(angle);
 
                 this.ctx.save();
                 this.ctx.translate(indicatorX, indicatorY);
@@ -243,6 +540,81 @@ export class Renderer {
                 this.ctx.fillStyle = 'red';
                 this.ctx.fillText('!', 0, 0);
                 this.ctx.restore();
+            }
+        });
+    }
+
+    /**
+     * Draw HUD elements (screen space)
+     * @param {Object} hero - Hero entity
+     * @param {Object} levelUpSystem - Level up system
+     */
+    drawHUD(hero, levelUpSystem) {
+        const ctx = this.ctx;
+        const padding = 20;
+
+        // XP Bar at top
+        const xpBarWidth = 400;
+        const xpBarHeight = 12;
+        const xpBarX = (this.canvas.width - xpBarWidth) / 2;
+        const xpBarY = padding;
+
+        // Background
+        ctx.fillStyle = COLORS.XP_BAR_BG;
+        ctx.fillRect(xpBarX, xpBarY, xpBarWidth, xpBarHeight);
+
+        // Fill
+        ctx.fillStyle = COLORS.XP_BAR_FILL;
+        ctx.fillRect(xpBarX, xpBarY, xpBarWidth * levelUpSystem.getXPProgress(), xpBarHeight);
+
+        // Border
+        ctx.strokeStyle = '#555';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(xpBarX, xpBarY, xpBarWidth, xpBarHeight);
+
+        // Level text
+        ctx.font = 'bold 14px Inter';
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'center';
+        ctx.fillText(`Level ${levelUpSystem.level}`, this.canvas.width / 2, xpBarY + xpBarHeight + 16);
+
+        // Weapon icons (bottom right)
+        const iconSize = 40;
+        const iconPadding = 8;
+        const startX = this.canvas.width - padding - iconSize;
+        const startY = this.canvas.height - padding - iconSize;
+
+        hero.weapons.forEach((weapon, i) => {
+            const x = startX - i * (iconSize + iconPadding);
+            const y = startY;
+
+            // Background
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.fillRect(x, y, iconSize, iconSize);
+
+            // Border
+            ctx.strokeStyle = '#5a3d2b';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x, y, iconSize, iconSize);
+
+            // Icon
+            ctx.font = '24px serif';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#fff';
+            ctx.fillText(weapon.icon, x + iconSize / 2, y + iconSize / 2 + 8);
+
+            // Level badge
+            if (weapon.level > 1) {
+                ctx.font = 'bold 10px Inter';
+                ctx.fillStyle = '#ffd700';
+                ctx.fillText(`+${weapon.level - 1}`, x + iconSize - 8, y + 12);
+            }
+
+            // Cooldown overlay
+            if (weapon.cooldownTimer > 0) {
+                const cooldownRatio = weapon.cooldownTimer / weapon.getCooldown();
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+                ctx.fillRect(x, y + iconSize * (1 - cooldownRatio), iconSize, iconSize * cooldownRatio);
             }
         });
     }

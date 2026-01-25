@@ -1,20 +1,21 @@
 /**
  * Grimm Dominion - Main Game Class
+ * Vampire Survivors-style roguelike action game
  */
 
 import { CONFIG, COLORS } from './config.js';
-import { setColorAlpha, randomRange } from './utils.js';
 
 import { Hero } from './entities/Hero.js';
 import { Scout } from './entities/Scout.js';
 import { Village } from './entities/Village.js';
+import { Pickup, PickupType } from './entities/Pickup.js';
 import { Projectile } from './entities/Projectile.js';
 
 import { Camera } from './systems/Camera.js';
 import { Input } from './systems/Input.js';
-import { Shop } from './systems/Shop.js';
-import { Inventory } from './systems/Inventory.js';
 import { Renderer } from './systems/Renderer.js';
+import { LevelUpSystem } from './systems/LevelUp.js';
+import { EffectsSystem } from './systems/Effects.js';
 
 export class Game {
     constructor(canvas) {
@@ -24,13 +25,15 @@ export class Game {
         this.camera = new Camera();
         this.renderer = new Renderer(canvas, this.camera);
         this.input = new Input(canvas, this.camera);
-        this.shop = new Shop();
-        this.inventory = new Inventory();
+        this.levelUpSystem = new LevelUpSystem();
+        this.effects = new EffectsSystem();
 
         // Game state
         this.gameOver = false;
+        this.paused = false;
         this.spawnTimer = CONFIG.DARK_LORD_SPAWN_COOLDOWN;
         this.lastTime = 0;
+        this.gameTime = 0;
 
         // World objects
         this.castle = {
@@ -43,10 +46,11 @@ export class Game {
         // Entities
         this.hero = null;
         this.scouts = [];
-        this.projectiles = [];
+        this.attacks = [];
+        this.pickups = [];
+        this.projectiles = []; // For militia
         this.forests = [];
         this.villages = [];
-        this.worldTextEffects = [];
 
         // UI elements
         this.heroHealthBar = document.getElementById('heroHealthBar');
@@ -68,32 +72,28 @@ export class Game {
             CONFIG.WORLD.HEIGHT / 2 + 300
         );
 
-        // Generate forests
-        this.generateForests();
+        // Give hero starting weapon
+        this.hero.addStartingWeapon('basic_sword');
 
-        // Generate villages
+        // Generate world
+        this.generateForests();
         this.generateVillages();
 
         // Setup input
-        this.input.setClickHandler((x, y) => {
-            if (!this.gameOver && !this.inventory.isDragging()) {
-                this.hero.setTarget(x, y);
-            }
+        this.setupInput();
+
+        // Setup level up system
+        this.levelUpSystem.initialize();
+        this.levelUpSystem.setLevelUpHandler((level) => {
+            this.paused = true;
+            this.levelUpSystem.filterChoicesForHero(this.hero.weapons);
+            const heroCenter = this.hero.getCenter();
+            this.effects.spawnLevelUp(heroCenter.x, heroCenter.y);
         });
 
-        this.input.setMouseMoveHandler((x, y) => {
-            this.inventory.updateTooltipPosition(x, y);
-        });
-
-        // Setup shop
-        this.shop.initialize();
-        this.shop.setPurchaseHandler((item) => this.handlePurchase(item));
-
-        // Setup inventory
-        this.inventory.initialize(this.hero);
-        this.inventory.setSwapHandler((from, to) => {
-            this.hero.swapInventorySlots(from, to);
-            this.inventory.render(this.hero);
+        this.levelUpSystem.setChoiceSelectedHandler((choice) => {
+            this.handleLevelUpChoice(choice);
+            this.paused = false;
         });
 
         // Setup restart button
@@ -106,6 +106,25 @@ export class Game {
 
         // Start game loop
         requestAnimationFrame((t) => this.gameLoop(t));
+    }
+
+    /**
+     * Setup input handlers
+     */
+    setupInput() {
+        // Click to move
+        this.input.setClickHandler((x, y) => {
+            if (!this.gameOver && !this.paused) {
+                this.hero.setTarget(x, y);
+            }
+        });
+
+        // Mouse wheel to zoom
+        this.canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? -1 : 1;
+            this.camera.adjustZoom(delta);
+        }, { passive: false });
     }
 
     /**
@@ -135,15 +154,17 @@ export class Game {
     }
 
     /**
-     * Handle shop purchase
-     * @param {Object} item - Item being purchased
+     * Handle level up choice selection
+     * @param {Object} choice - Selected choice
      */
-    handlePurchase(item) {
-        if (!this.hero.spendGold(item.cost)) return;
-        if (!this.hero.addToInventory(item)) return;
-
-        this.hero.applyUpgrade(item.effect, 1);
-        this.inventory.render(this.hero);
+    handleLevelUpChoice(choice) {
+        if (choice.type === 'weapon') {
+            this.hero.addWeapon(choice.data.id);
+        } else if (choice.type === 'weapon_upgrade') {
+            this.hero.upgradeWeapon(choice.weaponId);
+        } else if (choice.type === 'upgrade') {
+            this.hero.applyUpgrade(choice.data.effect);
+        }
     }
 
     /**
@@ -157,14 +178,33 @@ export class Game {
     }
 
     /**
-     * Create a projectile
-     * @param {number} x - Starting X
-     * @param {number} y - Starting Y
-     * @param {number} targetId - Target scout ID
-     * @param {string} owner - 'hero' or 'militia'
+     * Create a projectile (for militia)
      */
     createProjectile(x, y, targetId, owner) {
         this.projectiles.push(new Projectile(x, y, targetId, owner));
+    }
+
+    /**
+     * Create an attack from weapon
+     * @param {Object} attack - Attack instance
+     */
+    createAttack(attack) {
+        this.attacks.push(attack);
+    }
+
+    /**
+     * Spawn pickup at position
+     * @param {number} x - X position
+     * @param {number} y - Y position
+     * @param {string} type - Pickup type
+     * @param {number} value - Pickup value
+     */
+    spawnPickup(x, y, type, value) {
+        if (type === 'xp') {
+            this.pickups.push(Pickup.createXP(x, y, value));
+        } else if (type === 'gold') {
+            this.pickups.push(Pickup.createGold(x, y, value));
+        }
     }
 
     /**
@@ -172,11 +212,24 @@ export class Game {
      * @param {number} deltaTime - Time since last frame in seconds
      */
     update(deltaTime) {
+        // Don't update if paused (level up screen)
+        if (this.paused) {
+            return;
+        }
+
+        this.gameTime += deltaTime;
+
+        // Update camera zoom
+        this.camera.update(deltaTime);
+
+        // Update renderer time
+        this.renderer.update(deltaTime);
+
         // Update hero
         this.hero.update(
             deltaTime,
             this.scouts,
-            (x, y, targetId, owner) => this.createProjectile(x, y, targetId, owner)
+            (attack) => this.createAttack(attack)
         );
 
         // Update scouts
@@ -193,14 +246,20 @@ export class Game {
             );
         }
 
-        // Update projectiles
+        // Update attacks
+        this.updateAttacks(deltaTime);
+
+        // Update militia projectiles
         this.updateProjectiles();
+
+        // Update pickups
+        this.updatePickups(deltaTime);
 
         // Handle collisions
         this.handleCollisions();
 
-        // Update text effects
-        this.updateTextEffects(deltaTime);
+        // Update effects
+        this.effects.update(deltaTime);
 
         // Spawn timer
         this.spawnTimer += deltaTime;
@@ -212,20 +271,48 @@ export class Game {
         // Update camera
         this.camera.follow(this.hero);
 
-        // Update shop
-        this.shop.update(this.hero);
-
         // Update UI
         this.updateUI();
     }
 
     /**
-     * Update projectiles
+     * Update attacks
+     * @param {number} deltaTime - Time since last frame
+     */
+    updateAttacks(deltaTime) {
+        for (let i = this.attacks.length - 1; i >= 0; i--) {
+            const attack = this.attacks[i];
+            const damageEvents = attack.update(deltaTime, this.hero, this.scouts);
+
+            // Process damage events
+            for (const event of damageEvents) {
+                this.effects.spawnDamageNumber(event.enemy.x, event.enemy.y, event.damage);
+
+                // Check if enemy died
+                if (event.enemy.isDead()) {
+                    // Mark hero helped for village defense
+                    for (const village of this.villages) {
+                        if (village.attackers.has(event.enemy.id)) {
+                            village.markHeroHelped();
+                        }
+                    }
+                }
+            }
+
+            // Remove finished attacks
+            if (attack.finished) {
+                this.attacks.splice(i, 1);
+            }
+        }
+    }
+
+    /**
+     * Update militia projectiles
      */
     updateProjectiles() {
         for (let i = this.projectiles.length - 1; i >= 0; i--) {
             const proj = this.projectiles[i];
-            const result = proj.update(this.scouts, this.hero.attackDamage);
+            const result = proj.update(this.scouts, CONFIG.MILITIA.DAMAGE);
 
             if (result) {
                 if (result.remove) {
@@ -234,16 +321,33 @@ export class Game {
 
                 if (result.hit) {
                     result.target.takeDamage(result.damage);
-
-                    // Mark hero helped if hero's projectile
-                    if (result.owner === 'hero') {
-                        for (const village of this.villages) {
-                            if (village.attackers.has(result.target.id)) {
-                                village.markHeroHelped();
-                            }
-                        }
-                    }
+                    this.effects.spawnDamageNumber(result.target.x, result.target.y, result.damage);
                 }
+            }
+        }
+    }
+
+    /**
+     * Update pickups
+     * @param {number} deltaTime - Time since last frame
+     */
+    updatePickups(deltaTime) {
+        for (let i = this.pickups.length - 1; i >= 0; i--) {
+            const pickup = this.pickups[i];
+            const result = pickup.update(deltaTime, this.hero);
+
+            if (result) {
+                if (result.type === PickupType.XP) {
+                    const leveledUp = this.levelUpSystem.addXP(result.value);
+                    this.effects.spawnXPPickup(pickup.x, pickup.y, result.value);
+                } else if (result.type === PickupType.GOLD) {
+                    this.hero.addGold(result.value);
+                    this.effects.spawnGoldPickup(pickup.x, pickup.y, result.value);
+                }
+            }
+
+            if (pickup.shouldRemove()) {
+                this.pickups.splice(i, 1);
             }
         }
     }
@@ -256,6 +360,11 @@ export class Game {
         for (const scout of this.scouts) {
             if (scout.tryAttackHero(this.hero)) {
                 const died = this.hero.takeDamage(CONFIG.SCOUT.DAMAGE);
+                this.effects.spawnDamageNumber(
+                    this.hero.x + this.hero.width / 2,
+                    this.hero.y,
+                    CONFIG.SCOUT.DAMAGE
+                );
                 if (died) {
                     this.endGame();
                     return;
@@ -268,45 +377,38 @@ export class Game {
             if (this.scouts[i].isDead()) {
                 const deadScout = this.scouts.splice(i, 1)[0];
 
+                // Spawn death effect
+                this.effects.spawnDeathBurst(deadScout.x, deadScout.y, deadScout.color);
+
+                // Spawn drops
+                const drops = deadScout.getDrops();
+                for (const drop of drops) {
+                    this.spawnPickup(deadScout.x, deadScout.y, drop.type, drop.value);
+                }
+
                 // Check villages
                 for (const village of this.villages) {
                     const result = village.removeAttacker(deadScout.id);
                     if (result && result.attackEnded) {
+                        const heroCenter = this.hero.getCenter();
                         if (result.heroHelped) {
-                            this.hero.addGold(CONFIG.VILLAGE_GOLD_REWARD);
-                            this.addTextEffect('Saved!', village.x, village.y - 20, COLORS.TEXT_SAVED, 'bold 24px MedievalSharp', 2.0);
-                            this.addTextEffect(`+${CONFIG.VILLAGE_GOLD_REWARD} Gold!`, village.x, village.y, COLORS.TEXT_GOLD, 'bold 20px MedievalSharp', 2.0);
+                            // Bonus gold for saving village
+                            const bonusGold = 50;
+                            this.spawnPickup(village.x, village.y, 'gold', bonusGold);
+                            this.effects.addFloatingText(village.x, village.y - 30, 'Village Saved!', {
+                                color: '#4cd44c',
+                                font: 'bold 20px MedievalSharp',
+                                lifetime: 2
+                            });
                         } else {
-                            this.addTextEffect('Militia Saved the Day!', village.x, village.y - 20, COLORS.TEXT_MILITIA, 'bold 18px MedievalSharp', 2.5);
+                            this.effects.addFloatingText(village.x, village.y - 30, 'Militia Victory!', {
+                                color: '#add8e6',
+                                font: 'bold 16px MedievalSharp',
+                                lifetime: 2
+                            });
                         }
                     }
                 }
-            }
-        }
-    }
-
-    /**
-     * Add a text effect
-     */
-    addTextEffect(text, x, y, color, font, lifespan) {
-        this.worldTextEffects.push({ text, x, y, color, font, lifespan });
-    }
-
-    /**
-     * Update text effects
-     * @param {number} deltaTime - Time since last frame
-     */
-    updateTextEffects(deltaTime) {
-        for (let i = this.worldTextEffects.length - 1; i >= 0; i--) {
-            const effect = this.worldTextEffects[i];
-            effect.lifespan -= deltaTime;
-            effect.y -= 10 * deltaTime;
-
-            const alpha = Math.max(0, effect.lifespan / 2.0);
-            effect.color = setColorAlpha(effect.color, alpha);
-
-            if (effect.lifespan <= 0) {
-                this.worldTextEffects.splice(i, 1);
             }
         }
     }
@@ -337,19 +439,28 @@ export class Game {
         this.renderer.drawGround();
         this.renderer.drawForests(this.forests);
         this.renderer.drawVillages(this.villages);
-        this.renderer.drawShop(this.shop);
         this.renderer.drawCastle(this.castle, this.spawnTimer);
+
+        // Pickups
+        this.renderer.drawPickups(this.pickups);
 
         // Entities
         this.renderer.drawHero(this.hero);
         this.renderer.drawProjectiles(this.projectiles);
         this.renderer.drawScouts(this.scouts);
-        this.renderer.drawWorldTextEffects(this.worldTextEffects);
+
+        // Attacks
+        this.renderer.drawAttacks(this.attacks);
+
+        // Effects (world space)
+        this.renderer.drawParticles(this.effects.particles);
+        this.renderer.drawFloatingTexts(this.effects.floatingTexts);
 
         this.renderer.endCamera();
 
         // Screen-space UI
         this.renderer.drawAttackIndicators(this.villages);
+        this.renderer.drawHUD(this.hero, this.levelUpSystem);
     }
 
     /**
@@ -360,7 +471,7 @@ export class Game {
         if (this.gameOver) return;
 
         if (!this.lastTime) this.lastTime = timestamp;
-        const deltaTime = (timestamp - this.lastTime) / 1000;
+        const deltaTime = Math.min((timestamp - this.lastTime) / 1000, 0.1); // Cap delta
         this.lastTime = timestamp;
 
         this.update(deltaTime);
@@ -379,8 +490,10 @@ export class Game {
         this.camera.resize(this.canvas.width, this.canvas.height);
 
         // Reset hero target to prevent weird movement
-        this.hero.targetX = this.hero.x;
-        this.hero.targetY = this.hero.y;
+        if (this.hero) {
+            this.hero.targetX = this.hero.x;
+            this.hero.targetY = this.hero.y;
+        }
 
         if (!this.gameOver) {
             this.render();
@@ -403,15 +516,27 @@ export class Game {
     restart() {
         // Reset state
         this.gameOver = false;
+        this.paused = false;
         this.spawnTimer = CONFIG.DARK_LORD_SPAWN_COOLDOWN;
         this.lastTime = 0;
+        this.gameTime = 0;
 
         // Clear entities
         this.scouts = [];
+        this.attacks = [];
+        this.pickups = [];
         this.projectiles = [];
-        this.worldTextEffects = [];
         this.villages = [];
         this.forests = [];
+
+        // Clear effects
+        this.effects.clear();
+
+        // Reset level up system
+        this.levelUpSystem.reset();
+
+        // Reset camera
+        this.camera.setZoom(1);
 
         // Recreate world
         this.generateForests();
@@ -422,10 +547,7 @@ export class Game {
             CONFIG.WORLD.WIDTH / 2 + 400,
             CONFIG.WORLD.HEIGHT / 2 + 300
         );
-
-        // Reset inventory UI
-        this.inventory.initialize(this.hero);
-        this.inventory.render(this.hero);
+        this.hero.addStartingWeapon('basic_sword');
 
         // Hide game over screen
         if (this.gameOverScreen) {

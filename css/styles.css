@@ -40,96 +40,31 @@ body {
     transition: width 0.2s ease-out;
 }
 
-/* Shop Buttons */
-.shop-button {
+/* Game Buttons */
+.game-button {
     background-color: #4a3a2a;
-    border: 1px solid #7a5c4b;
-    transition: background-color 0.2s;
-    color: inherit;
+    border: 2px solid #7a5c4b;
+    transition: all 0.2s;
+    color: #e5e7eb;
     cursor: pointer;
+    font-family: 'MedievalSharp', cursive;
+    padding: 12px 32px;
+    font-size: 1.25rem;
+    border-radius: 8px;
 }
 
-.shop-button:hover:not(:disabled) {
+.game-button:hover {
     background-color: #6b4f3a;
-}
-
-.shop-button:disabled {
-    background-color: #3a2a1a;
-    color: #777;
-    cursor: not-allowed;
-}
-
-/* Inventory System */
-.inventory-slot {
-    width: 48px;
-    height: 48px;
-    background-color: #2a1a0a;
-    border: 1px solid #7a5c4b;
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.inventory-slot.drag-over {
-    background-color: #4a3a2a;
     border-color: #d4af37;
-}
-
-.item-icon {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    font-weight: bold;
-    color: white;
-    cursor: grab;
-    user-select: none;
-}
-
-.item-icon.dragging-source {
-    opacity: 0.3;
-}
-
-#draggedItemIcon {
-    position: fixed;
-    pointer-events: none;
-    z-index: 100;
-    font-size: 24px;
+    transform: scale(1.05);
 }
 
 /* Game Container */
 #gameContainer {
     position: relative;
     width: 100%;
-    max-width: 1280px;
+    max-width: 1920px;
     margin: 0 auto;
-}
-
-/* Header Panel */
-#headerPanel {
-    position: absolute;
-    top: 16px;
-    left: 50%;
-    transform: translateX(-50%);
-    padding: 12px 24px;
-    border-radius: 8px;
-    text-align: center;
-    z-index: 10;
-}
-
-#headerPanel h1 {
-    margin: 0;
-    font-size: 1.75rem;
-    color: #c4b5fd;
-}
-
-#headerPanel p {
-    margin: 4px 0 0 0;
-    color: #9ca3af;
-    font-size: 0.875rem;
 }
 
 /* Hero UI Panel */
@@ -144,9 +79,9 @@ body {
 }
 
 .hero-stats {
-    padding: 8px;
+    padding: 12px;
     border-radius: 8px;
-    width: 250px;
+    width: 220px;
 }
 
 .stat-row {
@@ -161,8 +96,8 @@ body {
 }
 
 .stat-label {
-    font-size: 1rem;
-    min-width: 60px;
+    font-size: 0.9rem;
+    min-width: 55px;
 }
 
 .stat-label.gold {
@@ -175,7 +110,7 @@ body {
 
 .stat-value {
     font-weight: bold;
-    font-size: 1rem;
+    font-size: 0.9rem;
     flex-grow: 1;
     text-align: center;
 }
@@ -186,110 +121,166 @@ body {
 
 .health-bar-container {
     flex-grow: 1;
-    height: 16px;
-    border-radius: 6px;
+    height: 14px;
+    border-radius: 4px;
 }
 
 .health-bar-container .health-bar-fill {
     height: 100%;
-    border-radius: 4px;
+    border-radius: 3px;
 }
 
 #heroHealthText {
     font-weight: bold;
-    font-size: 0.875rem;
-    width: 80px;
+    font-size: 0.75rem;
+    width: 65px;
     text-align: center;
 }
 
-/* Inventory Panel */
-#inventoryPanel {
-    padding: 8px;
-    border-radius: 8px;
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap: 8px;
-}
-
-/* Shop Panel */
-#shopPanel {
+/* Level Up Panel */
+#levelUpPanel {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    padding: 16px;
-    border-radius: 8px;
-    width: 384px;
-    z-index: 20;
+    inset: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 50;
 }
 
-#shopPanel.hidden {
+#levelUpPanel.hidden {
     display: none;
 }
 
-#shopPanel h2 {
-    margin: 0 0 16px 0;
-    text-align: center;
-    font-size: 1.5rem;
-    color: #fcd34d;
+.level-up-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
 }
 
-#shopItemsContainer {
+.level-up-content {
+    position: relative;
+    background: linear-gradient(180deg, #1a1a2e 0%, #0d0d1a 100%);
+    border: 3px solid #d4af37;
+    border-radius: 16px;
+    padding: 32px;
+    max-width: 600px;
+    width: 90%;
+    box-shadow: 0 0 40px rgba(212, 175, 55, 0.3),
+                0 0 80px rgba(0, 0, 0, 0.5);
+    animation: levelUpAppear 0.3s ease-out;
+}
+
+@keyframes levelUpAppear {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.level-up-content h2 {
+    margin: 0 0 8px 0;
+    text-align: center;
+    font-size: 2.5rem;
+    color: #d4af37;
+    text-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
+}
+
+.level-up-content p {
+    margin: 0 0 24px 0;
+    text-align: center;
+    color: #9ca3af;
+    font-size: 1rem;
+}
+
+.level-up-choices {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 12px;
 }
 
-.shop-item {
+.level-up-choice {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 8px 12px;
+    gap: 16px;
+    padding: 16px;
+    background: rgba(74, 58, 42, 0.5);
+    border: 2px solid #5a3d2b;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+    color: #e5e7eb;
+    font-family: inherit;
 }
 
-.shop-item-name {
+.level-up-choice:hover {
+    background: rgba(107, 79, 58, 0.7);
+    border-color: #d4af37;
+    transform: translateX(8px);
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
+}
+
+.level-up-choice.choice-weapon {
+    border-left: 4px solid #7f7fff;
+}
+
+.level-up-choice.choice-weapon-upgrade {
+    border-left: 4px solid #ffd700;
+}
+
+.level-up-choice.choice-upgrade {
+    border-left: 4px solid #4ade80;
+}
+
+.choice-icon {
+    font-size: 2.5rem;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
+.choice-info {
+    flex-grow: 1;
+}
+
+.choice-name {
+    font-size: 1.25rem;
     font-weight: 600;
-}
-
-.shop-item-cost {
-    font-weight: bold;
-    color: #facc15;
-}
-
-/* Tooltip */
-#tooltipPanel {
-    position: fixed;
-    padding: 8px;
-    border-radius: 6px;
-    font-size: 0.875rem;
-    pointer-events: none;
-    z-index: 50;
-    max-width: 200px;
-}
-
-#tooltipPanel.hidden {
-    display: none;
-}
-
-#tooltipPanel .tooltip-name {
-    font-weight: bold;
+    color: #fff;
     margin-bottom: 4px;
 }
 
-#tooltipPanel .tooltip-desc {
-    color: #d1d5db;
+.choice-desc {
+    font-size: 0.9rem;
+    color: #9ca3af;
 }
 
 /* Game Over Screen */
 #gameOverScreen {
     position: absolute;
     inset: 0;
-    background-color: rgba(0, 0, 0, 0.75);
+    background-color: rgba(0, 0, 0, 0.85);
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    z-index: 30;
+    z-index: 60;
+    animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 #gameOverScreen.hidden {
@@ -298,21 +289,41 @@ body {
 
 #gameOverScreen h2 {
     margin: 0;
-    font-size: 3.5rem;
+    font-size: 4rem;
     color: #ef4444;
+    text-shadow: 0 0 30px rgba(239, 68, 68, 0.5);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
 }
 
 #gameOverScreen p {
     margin-top: 16px;
     font-size: 1.25rem;
-    color: #e5e7eb;
+    color: #9ca3af;
 }
 
 #gameOverScreen button {
-    margin-top: 24px;
-    padding: 12px 32px;
-    font-size: 1.125rem;
-    cursor: pointer;
+    margin-top: 32px;
+}
+
+/* Controls Hint */
+#controlsHint {
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    color: #9ca3af;
+    z-index: 10;
+}
+
+#controlsHint span {
+    opacity: 0.7;
 }
 
 /* Utility Classes */
@@ -334,4 +345,39 @@ body {
 
 .text-purple {
     color: #c4b5fd;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .level-up-content {
+        padding: 20px;
+    }
+
+    .level-up-content h2 {
+        font-size: 2rem;
+    }
+
+    .level-up-choice {
+        padding: 12px;
+        gap: 12px;
+    }
+
+    .choice-icon {
+        width: 50px;
+        height: 50px;
+        font-size: 2rem;
+    }
+
+    .choice-name {
+        font-size: 1.1rem;
+    }
+
+    .hero-stats {
+        width: 180px;
+        padding: 8px;
+    }
+
+    #controlsHint {
+        display: none;
+    }
 }

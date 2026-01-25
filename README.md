@@ -1,21 +1,50 @@
 # Grimm Dominion
 
-A 2D action game where you defend villages from the Dark Lord's scouts.
+A Vampire Survivors-style roguelike action game where you defend villages from the Dark Lord's scouts using an arsenal of unique weapons.
 
 ## How to Play
 
 1. **Move**: Click anywhere on the map to move your hero
-2. **Attack**: Your hero automatically attacks nearby enemies
-3. **Shop**: Visit the tavern (🍺) to buy upgrades
-4. **Defend**: Protect villages from scouts to earn gold rewards
+2. **Attack**: Your weapons automatically attack nearby enemies
+3. **Collect**: Pick up XP orbs and gold dropped by defeated enemies
+4. **Level Up**: Choose new weapons or upgrades when you level up
+5. **Defend**: Protect villages from scouts to earn bonus gold
 
 ## Game Features
 
-- **Hero**: A brave warrior who auto-attacks nearby enemies
-- **Scouts**: Enemy units that spawn from the Dark Lord's castle
+### Combat
+- **Auto-attacking weapons** with unique attack patterns
+- **8 different weapons** including swords, magic orbs, lightning, and more
+- **Weapon upgrades** that increase damage and reduce cooldowns
+- **Visual effects** for each attack type
+
+### Progression
+- **XP System**: Enemies drop XP orbs that level you up
+- **Level Up Rewards**: Choose from weapons or stat upgrades
+- **Stat Upgrades**: Boost HP, speed, damage, cooldowns, and more
+
+### World
 - **Villages**: Settlements with villagers and militia that need protection
-- **Shop**: Buy upgrades to improve your hero's stats
-- **Inventory**: Drag and drop items to organize your equipment
+- **Scouts**: Enemy units that spawn from the Dark Lord's castle
+- **Forests**: Hide from patrolling enemies in forest areas
+
+## Weapons
+
+| Weapon | Type | Description |
+|--------|------|-------------|
+| 🗡️ Rusty Sword | Melee | Basic slash attack |
+| 🔪 Throwing Knives | Ranged | Fast projectile attack |
+| 🔮 Arcane Orb | Ranged | Homing magic projectiles |
+| 🔥 Fire Staff | AoE | Expanding ring of fire |
+| ❄️ Ice Shards | Ranged | Piercing ice projectiles |
+| ⛓️ Chain Whip | Melee | Sweeping chain attack |
+| ⚡ Lightning | Instant | Chain lightning strike |
+| 🪃 Boomerang | Ranged | Returning projectile |
+
+## Controls
+
+- **Left Click**: Move hero to location
+- **Scroll Wheel**: Zoom camera in/out
 
 ## Project Structure
 
@@ -25,53 +54,47 @@ Village-Defense/
 ├── css/
 │   └── styles.css      # Game styles
 ├── src/
-│   ├── config.js       # Game configuration
+│   ├── config.js       # Game configuration (weapons, stats, etc.)
 │   ├── utils.js        # Utility functions
 │   ├── Game.js         # Main game class
-│   ├── entities/       # Game entities
-│   │   ├── Hero.js
-│   │   ├── Scout.js
-│   │   ├── Village.js
+│   ├── entities/
+│   │   ├── Hero.js     # Player with weapon system
+│   │   ├── Scout.js    # Enemy AI with drops
+│   │   ├── Village.js  # Villages and militia
+│   │   ├── Pickup.js   # XP orbs and gold
+│   │   ├── Weapon.js   # Weapon attack patterns
 │   │   └── Projectile.js
-│   └── systems/        # Game systems
-│       ├── Camera.js
+│   └── systems/
+│       ├── Camera.js   # Camera with zoom
 │       ├── Input.js
-│       ├── Shop.js
-│       ├── Inventory.js
-│       └── Renderer.js
+│       ├── LevelUp.js  # XP and level up system
+│       ├── Effects.js  # Particles and floating text
+│       └── Renderer.js # Drawing with attack visuals
 └── package.json
 ```
 
 ## Running the Game
 
-### Option 1: Using a local server
-
+### Option 1: Using npm
 ```bash
 npm start
 ```
-
-Then open http://localhost:3000 in your browser.
+Then open http://localhost:3000
 
 ### Option 2: Using Python
-
 ```bash
 python -m http.server 8000
 ```
+Then open http://localhost:8000
 
-Then open http://localhost:8000 in your browser.
-
-### Option 3: Using VS Code Live Server
-
-If you have the Live Server extension, right-click on `index.html` and select "Open with Live Server".
-
-## Controls
-
-- **Left Click**: Move hero to location
-- **Drag & Drop**: Rearrange inventory items
+### Option 3: VS Code Live Server
+Right-click on `index.html` and select "Open with Live Server"
 
 ## Tips
 
-- Stay near villages when they're under attack to earn gold
-- Use forests to hide from patrolling scouts
-- Visit the shop to power up before taking on stronger enemies
-- Militia will help defend villages, but you get the gold reward only if you help!
+- Each weapon has a unique attack pattern - experiment to find your favorites
+- Prioritize weapons that complement your playstyle
+- Stat upgrades can stack multiple times for powerful builds
+- Help defend villages for bonus gold drops
+- Use camera zoom to get a better view of the battlefield
+- Forests hide you from patrolling scouts but not from close-range detection

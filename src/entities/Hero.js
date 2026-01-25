@@ -1,9 +1,11 @@
 /**
  * Grimm Dominion - Hero Entity
+ * Player character with weapon system and pickups
  */
 
 import { CONFIG } from '../config.js';
 import { distance, clamp } from '../utils.js';
+import { WeaponInstance } from './Weapon.js';
 
 export class Hero {
     constructor(x, y) {
@@ -21,13 +23,63 @@ export class Hero {
         this.gold = CONFIG.HERO.INITIAL_GOLD;
 
         this.speed = CONFIG.HERO.SPEED;
-        this.attackDamage = CONFIG.HERO.ATTACK_DAMAGE;
-        this.attackCooldown = CONFIG.HERO.ATTACK_COOLDOWN;
-        this.attackTimer = 0;
-        this.attackRange = CONFIG.HERO.ATTACK_RANGE;
-        this.projectileSpeed = CONFIG.HERO.PROJECTILE_SPEED;
 
-        this.inventory = new Array(CONFIG.INVENTORY_SIZE).fill(null);
+        // Stat multipliers (from upgrades)
+        this.damageMultiplier = 1;
+        this.cooldownMultiplier = 0; // Negative = faster
+        this.pickupRangeMultiplier = 1;
+        this.hpRegen = 0;
+        this.regenTimer = 0;
+
+        // Weapons (inventory of WeaponInstances)
+        this.weapons = [];
+
+        // Last facing direction (for attacks)
+        this.facingX = 1;
+        this.facingY = 0;
+    }
+
+    /**
+     * Add starting weapon
+     * @param {string} weaponId - Weapon ID from config
+     */
+    addStartingWeapon(weaponId) {
+        this.weapons.push(new WeaponInstance(weaponId, 1));
+    }
+
+    /**
+     * Add a weapon
+     * @param {string} weaponId - Weapon ID
+     * @returns {boolean} True if added successfully
+     */
+    addWeapon(weaponId) {
+        // Check if we already have this weapon
+        const existing = this.weapons.find(w => w.id === weaponId);
+        if (existing) {
+            existing.levelUp();
+            return true;
+        }
+
+        // Add new weapon (max 6 weapons like inventory size)
+        if (this.weapons.length < CONFIG.INVENTORY_SIZE) {
+            this.weapons.push(new WeaponInstance(weaponId, 1));
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Upgrade a weapon
+     * @param {string} weaponId - Weapon ID to upgrade
+     * @returns {boolean} True if upgraded
+     */
+    upgradeWeapon(weaponId) {
+        const weapon = this.weapons.find(w => w.id === weaponId);
+        if (weapon) {
+            weapon.levelUp();
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -41,50 +93,68 @@ export class Hero {
     }
 
     /**
-     * Update hero position and attack logic
-     * @param {number} deltaTime - Time since last frame in seconds
-     * @param {Array} scouts - Array of scout enemies
-     * @param {Function} createProjectile - Callback to create a projectile
+     * Update hero
+     * @param {number} deltaTime - Time since last frame
+     * @param {Array} enemies - Array of enemies for targeting
+     * @param {Function} createAttack - Callback to create an attack
      */
-    update(deltaTime, scouts, createProjectile) {
+    update(deltaTime, enemies, createAttack) {
         // Movement
         const dx = this.targetX - this.x;
         const dy = this.targetY - this.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
         if (dist > this.speed) {
-            this.x += (dx / dist) * this.speed;
-            this.y += (dy / dist) * this.speed;
+            const moveX = (dx / dist) * this.speed;
+            const moveY = (dy / dist) * this.speed;
+            this.x += moveX;
+            this.y += moveY;
+
+            // Update facing direction
+            this.facingX = dx / dist;
+            this.facingY = dy / dist;
         }
 
         // Clamp to world bounds
         this.x = clamp(this.x, 0, CONFIG.WORLD.WIDTH - this.width);
         this.y = clamp(this.y, 0, CONFIG.WORLD.HEIGHT - this.height);
 
-        // Attack cooldown
-        this.attackTimer -= deltaTime;
-
-        // Auto-attack nearest enemy in range
-        if (this.attackTimer <= 0) {
-            let nearestScout = null;
-            let nearestDist = Infinity;
-
-            for (const scout of scouts) {
-                const d = distance(this.x, this.y, scout.x, scout.y);
-                if (d < this.attackRange && d < nearestDist) {
-                    nearestScout = scout;
-                    nearestDist = d;
-                }
+        // HP Regeneration
+        if (this.hpRegen > 0) {
+            this.regenTimer += deltaTime;
+            if (this.regenTimer >= 1) {
+                this.regenTimer -= 1;
+                this.hp = Math.min(this.hp + this.hpRegen, this.maxHp);
             }
+        }
 
-            if (nearestScout) {
-                createProjectile(
-                    this.x + this.width / 2,
-                    this.y + this.height / 2,
-                    nearestScout.id,
-                    'hero'
-                );
-                this.attackTimer = this.attackCooldown;
+        // Update weapons and auto-attack
+        for (const weapon of this.weapons) {
+            weapon.update(deltaTime);
+
+            if (weapon.canAttack() && enemies.length > 0) {
+                // Find nearest enemy in range
+                const center = this.getCenter();
+                let nearest = null;
+                let nearestDist = weapon.definition.range;
+
+                for (const enemy of enemies) {
+                    const d = distance(center.x, center.y, enemy.x, enemy.y);
+                    if (d < nearestDist) {
+                        nearestDist = d;
+                        nearest = enemy;
+                    }
+                }
+
+                if (nearest) {
+                    const attack = weapon.attack(
+                        center.x, center.y,
+                        nearest.x, nearest.y,
+                        this.cooldownMultiplier,
+                        this.damageMultiplier
+                    );
+                    createAttack(attack);
+                }
             }
         }
     }
@@ -106,17 +176,28 @@ export class Hero {
     /**
      * Apply a stat upgrade
      * @param {Object} effect - Effect with stat and value
-     * @param {number} multiplier - Multiplier for the effect (positive for apply, negative for remove)
      */
-    applyUpgrade(effect, multiplier = 1) {
-        if (effect.stat === 'maxHp') {
-            this.maxHp += effect.value * multiplier;
-            if (multiplier > 0) {
-                this.hp += effect.value * multiplier;
-            }
-            this.hp = Math.min(this.hp, this.maxHp);
-        } else {
-            this[effect.stat] += effect.value * multiplier;
+    applyUpgrade(effect) {
+        switch (effect.stat) {
+            case 'maxHp':
+                this.maxHp += effect.value;
+                this.hp += effect.value;
+                break;
+            case 'speed':
+                this.speed += effect.value;
+                break;
+            case 'damageMultiplier':
+                this.damageMultiplier += effect.value;
+                break;
+            case 'cooldownMultiplier':
+                this.cooldownMultiplier += effect.value;
+                break;
+            case 'pickupRange':
+                this.pickupRangeMultiplier += effect.value;
+                break;
+            case 'hpRegen':
+                this.hpRegen += effect.value;
+                break;
         }
     }
 
@@ -126,19 +207,6 @@ export class Hero {
      */
     addGold(amount) {
         this.gold += amount;
-    }
-
-    /**
-     * Spend gold
-     * @param {number} amount - Amount to spend
-     * @returns {boolean} True if successful
-     */
-    spendGold(amount) {
-        if (this.gold >= amount) {
-            this.gold -= amount;
-            return true;
-        }
-        return false;
     }
 
     /**
@@ -153,35 +221,26 @@ export class Hero {
     }
 
     /**
-     * Add item to inventory
-     * @param {Object} item - Item to add
-     * @returns {boolean} True if successful
+     * Get effective pickup range
+     * @returns {number} Pickup range
      */
-    addToInventory(item) {
-        const emptySlot = this.inventory.findIndex(slot => slot === null);
-        if (emptySlot !== -1) {
-            this.inventory[emptySlot] = item;
-            return true;
-        }
-        return false;
+    getPickupRange() {
+        return CONFIG.HERO.PICKUP_RANGE * this.pickupRangeMultiplier;
     }
 
     /**
-     * Check if hero has an item
-     * @param {string} itemId - Item ID to check
-     * @returns {boolean} True if hero has the item
+     * Get effective pickup magnet range
+     * @returns {number} Magnet range
      */
-    hasItem(itemId) {
-        return this.inventory.some(item => item && item.id === itemId);
+    getPickupMagnetRange() {
+        return CONFIG.HERO.PICKUP_MAGNET_RANGE * this.pickupRangeMultiplier;
     }
 
     /**
-     * Swap inventory slots
-     * @param {number} fromIndex - Source slot index
-     * @param {number} toIndex - Destination slot index
+     * Get health percentage
+     * @returns {number} Health ratio 0-1
      */
-    swapInventorySlots(fromIndex, toIndex) {
-        [this.inventory[fromIndex], this.inventory[toIndex]] =
-            [this.inventory[toIndex], this.inventory[fromIndex]];
+    getHealthRatio() {
+        return this.hp / this.maxHp;
     }
 }

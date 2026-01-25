@@ -3,7 +3,7 @@
  */
 
 import { CONFIG } from '../config.js';
-import { distance, isPointInRect, generateId } from '../utils.js';
+import { distance, isPointInRect, generateId, randomRange } from '../utils.js';
 
 export const ScoutState = {
     PATROLLING: 'PATROLLING',
@@ -218,5 +218,29 @@ export class Scout {
      */
     isDead() {
         return this.hp <= 0;
+    }
+
+    /**
+     * Get drops when killed
+     * @returns {Array} Array of drop objects { type, value }
+     */
+    getDrops() {
+        const drops = [];
+
+        // Always drop XP
+        drops.push({
+            type: 'xp',
+            value: CONFIG.SCOUT.XP_DROP
+        });
+
+        // Chance to drop gold
+        if (Math.random() < CONFIG.SCOUT.GOLD_DROP_CHANCE) {
+            drops.push({
+                type: 'gold',
+                value: Math.floor(randomRange(CONFIG.SCOUT.GOLD_DROP_MIN, CONFIG.SCOUT.GOLD_DROP_MAX))
+            });
+        }
+
+        return drops;
     }
 }
