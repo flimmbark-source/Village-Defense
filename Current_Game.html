@@ -80,6 +80,95 @@
             pointer-events: none; /* Let clicks pass through to elements underneath */
             z-index: 100;
         }
+
+        /* Level Up Shop Styles */
+        .level-up-overlay {
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(4px);
+        }
+        .level-up-shop {
+            background: linear-gradient(180deg, #1a0f0a 0%, #2a1a10 50%, #1a0f0a 100%);
+            border: 3px solid #d4af37;
+            box-shadow: 0 0 30px rgba(212, 175, 55, 0.3), inset 0 0 60px rgba(0,0,0,0.5);
+        }
+        .shop-section {
+            background: rgba(0, 0, 0, 0.4);
+            border: 2px solid #5a3d2b;
+            border-radius: 8px;
+        }
+        .shop-section-title {
+            background: linear-gradient(90deg, transparent, #3a2a1a, transparent);
+            border-bottom: 1px solid #7a5c4b;
+        }
+        .upgrade-card {
+            background: linear-gradient(180deg, #2a1a0a 0%, #1a0f05 100%);
+            border: 2px solid #5a3d2b;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .upgrade-card:hover:not(.sold-out):not(.cannot-afford) {
+            border-color: #d4af37;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+        }
+        .upgrade-card.sold-out {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .upgrade-card.cannot-afford {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .upgrade-card.cannot-afford .card-cost {
+            color: #ff4444;
+        }
+        .card-icon {
+            font-size: 32px;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+        }
+        .card-cost {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid #d4af37;
+        }
+
+        /* Level Up Animation */
+        @keyframes levelUpPulse {
+            0% { transform: scale(0.5); opacity: 0; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes levelUpGlow {
+            0%, 100% { text-shadow: 0 0 20px #d4af37, 0 0 40px #d4af37, 0 0 60px #ff6600; }
+            50% { text-shadow: 0 0 30px #ffcc00, 0 0 60px #ffcc00, 0 0 90px #ff9900; }
+        }
+        @keyframes levelUpBurst {
+            0% { transform: scale(0); opacity: 1; }
+            100% { transform: scale(3); opacity: 0; }
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-50px); opacity: 0; }
+        }
+        .level-up-text {
+            animation: levelUpPulse 0.5s ease-out forwards, levelUpGlow 1s ease-in-out infinite;
+        }
+        .level-up-burst {
+            animation: levelUpBurst 0.8s ease-out forwards;
+        }
+        .gold-display {
+            background: linear-gradient(90deg, #2a1a0a, #3a2a1a, #2a1a0a);
+            border: 2px solid #d4af37;
+            box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+        }
+        .continue-btn {
+            background: linear-gradient(180deg, #4a3a2a 0%, #2a1a0a 100%);
+            border: 2px solid #d4af37;
+            transition: all 0.2s ease;
+        }
+        .continue-btn:hover {
+            background: linear-gradient(180deg, #6a5a4a 0%, #4a3a2a 100%);
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.5);
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-200 flex flex-col h-screen p-4">
@@ -96,19 +185,33 @@
         
         <!-- Hero UI (Bottom Left) -->
         <div class="absolute bottom-4 left-4 flex items-end space-x-2">
-            <div class="ui-panel p-2 rounded-lg flex flex-col space-y-2" style="width: 250px;">
-                 <!-- Gold -->
+            <div class="ui-panel p-2 rounded-lg flex flex-col space-y-2" style="width: 280px;">
+                 <!-- Level & Gold Row -->
+                <div class="flex items-center justify-between w-full">
+                    <div class="flex items-center space-x-2">
+                        <span class="font-medieval text-lg text-purple-400">Lv.</span>
+                        <span id="heroLevelText" class="font-bold text-lg text-purple-300">1</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="font-medieval text-lg text-yellow-400">Gold</span>
+                        <span id="heroGoldText" class="font-bold text-lg text-yellow-200">0</span>
+                    </div>
+                </div>
+                 <!-- XP Bar -->
                 <div class="flex items-center space-x-2 w-full">
-                    <span class="font-medieval text-lg text-yellow-400">Gold</span>
-                    <span id="heroGoldText" class="font-bold text-lg flex-grow text-yellow-200 text-center">0</span>
+                    <span class="font-medieval text-sm text-purple-400">XP</span>
+                    <div class="flex-grow h-3 rounded-md bar-bg">
+                        <div id="heroXPBar" class="h-full rounded-sm" style="background: linear-gradient(90deg, #8a2be2, #9932cc); width: 0%;"></div>
+                    </div>
+                    <span id="heroXPText" class="font-bold text-xs w-20 text-center text-purple-300">0/100</span>
                 </div>
                  <!-- Health -->
                 <div class="flex items-center space-x-2 w-full">
-                    <span class="font-medieval text-lg text-green-400">Health</span>
+                    <span class="font-medieval text-sm text-green-400">HP</span>
                     <div class="flex-grow h-4 rounded-md bar-bg">
                         <div id="heroHealthBar" class="h-full rounded-sm health-bar-fill"></div>
                     </div>
-                    <span id="heroHealthText" class="font-bold text-sm w-24 text-center">100/100</span>
+                    <span id="heroHealthText" class="font-bold text-xs w-20 text-center">100/100</span>
                 </div>
             </div>
             <!-- Inventory Panel -->
@@ -131,7 +234,68 @@
             <h2 class="font-medieval text-6xl text-red-500">You Have Perished</h2>
             <p class="text-xl mt-4">Refresh to try again.</p>
         </div>
-        
+
+        <!-- Level Up Animation Overlay -->
+        <div id="levelUpAnimation" class="hidden absolute inset-0 flex flex-col justify-center items-center z-40 pointer-events-none">
+            <div id="levelUpBurst" class="absolute w-32 h-32 rounded-full bg-gradient-radial from-yellow-400 to-transparent level-up-burst"></div>
+            <h2 class="level-up-text font-medieval text-6xl text-yellow-400">LEVEL UP!</h2>
+            <p id="levelUpNumber" class="font-medieval text-3xl text-yellow-200 mt-2">Level 2</p>
+        </div>
+
+        <!-- Level Up Shop Popup -->
+        <div id="levelUpShop" class="hidden absolute inset-0 level-up-overlay flex justify-center items-center z-35">
+            <div class="level-up-shop rounded-xl p-6 w-[95%] max-w-5xl max-h-[90vh] overflow-y-auto">
+                <!-- Header with Gold -->
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="font-medieval text-3xl text-yellow-400">Choose Your Upgrades</h2>
+                    <div class="gold-display px-4 py-2 rounded-lg flex items-center space-x-2">
+                        <span class="text-2xl">💰</span>
+                        <span id="levelUpGold" class="font-bold text-xl text-yellow-300">0</span>
+                        <span class="text-yellow-400">Gold</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <!-- Weapons Section -->
+                    <div class="shop-section p-3">
+                        <div class="shop-section-title text-center py-2 mb-3">
+                            <h3 class="font-medieval text-xl text-red-400">⚔️ Weapons</h3>
+                        </div>
+                        <div id="weaponChoices" class="flex flex-col space-y-2">
+                            <!-- Weapon cards populated here -->
+                        </div>
+                    </div>
+
+                    <!-- Passive Upgrades Section -->
+                    <div class="shop-section p-3">
+                        <div class="shop-section-title text-center py-2 mb-3">
+                            <h3 class="font-medieval text-xl text-purple-400">✨ Passives</h3>
+                        </div>
+                        <div id="passiveChoices" class="flex flex-col space-y-2">
+                            <!-- Passive cards populated here -->
+                        </div>
+                    </div>
+
+                    <!-- Stat Upgrades Section -->
+                    <div class="shop-section p-3">
+                        <div class="shop-section-title text-center py-2 mb-3">
+                            <h3 class="font-medieval text-xl text-green-400">📊 Stats</h3>
+                        </div>
+                        <div id="statChoices" class="flex flex-col space-y-2">
+                            <!-- Stat cards populated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Continue Button -->
+                <div class="flex justify-center mt-6">
+                    <button id="continueBtn" class="continue-btn px-8 py-3 rounded-lg font-medieval text-xl text-yellow-300 hover:text-yellow-100">
+                        Continue Adventure →
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Dragged Item Icon -->
         <div id="draggedItemIcon" class="item-icon hidden"></div>
 
@@ -177,9 +341,9 @@
 
         // --- Game Objects ---
         const castle = { x: world.width / 2, y: world.height / 2, width: 150, height: 150, color: '#2c1e1e' };
-        const hero = { 
-            x: world.width / 2 + 400, y: world.height / 2 + 300, 
-            width: 25, height: 25, 
+        const hero = {
+            x: world.width / 2 + 400, y: world.height / 2 + 300,
+            width: 25, height: 25,
             color: '#4a90e2',
             targetX: world.width / 2 + 400, targetY: world.height / 2 + 300,
             hp: 100, maxHp: 100,
@@ -190,8 +354,93 @@
             attackTimer: 0,
             attackRange: 300,
             projectileSpeed: 7,
-            inventory: new Array(INVENTORY_SIZE).fill(null)
+            inventory: new Array(INVENTORY_SIZE).fill(null),
+            // Experience & Leveling
+            xp: 0,
+            level: 1,
+            xpToNextLevel: 100,
+            // Passive bonuses tracking
+            passives: {
+                lifeSteal: 0,
+                critChance: 0,
+                critDamage: 1.5,
+                goldBonus: 0,
+                xpBonus: 0,
+                thorns: 0,
+                dodgeChance: 0,
+                regenPerSecond: 0
+            },
+            // Owned upgrades tracking
+            ownedWeapons: [],
+            ownedPassives: [],
+            statUpgradeCounts: {}
         };
+
+        // --- Level Up Shop Configuration ---
+        const XP_PER_KILL = 25;
+        const XP_LEVEL_MULTIPLIER = 1.5; // Each level requires 50% more XP
+        let levelUpShopOpen = false;
+
+        // Weapon Upgrades (3 choices shown at a time)
+        const allWeapons = [
+            { id: 'w_flame_sword', name: 'Flame Sword', cost: 100, icon: '🗡️🔥', description: '+15 Damage, Burning attacks', tier: 1,
+              effects: [{ stat: 'attackDamage', value: 15 }], special: 'burn' },
+            { id: 'w_ice_blade', name: 'Frost Blade', cost: 100, icon: '🗡️❄️', description: '+10 Damage, Slows enemies', tier: 1,
+              effects: [{ stat: 'attackDamage', value: 10 }], special: 'slow' },
+            { id: 'w_swift_dagger', name: 'Swift Dagger', cost: 80, icon: '🔪', description: '+5 Damage, -0.2s Attack Time', tier: 1,
+              effects: [{ stat: 'attackDamage', value: 5 }, { stat: 'attackCooldown', value: -0.2 }] },
+            { id: 'w_longbow', name: 'Longbow', cost: 120, icon: '🏹', description: '+100 Range, +3 Projectile Speed', tier: 1,
+              effects: [{ stat: 'attackRange', value: 100 }, { stat: 'projectileSpeed', value: 3 }] },
+            { id: 'w_thunder_hammer', name: 'Thunder Hammer', cost: 150, icon: '🔨⚡', description: '+25 Damage, Chain lightning', tier: 2,
+              effects: [{ stat: 'attackDamage', value: 25 }], special: 'chain' },
+            { id: 'w_vampire_fang', name: 'Vampire Fang', cost: 180, icon: '🦷', description: '+12 Damage, 10% Life Steal', tier: 2,
+              effects: [{ stat: 'attackDamage', value: 12 }], passive: { lifeSteal: 0.1 } },
+        ];
+
+        // Passive Upgrades (4 choices shown at a time)
+        const allPassives = [
+            { id: 'p_lucky_coin', name: 'Lucky Coin', cost: 75, icon: '🪙', description: '+25% Gold from kills', tier: 1,
+              passive: { goldBonus: 0.25 } },
+            { id: 'p_wisdom_tome', name: 'Tome of Wisdom', cost: 75, icon: '📖', description: '+25% XP gained', tier: 1,
+              passive: { xpBonus: 0.25 } },
+            { id: 'p_thorn_armor', name: 'Thorn Armor', cost: 100, icon: '🌵', description: 'Return 20% damage to attackers', tier: 1,
+              passive: { thorns: 0.2 } },
+            { id: 'p_swift_spirit', name: 'Swift Spirit', cost: 90, icon: '💨', description: '+15% Dodge Chance', tier: 1,
+              passive: { dodgeChance: 0.15 } },
+            { id: 'p_vampiric_aura', name: 'Vampiric Aura', cost: 120, icon: '🩸', description: '5% Life Steal on all attacks', tier: 1,
+              passive: { lifeSteal: 0.05 } },
+            { id: 'p_critical_eye', name: 'Critical Eye', cost: 100, icon: '👁️', description: '+15% Crit Chance', tier: 1,
+              passive: { critChance: 0.15 } },
+            { id: 'p_deadly_precision', name: 'Deadly Precision', cost: 110, icon: '🎯', description: '+50% Crit Damage', tier: 2,
+              passive: { critDamage: 0.5 } },
+            { id: 'p_regeneration', name: 'Regeneration', cost: 130, icon: '💚', description: '+3 HP/sec regeneration', tier: 2,
+              passive: { regenPerSecond: 3 } },
+            { id: 'p_gold_magnet', name: 'Gold Magnet', cost: 150, icon: '🧲', description: '+50% Gold from all sources', tier: 2,
+              passive: { goldBonus: 0.5 } },
+            { id: 'p_battle_hardened', name: 'Battle Hardened', cost: 140, icon: '🛡️', description: '+25% Dodge, -10% incoming damage', tier: 2,
+              passive: { dodgeChance: 0.25, damageReduction: 0.1 } },
+        ];
+
+        // Stat Upgrades (always available, can be purchased multiple times)
+        const statUpgrades = [
+            { id: 's_damage', name: 'Sharpen Blade', cost: 50, icon: '⚔️', description: '+8 Attack Damage',
+              effect: { stat: 'attackDamage', value: 8 }, maxPurchases: 10 },
+            { id: 's_health', name: 'Fortitude', cost: 40, icon: '❤️', description: '+30 Max HP',
+              effect: { stat: 'maxHp', value: 30 }, maxPurchases: 10 },
+            { id: 's_speed', name: 'Swiftness', cost: 60, icon: '👢', description: '+0.5 Movement Speed',
+              effect: { stat: 'speed', value: 0.5 }, maxPurchases: 8 },
+            { id: 's_attack_speed', name: 'Quick Hands', cost: 70, icon: '🧤', description: '-0.1s Attack Cooldown',
+              effect: { stat: 'attackCooldown', value: -0.1 }, maxPurchases: 6 },
+            { id: 's_range', name: 'Eagle Eye', cost: 55, icon: '🦅', description: '+50 Attack Range',
+              effect: { stat: 'attackRange', value: 50 }, maxPurchases: 6 },
+            { id: 's_proj_speed', name: 'Velocity', cost: 45, icon: '💨', description: '+2 Projectile Speed',
+              effect: { stat: 'projectileSpeed', value: 2 }, maxPurchases: 5 },
+        ];
+
+        // Currently available choices (refreshed each level)
+        let currentWeaponChoices = [];
+        let currentPassiveChoices = [];
+        let currentStatChoices = [...statUpgrades];
         const shop = { x: 500, y: 500, radius: 75, interactionRadius: 150 };
         const shopItems = [
             { id: 'dmg1', name: 'Sharpen Blade', cost: 150, effect: { stat: 'attackDamage', value: 5 }, description: '+5 Damage', icon: '⚔️' },
@@ -358,7 +607,44 @@
                     p.y += (dy / dist) * speed;
                 } else {
                     projs.splice(i, 1);
-                    target.hp -= damage;
+
+                    let finalDamage = damage;
+                    let isCrit = false;
+
+                    // Critical hit check (hero only)
+                    if (owner === 'hero' && hero.passives.critChance > 0) {
+                        if (Math.random() < hero.passives.critChance) {
+                            finalDamage = Math.floor(damage * hero.passives.critDamage);
+                            isCrit = true;
+                            worldTextEffects.push({
+                                text: `CRIT! ${finalDamage}`,
+                                x: target.x,
+                                y: target.y - 25,
+                                color: 'rgba(255, 100, 0, 1)',
+                                font: 'bold 18px MedievalSharp',
+                                lifespan: 0.8
+                            });
+                        }
+                    }
+
+                    target.hp -= finalDamage;
+
+                    // Life steal (hero only)
+                    if (owner === 'hero' && hero.passives.lifeSteal > 0) {
+                        const healAmount = Math.floor(finalDamage * hero.passives.lifeSteal);
+                        if (healAmount > 0 && hero.hp < hero.maxHp) {
+                            hero.hp = Math.min(hero.maxHp, hero.hp + healAmount);
+                            worldTextEffects.push({
+                                text: `+${healAmount}`,
+                                x: hero.x + hero.width / 2,
+                                y: hero.y - 10,
+                                color: 'rgba(0, 255, 100, 1)',
+                                font: 'bold 12px MedievalSharp',
+                                lifespan: 0.5
+                            });
+                        }
+                    }
+
                     if (owner === 'hero') {
                          villages.forEach(v => {
                             if (v.attackers.has(target.id)) {
@@ -449,7 +735,38 @@
                 const s = scouts[i];
                 const dist = Math.sqrt(Math.pow(s.x - (hero.x + hero.width/2), 2) + Math.pow(s.y - (hero.y + hero.height/2), 2));
                 if (dist < s.radius + hero.width / 2 && s.heroAttackCooldown <= 0) {
-                    hero.hp -= SCOUT_DAMAGE;
+                    // Check dodge chance
+                    if (Math.random() < hero.passives.dodgeChance) {
+                        worldTextEffects.push({
+                            text: 'DODGE!',
+                            x: hero.x + hero.width / 2,
+                            y: hero.y - 10,
+                            color: 'rgba(100, 200, 255, 1)',
+                            font: 'bold 16px MedievalSharp',
+                            lifespan: 0.8
+                        });
+                    } else {
+                        // Apply damage (with damage reduction if any)
+                        let damage = SCOUT_DAMAGE;
+                        if (hero.passives.damageReduction) {
+                            damage = Math.floor(damage * (1 - hero.passives.damageReduction));
+                        }
+                        hero.hp -= damage;
+
+                        // Apply thorns damage back to scout
+                        if (hero.passives.thorns > 0) {
+                            const thornsDamage = Math.floor(damage * hero.passives.thorns);
+                            s.hp -= thornsDamage;
+                            worldTextEffects.push({
+                                text: `${thornsDamage}`,
+                                x: s.x,
+                                y: s.y - 15,
+                                color: 'rgba(139, 69, 19, 1)',
+                                font: 'bold 12px MedievalSharp',
+                                lifespan: 0.6
+                            });
+                        }
+                    }
                     s.heroAttackCooldown = SCOUT_HERO_ATTACK_COOLDOWN;
                 }
             }
@@ -462,15 +779,33 @@
             for (let i = scouts.length - 1; i >= 0; i--) {
                 if (scouts[i].hp <= 0) {
                     const deadScout = scouts.splice(i, 1)[0];
+
+                    // Grant XP for kill
+                    const xpGained = deadScout.isBuffed ? Math.floor(XP_PER_KILL * 1.5) : XP_PER_KILL;
+                    gainXP(xpGained);
+                    worldTextEffects.push({
+                        text: `+${xpGained} XP`,
+                        x: deadScout.x,
+                        y: deadScout.y - 20,
+                        color: 'rgba(138, 43, 226, 1)',
+                        font: 'bold 14px MedievalSharp',
+                        lifespan: 1.0
+                    });
+
+                    // Small gold reward per kill
+                    const killGold = Math.floor(10 * (1 + hero.passives.goldBonus));
+                    hero.gold += killGold;
+
                     villages.forEach(v => {
                         if (v.attackers.has(deadScout.id)) {
                             v.attackers.delete(deadScout.id);
                             if (v.attackers.size === 0 && v.isUnderAttack) {
                                 v.isUnderAttack = false;
                                 if (v.heroHasHelped) {
-                                    hero.gold += VILLAGE_GOLD_REWARD;
+                                    const goldReward = Math.floor(VILLAGE_GOLD_REWARD * (1 + hero.passives.goldBonus));
+                                    hero.gold += goldReward;
                                     worldTextEffects.push({ text: 'Saved!', x: v.x, y: v.y - 20, color: 'rgba(76, 212, 76, 1)', font: 'bold 24px MedievalSharp', lifespan: 2.0 });
-                                    worldTextEffects.push({ text: `+${VILLAGE_GOLD_REWARD} Gold!`, x: v.x, y: v.y, color: 'rgba(255, 215, 0, 1)', font: 'bold 20px MedievalSharp', lifespan: 2.0 });
+                                    worldTextEffects.push({ text: `+${goldReward} Gold!`, x: v.x, y: v.y, color: 'rgba(255, 215, 0, 1)', font: 'bold 20px MedievalSharp', lifespan: 2.0 });
                                 } else {
                                      worldTextEffects.push({ text: 'Militia Saved the Day!', x: v.x, y: v.y - 20, color: 'rgba(173, 216, 230, 1)', font: 'bold 18px MedievalSharp', lifespan: 2.5 });
                                 }
@@ -504,13 +839,22 @@
         }
 
         function updateUI() {
+            // Health
             document.getElementById('heroHealthBar').style.width = `${(hero.hp / hero.maxHp) * 100}%`;
             document.getElementById('heroHealthText').textContent = `${Math.ceil(hero.hp)}/${Math.ceil(hero.maxHp)}`;
+
+            // Gold
             document.getElementById('heroGoldText').textContent = hero.gold;
 
+            // Level & XP
+            document.getElementById('heroLevelText').textContent = hero.level;
+            document.getElementById('heroXPBar').style.width = `${(hero.xp / hero.xpToNextLevel) * 100}%`;
+            document.getElementById('heroXPText').textContent = `${hero.xp}/${hero.xpToNextLevel}`;
+
+            // Shop panel visibility (don't show if level up shop is open)
             const distToShop = Math.sqrt(Math.pow(hero.x - shop.x, 2) + Math.pow(hero.y - shop.y, 2));
             const shopPanel = document.getElementById('shopPanel');
-            if (distToShop < shop.interactionRadius) {
+            if (distToShop < shop.interactionRadius && !levelUpShopOpen) {
                 shopPanel.classList.remove('hidden');
                 updateShopButtons();
             } else {
@@ -608,7 +952,245 @@
                 }
             });
         }
-        
+
+        // --- Level Up Shop Functions ---
+        function gainXP(amount) {
+            const bonusMultiplier = 1 + hero.passives.xpBonus;
+            const actualXP = Math.floor(amount * bonusMultiplier);
+            hero.xp += actualXP;
+
+            // Check for level up
+            while (hero.xp >= hero.xpToNextLevel) {
+                hero.xp -= hero.xpToNextLevel;
+                hero.level++;
+                hero.xpToNextLevel = Math.floor(100 * Math.pow(XP_LEVEL_MULTIPLIER, hero.level - 1));
+                triggerLevelUp();
+            }
+        }
+
+        function triggerLevelUp() {
+            // Show level up animation
+            showLevelUpAnimation();
+
+            // After animation, open the shop
+            setTimeout(() => {
+                openLevelUpShop();
+            }, 1500);
+        }
+
+        function showLevelUpAnimation() {
+            const animDiv = document.getElementById('levelUpAnimation');
+            const levelText = document.getElementById('levelUpNumber');
+            const burst = document.getElementById('levelUpBurst');
+
+            levelText.textContent = `Level ${hero.level}`;
+
+            // Reset animations
+            animDiv.classList.remove('hidden');
+            burst.style.animation = 'none';
+            burst.offsetHeight; // Trigger reflow
+            burst.style.animation = 'levelUpBurst 0.8s ease-out forwards';
+
+            // Add screen flash effect
+            const flash = document.createElement('div');
+            flash.style.cssText = 'position:absolute;inset:0;background:rgba(255,215,0,0.3);pointer-events:none;z-index:39;';
+            document.getElementById('gameContainer').appendChild(flash);
+            setTimeout(() => flash.remove(), 200);
+
+            // Hide animation after duration
+            setTimeout(() => {
+                animDiv.classList.add('hidden');
+            }, 1400);
+        }
+
+        function openLevelUpShop() {
+            levelUpShopOpen = true;
+
+            // Refresh available choices
+            refreshShopChoices();
+
+            // Update gold display
+            document.getElementById('levelUpGold').textContent = hero.gold;
+
+            // Populate sections
+            populateWeaponChoices();
+            populatePassiveChoices();
+            populateStatChoices();
+
+            // Show shop
+            document.getElementById('levelUpShop').classList.remove('hidden');
+        }
+
+        function closeLevelUpShop() {
+            levelUpShopOpen = false;
+            document.getElementById('levelUpShop').classList.add('hidden');
+        }
+
+        function refreshShopChoices() {
+            // Get available weapons (not owned)
+            const availableWeapons = allWeapons.filter(w => !hero.ownedWeapons.includes(w.id));
+            currentWeaponChoices = shuffleArray(availableWeapons).slice(0, 3);
+
+            // Get available passives (not owned)
+            const availablePassives = allPassives.filter(p => !hero.ownedPassives.includes(p.id));
+            currentPassiveChoices = shuffleArray(availablePassives).slice(0, 4);
+
+            // Stats are always available
+            currentStatChoices = [...statUpgrades];
+        }
+
+        function shuffleArray(array) {
+            const newArray = [...array];
+            for (let i = newArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            }
+            return newArray;
+        }
+
+        function createUpgradeCard(item, type) {
+            const isOwned = type === 'weapon' ? hero.ownedWeapons.includes(item.id) :
+                           type === 'passive' ? hero.ownedPassives.includes(item.id) : false;
+
+            let isSoldOut = isOwned;
+            if (type === 'stat') {
+                const purchaseCount = hero.statUpgradeCounts[item.id] || 0;
+                isSoldOut = purchaseCount >= item.maxPurchases;
+            }
+
+            const canAfford = hero.gold >= item.cost;
+
+            const card = document.createElement('div');
+            card.className = `upgrade-card rounded-lg p-3 ${isSoldOut ? 'sold-out' : ''} ${!canAfford && !isSoldOut ? 'cannot-afford' : ''}`;
+
+            const purchaseInfo = type === 'stat' ?
+                `<span class="text-xs text-gray-500">(${hero.statUpgradeCounts[item.id] || 0}/${item.maxPurchases})</span>` : '';
+
+            card.innerHTML = `
+                <div class="flex items-center space-x-3">
+                    <div class="card-icon">${item.icon}</div>
+                    <div class="flex-grow">
+                        <div class="font-semibold text-yellow-200">${item.name} ${purchaseInfo}</div>
+                        <div class="text-sm text-gray-400">${item.description}</div>
+                    </div>
+                    <div class="card-cost px-2 py-1 rounded text-yellow-400 font-bold ${!canAfford ? 'text-red-400' : ''}">
+                        ${isSoldOut ? 'SOLD' : item.cost + ' G'}
+                    </div>
+                </div>
+            `;
+
+            if (!isSoldOut && canAfford) {
+                card.onclick = () => purchaseLevelUpItem(item, type);
+            }
+
+            return card;
+        }
+
+        function populateWeaponChoices() {
+            const container = document.getElementById('weaponChoices');
+            container.innerHTML = '';
+
+            if (currentWeaponChoices.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-500 py-4">All weapons acquired!</p>';
+                return;
+            }
+
+            currentWeaponChoices.forEach(weapon => {
+                container.appendChild(createUpgradeCard(weapon, 'weapon'));
+            });
+        }
+
+        function populatePassiveChoices() {
+            const container = document.getElementById('passiveChoices');
+            container.innerHTML = '';
+
+            if (currentPassiveChoices.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-500 py-4">All passives acquired!</p>';
+                return;
+            }
+
+            currentPassiveChoices.forEach(passive => {
+                container.appendChild(createUpgradeCard(passive, 'passive'));
+            });
+        }
+
+        function populateStatChoices() {
+            const container = document.getElementById('statChoices');
+            container.innerHTML = '';
+
+            currentStatChoices.forEach(stat => {
+                container.appendChild(createUpgradeCard(stat, 'stat'));
+            });
+        }
+
+        function purchaseLevelUpItem(item, type) {
+            if (hero.gold < item.cost) return;
+
+            // Check ownership/limits
+            if (type === 'weapon' && hero.ownedWeapons.includes(item.id)) return;
+            if (type === 'passive' && hero.ownedPassives.includes(item.id)) return;
+            if (type === 'stat') {
+                const purchaseCount = hero.statUpgradeCounts[item.id] || 0;
+                if (purchaseCount >= item.maxPurchases) return;
+            }
+
+            // Deduct gold
+            hero.gold -= item.cost;
+            document.getElementById('levelUpGold').textContent = hero.gold;
+
+            // Apply effects based on type
+            if (type === 'weapon') {
+                hero.ownedWeapons.push(item.id);
+                // Apply weapon stat effects
+                if (item.effects) {
+                    item.effects.forEach(effect => applyUpgrade(effect, 1));
+                }
+                // Apply weapon passive effects
+                if (item.passive) {
+                    Object.keys(item.passive).forEach(key => {
+                        hero.passives[key] = (hero.passives[key] || 0) + item.passive[key];
+                    });
+                }
+                populateWeaponChoices();
+            }
+            else if (type === 'passive') {
+                hero.ownedPassives.push(item.id);
+                // Apply passive effects
+                if (item.passive) {
+                    Object.keys(item.passive).forEach(key => {
+                        hero.passives[key] = (hero.passives[key] || 0) + item.passive[key];
+                    });
+                }
+                populatePassiveChoices();
+            }
+            else if (type === 'stat') {
+                hero.statUpgradeCounts[item.id] = (hero.statUpgradeCounts[item.id] || 0) + 1;
+                applyUpgrade(item.effect, 1);
+                populateStatChoices();
+            }
+
+            // Show purchase feedback
+            showPurchaseFeedback(item);
+
+            // Update main UI
+            updateUI();
+            drawInventory();
+        }
+
+        function showPurchaseFeedback(item) {
+            worldTextEffects.push({
+                text: `Purchased: ${item.name}!`,
+                x: hero.x,
+                y: hero.y - 40,
+                color: 'rgba(212, 175, 55, 1)',
+                font: 'bold 18px MedievalSharp',
+                lifespan: 1.5
+            });
+        }
+
+        // Setup continue button
+        document.getElementById('continueBtn').onclick = closeLevelUpShop;
+
         // --- Drag and Drop Logic ---
         function setupDragAndDrop() {
             const inventoryPanel = document.getElementById('inventoryPanel');
@@ -757,6 +1339,19 @@
             if (!lastTime) lastTime = timestamp;
             const deltaTime = (timestamp - lastTime) / 1000;
             lastTime = timestamp;
+
+            // Pause game updates when level up shop is open
+            if (levelUpShopOpen) {
+                updateUI();
+                draw();
+                requestAnimationFrame(gameLoop);
+                return;
+            }
+
+            // Health regeneration passive
+            if (hero.passives.regenPerSecond > 0 && hero.hp < hero.maxHp) {
+                hero.hp = Math.min(hero.maxHp, hero.hp + hero.passives.regenPerSecond * deltaTime);
+            }
 
             updateHero(deltaTime);
             updateScoutsAI(deltaTime);
