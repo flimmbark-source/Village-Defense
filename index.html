@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grimm Dominion</title>
+    <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        /* Inline critical styles for layout */
+        * {
+            box-sizing: border-box;
+        }
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background-color: #1a1a2e;
+            color: #e5e7eb;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+        #gameContainer {
+            flex-grow: 1;
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        #gameCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <!-- Game Container -->
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- Header UI -->
+        <div id="headerPanel" class="ui-panel">
+            <h1 class="font-medieval">Grimm Dominion</h1>
+            <p>Defend the villages from the Dark Lord's scouts!</p>
+        </div>
+
+        <!-- Hero UI (Bottom Left) -->
+        <div id="heroPanel">
+            <div class="hero-stats ui-panel">
+                <!-- Gold -->
+                <div class="stat-row">
+                    <span class="stat-label gold font-medieval">Gold</span>
+                    <span id="heroGoldText" class="stat-value gold">0</span>
+                </div>
+                <!-- Health -->
+                <div class="stat-row">
+                    <span class="stat-label health font-medieval">Health</span>
+                    <div class="health-bar-container bar-bg">
+                        <div id="heroHealthBar" class="health-bar-fill" style="width: 100%"></div>
+                    </div>
+                    <span id="heroHealthText">100/100</span>
+                </div>
+            </div>
+
+            <!-- Inventory Panel -->
+            <div id="inventoryPanel" class="ui-panel">
+                <!-- Inventory slots will be populated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Shop UI -->
+        <div id="shopPanel" class="ui-panel hidden">
+            <h2 class="font-medieval">Secret Tavern</h2>
+            <div id="shopItemsContainer"></div>
+        </div>
+
+        <!-- Tooltip UI -->
+        <div id="tooltipPanel" class="ui-panel hidden"></div>
+
+        <!-- Game Over Screen -->
+        <div id="gameOverScreen" class="hidden">
+            <h2 class="font-medieval">You Have Perished</h2>
+            <p>The Dark Lord's forces have overcome you.</p>
+            <button id="restartButton" class="shop-button">Play Again</button>
+        </div>
+
+        <!-- Dragged Item Icon -->
+        <div id="draggedItemIcon" class="item-icon hidden"></div>
+    </div>
+
+    <!-- Game Script -->
+    <script type="module">
+        import { Game } from './src/Game.js';
+
+        // Wait for DOM to be ready
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('gameCanvas');
+            const game = new Game(canvas);
+
+            // Handle window resize
+            window.addEventListener('resize', () => game.resize());
+        });
+    </script>
+</body>
+</html>
