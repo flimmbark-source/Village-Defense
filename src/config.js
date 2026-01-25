@@ -42,6 +42,7 @@ export const CONFIG = {
         BUFFED_COLOR: '#ff3333',
         MAX_HP: 40,
         DAMAGE: 10,
+        MAX_COUNT: 40,
         SIGHT_RANGE: 350,
         CRITICAL_SIGHT_RANGE: 80,
         PATROL_RADIUS: 200,
