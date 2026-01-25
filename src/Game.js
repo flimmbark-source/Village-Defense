@@ -171,6 +171,9 @@ export class Game {
      * Spawn a new scout
      */
     spawnScout() {
+        if (this.scouts.length >= CONFIG.SCOUT.MAX_COUNT) {
+            return;
+        }
         this.scouts.push(new Scout(
             this.castle.x + CONFIG.CASTLE.WIDTH / 2,
             this.castle.y + CONFIG.CASTLE.HEIGHT / 2
@@ -434,27 +437,28 @@ export class Game {
     render() {
         this.renderer.clear();
         this.renderer.beginCamera();
+        const viewBounds = this.camera.getWorldViewBounds();
 
         // World
-        this.renderer.drawGround();
-        this.renderer.drawForests(this.forests);
-        this.renderer.drawVillages(this.villages);
-        this.renderer.drawCastle(this.castle, this.spawnTimer);
+        this.renderer.drawGround(viewBounds);
+        this.renderer.drawForests(this.forests, viewBounds);
+        this.renderer.drawVillages(this.villages, viewBounds);
+        this.renderer.drawCastle(this.castle, this.spawnTimer, viewBounds);
 
         // Pickups
-        this.renderer.drawPickups(this.pickups);
+        this.renderer.drawPickups(this.pickups, viewBounds);
 
         // Entities
-        this.renderer.drawHero(this.hero);
-        this.renderer.drawProjectiles(this.projectiles);
-        this.renderer.drawScouts(this.scouts);
+        this.renderer.drawHero(this.hero, viewBounds);
+        this.renderer.drawProjectiles(this.projectiles, viewBounds);
+        this.renderer.drawScouts(this.scouts, viewBounds);
 
         // Attacks
-        this.renderer.drawAttacks(this.attacks);
+        this.renderer.drawAttacks(this.attacks, viewBounds);
 
         // Effects (world space)
-        this.renderer.drawParticles(this.effects.particles);
-        this.renderer.drawFloatingTexts(this.effects.floatingTexts);
+        this.renderer.drawParticles(this.effects.particles, viewBounds);
+        this.renderer.drawFloatingTexts(this.effects.floatingTexts, viewBounds);
 
         this.renderer.endCamera();
 

@@ -13,6 +13,57 @@ export class Renderer {
         this.time = 0;
     }
 
+    isRectVisible(bounds, x, y, width, height) {
+        if (!bounds) return true;
+        return x + width >= bounds.left &&
+               x <= bounds.right &&
+               y + height >= bounds.top &&
+               y <= bounds.bottom;
+    }
+
+    isCircleVisible(bounds, x, y, radius) {
+        if (!bounds) return true;
+        return x + radius >= bounds.left &&
+               x - radius <= bounds.right &&
+               y + radius >= bounds.top &&
+               y - radius <= bounds.bottom;
+    }
+
+    isPointVisible(bounds, x, y, margin = 0) {
+        if (!bounds) return true;
+        return x >= bounds.left - margin &&
+               x <= bounds.right + margin &&
+               y >= bounds.top - margin &&
+               y <= bounds.bottom + margin;
+    }
+
+    attackIsVisible(attack, viewBounds) {
+        if (!viewBounds) return true;
+        const pattern = attack.weapon.attackPattern;
+        const range = attack.weapon.range || 0;
+
+        if (pattern === 'lightning' && attack.chains && attack.chains.length > 0) {
+            return attack.chains.some(chain =>
+                this.isPointVisible(viewBounds, chain.startX, chain.startY, range) ||
+                this.isPointVisible(viewBounds, chain.endX, chain.endY, range)
+            );
+        }
+
+        if (pattern === 'whip' && attack.segments && attack.segments.length > 0) {
+            const tip = attack.segments[attack.segments.length - 1];
+            return this.isPointVisible(viewBounds, tip.x, tip.y, range);
+        }
+
+        const x = (pattern === 'projectile' || pattern === 'pierce' || pattern === 'homing' || pattern === 'boomerang')
+            ? attack.x
+            : attack.startX;
+        const y = (pattern === 'projectile' || pattern === 'pierce' || pattern === 'homing' || pattern === 'boomerang')
+            ? attack.y
+            : attack.startY;
+
+        return this.isPointVisible(viewBounds, x, y, range);
+    }
+
     /**
      * Update renderer time (for animations)
      * @param {number} deltaTime - Time since last frame
@@ -49,17 +100,26 @@ export class Renderer {
     /**
      * Draw the ground
      */
-    drawGround() {
+    drawGround(viewBounds = null) {
         this.ctx.fillStyle = COLORS.GROUND;
-        this.ctx.fillRect(0, 0, CONFIG.WORLD.WIDTH, CONFIG.WORLD.HEIGHT);
+        if (!viewBounds) {
+            this.ctx.fillRect(0, 0, CONFIG.WORLD.WIDTH, CONFIG.WORLD.HEIGHT);
+            return;
+        }
+        const width = viewBounds.right - viewBounds.left;
+        const height = viewBounds.bottom - viewBounds.top;
+        this.ctx.fillRect(viewBounds.left, viewBounds.top, width, height);
     }
 
     /**
      * Draw forests
      * @param {Array} forests - Forest areas
      */
-    drawForests(forests) {
+    drawForests(forests, viewBounds = null) {
         forests.forEach(f => {
+            if (!this.isRectVisible(viewBounds, f.x, f.y, f.width, f.height)) {
+                return;
+            }
             this.ctx.fillStyle = f.color;
             this.ctx.fillRect(f.x, f.y, f.width, f.height);
         });
@@ -70,7 +130,10 @@ export class Renderer {
      * @param {Object} castle - Castle object
      * @param {number} spawnTimer - Current spawn timer
      */
-    drawCastle(castle, spawnTimer) {
+    drawCastle(castle, spawnTimer, viewBounds = null) {
+        if (!this.isRectVisible(viewBounds, castle.x, castle.y, castle.width, castle.height)) {
+            return;
+        }
         // Castle body
         this.ctx.fillStyle = CONFIG.CASTLE.COLOR;
         this.ctx.fillRect(castle.x, castle.y, castle.width, castle.height);
@@ -98,8 +161,11 @@ export class Renderer {
      * Draw villages
      * @param {Array} villages - Village entities
      */
-    drawVillages(villages) {
+    drawVillages(villages, viewBounds = null) {
         villages.forEach(v => {
+            if (!this.isCircleVisible(viewBounds, v.x, v.y, 120)) {
+                return;
+            }
             // Ground
             this.ctx.fillStyle = COLORS.VILLAGE_GROUND;
             this.ctx.beginPath();
@@ -132,7 +198,10 @@ export class Renderer {
      * Draw the hero
      * @param {Object} hero - Hero entity
      */
-    drawHero(hero) {
+    drawHero(hero, viewBounds = null) {
+        if (!this.isRectVisible(viewBounds, hero.x, hero.y, hero.width, hero.height)) {
+            return;
+        }
         const ctx = this.ctx;
         const center = hero.getCenter();
 
@@ -152,10 +221,13 @@ export class Renderer {
      * Draw pickups
      * @param {Array} pickups - Pickup entities
      */
-    drawPickups(pickups) {
+    drawPickups(pickups, viewBounds = null) {
         const ctx = this.ctx;
 
         pickups.forEach(pickup => {
+            if (!this.isCircleVisible(viewBounds, pickup.x, pickup.y, pickup.radius * 2)) {
+                return;
+            }
             const alpha = pickup.getAlpha();
 
             // Glow
@@ -190,8 +262,11 @@ export class Renderer {
      * Draw scouts
      * @param {Array} scouts - Scout entities
      */
-    drawScouts(scouts) {
+    drawScouts(scouts, viewBounds = null) {
         scouts.forEach(scout => {
+            if (!this.isCircleVisible(viewBounds, scout.x, scout.y, scout.radius + 10)) {
+                return;
+            }
             // Sight range (only when patrolling)
             if (scout.state === 'PATROLLING') {
                 this.ctx.beginPath();
@@ -221,13 +296,35 @@ export class Renderer {
     }
 
     /**
+     * Draw projectiles
+     * @param {Array} projectiles - Projectile entities
+     */
+    drawProjectiles(projectiles, viewBounds = null) {
+        const ctx = this.ctx;
+
+        projectiles.forEach(projectile => {
+            if (!this.isCircleVisible(viewBounds, projectile.x, projectile.y, projectile.radius * 2)) {
+                return;
+            }
+
+            ctx.beginPath();
+            ctx.arc(projectile.x, projectile.y, projectile.radius, 0, Math.PI * 2);
+            ctx.fillStyle = projectile.color;
+            ctx.fill();
+        });
+    }
+
+    /**
      * Draw attacks
      * @param {Array} attacks - Attack instances
      */
-    drawAttacks(attacks) {
+    drawAttacks(attacks, viewBounds = null) {
         const ctx = this.ctx;
 
         attacks.forEach(attack => {
+            if (!this.attackIsVisible(attack, viewBounds)) {
+                return;
+            }
             const pattern = attack.weapon.attackPattern;
             const effects = attack.weapon.effects;
 
@@ -461,10 +558,13 @@ export class Renderer {
      * Draw particles
      * @param {Array} particles - Particle array
      */
-    drawParticles(particles) {
+    drawParticles(particles, viewBounds = null) {
         const ctx = this.ctx;
 
         particles.forEach(p => {
+            if (!this.isPointVisible(viewBounds, p.x, p.y, p.currentSize || 0)) {
+                return;
+            }
             ctx.save();
             ctx.translate(p.x, p.y);
             ctx.rotate(p.rotation);
@@ -488,10 +588,13 @@ export class Renderer {
      * Draw floating texts
      * @param {Array} texts - Floating text array
      */
-    drawFloatingTexts(texts) {
+    drawFloatingTexts(texts, viewBounds = null) {
         const ctx = this.ctx;
 
         texts.forEach(t => {
+            if (!this.isPointVisible(viewBounds, t.x, t.y, 20)) {
+                return;
+            }
             ctx.font = t.font;
             ctx.fillStyle = t.color;
             ctx.globalAlpha = t.alpha;
