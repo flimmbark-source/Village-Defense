@@ -310,6 +310,82 @@ body {
     margin-top: 32px;
 }
 
+/* Victory Screen */
+#victoryScreen {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(0, 50, 0, 0.9) 0%, rgba(0, 0, 0, 0.95) 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 60;
+    animation: victoryFadeIn 0.8s ease-out;
+}
+
+@keyframes victoryFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(1.1);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+#victoryScreen.hidden {
+    display: none;
+}
+
+#victoryScreen h2.victory-title {
+    margin: 0;
+    font-size: 5rem;
+    color: #ffd700;
+    text-shadow: 0 0 40px rgba(255, 215, 0, 0.8),
+                 0 0 80px rgba(255, 215, 0, 0.4);
+    animation: victoryPulse 1.5s infinite, victoryFloat 2s ease-in-out infinite;
+}
+
+@keyframes victoryPulse {
+    0%, 100% {
+        opacity: 1;
+        text-shadow: 0 0 40px rgba(255, 215, 0, 0.8),
+                     0 0 80px rgba(255, 215, 0, 0.4);
+    }
+    50% {
+        opacity: 0.9;
+        text-shadow: 0 0 60px rgba(255, 215, 0, 1),
+                     0 0 120px rgba(255, 215, 0, 0.6);
+    }
+}
+
+@keyframes victoryFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+#victoryScreen p {
+    margin-top: 20px;
+    font-size: 1.5rem;
+    color: #4ade80;
+    text-shadow: 0 0 20px rgba(74, 222, 128, 0.5);
+}
+
+#victoryScreen .victory-button {
+    margin-top: 40px;
+    background: linear-gradient(180deg, #2a5a2a 0%, #1a3a1a 100%);
+    border: 3px solid #4ade80;
+    font-size: 1.5rem;
+    padding: 16px 48px;
+}
+
+#victoryScreen .victory-button:hover {
+    background: linear-gradient(180deg, #3a7a3a 0%, #2a5a2a 100%);
+    border-color: #ffd700;
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.4);
+}
+
 /* Controls Hint */
 #controlsHint {
     position: absolute;

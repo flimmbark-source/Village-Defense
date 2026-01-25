@@ -35,7 +35,7 @@ export const CONFIG = {
         PICKUP_MAGNET_SPEED: 8
     },
 
-    // Scout Stats
+    // Scout Stats (base enemy)
     SCOUT: {
         RADIUS: 12,
         COLOR: '#e24a4a',
@@ -48,13 +48,67 @@ export const CONFIG = {
         BASE_SPEED: 1.6,
         SPEED_BUFF_MULTIPLIER: 1.4,
         HP_BUFF_BONUS: 40,
-        VILLAGE_ATTACK_DAMAGE: 5,
-        VILLAGE_ATTACK_COOLDOWN: 1,
+        VILLAGE_ATTACK_DAMAGE: 15,
+        VILLAGE_ATTACK_COOLDOWN: 1.5,
         HERO_ATTACK_COOLDOWN: 1.5,
+        ATTACK_RANGE: 35,
+        ATTACK_WINDUP: 0.3,
+        ATTACK_DURATION: 0.2,
         XP_DROP: 10,
         GOLD_DROP_MIN: 5,
         GOLD_DROP_MAX: 15,
         GOLD_DROP_CHANCE: 0.4
+    },
+
+    // Elite Scout - faster, more HP
+    ELITE_SCOUT: {
+        RADIUS: 14,
+        COLOR: '#9932cc',
+        MAX_HP: 80,
+        DAMAGE: 15,
+        BASE_SPEED: 2.0,
+        VILLAGE_ATTACK_DAMAGE: 25,
+        VILLAGE_ATTACK_COOLDOWN: 1.2,
+        HERO_ATTACK_COOLDOWN: 1.2,
+        ATTACK_RANGE: 40,
+        XP_DROP: 25,
+        GOLD_DROP_MIN: 10,
+        GOLD_DROP_MAX: 25,
+        GOLD_DROP_CHANCE: 0.6
+    },
+
+    // Brute - slow but tanky and hard-hitting
+    BRUTE: {
+        RADIUS: 20,
+        COLOR: '#4a1a1a',
+        MAX_HP: 200,
+        DAMAGE: 25,
+        BASE_SPEED: 1.0,
+        VILLAGE_ATTACK_DAMAGE: 50,
+        VILLAGE_ATTACK_COOLDOWN: 2.0,
+        HERO_ATTACK_COOLDOWN: 2.0,
+        ATTACK_RANGE: 50,
+        XP_DROP: 50,
+        GOLD_DROP_MIN: 20,
+        GOLD_DROP_MAX: 40,
+        GOLD_DROP_CHANCE: 0.8
+    },
+
+    // Swarm - weak but fast and numerous
+    SWARM: {
+        RADIUS: 8,
+        COLOR: '#666666',
+        MAX_HP: 15,
+        DAMAGE: 5,
+        BASE_SPEED: 2.5,
+        VILLAGE_ATTACK_DAMAGE: 8,
+        VILLAGE_ATTACK_COOLDOWN: 0.8,
+        HERO_ATTACK_COOLDOWN: 0.8,
+        ATTACK_RANGE: 25,
+        XP_DROP: 5,
+        GOLD_DROP_MIN: 1,
+        GOLD_DROP_MAX: 5,
+        GOLD_DROP_CHANCE: 0.2
     },
 
     // Militia Stats
@@ -87,7 +141,20 @@ export const CONFIG = {
         WIDTH: 150,
         HEIGHT: 150,
         COLOR: '#2c1e1e',
-        BORDER_COLOR: '#5a3d2b'
+        BORDER_COLOR: '#5a3d2b',
+        MAX_HP: 5000,
+        // Wave spawning
+        BASE_SPAWN_COOLDOWN: 5.0,
+        MIN_SPAWN_COOLDOWN: 2.0,
+        // Time-based scaling (adds +1 unit per wave every X seconds)
+        SCALE_INTERVAL: 30,
+        MAX_WAVE_SIZE: 10,
+        // HP thresholds for unit types (percentage of max HP)
+        THRESHOLDS: {
+            ELITE_SPAWN: 0.75,    // Below 75% HP, start spawning elites
+            BRUTE_SPAWN: 0.50,    // Below 50% HP, start spawning brutes
+            SWARM_SPAWN: 0.25     // Below 25% HP, spawn swarms
+        }
     },
 
     // Forest generation

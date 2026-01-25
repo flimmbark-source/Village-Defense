@@ -1,27 +1,75 @@
 /**
  * Grimm Dominion - Scout Entity (Enemy)
+ * Supports multiple enemy types with visible attacks
  */
 
 import { CONFIG } from '../config.js';
 import { distance, isPointInRect, generateId, randomRange } from '../utils.js';
+import { EnemyType } from './Castle.js';
 
 export const ScoutState = {
     PATROLLING: 'PATROLLING',
     CHASING: 'CHASING',
-    ATTACKING_VILLAGE: 'ATTACKING_VILLAGE'
+    ATTACKING_VILLAGE: 'ATTACKING_VILLAGE',
+    ATTACKING_HERO: 'ATTACKING_HERO',
+    ATTACKING_CASTLE: 'ATTACKING_CASTLE'
 };
 
+export const AttackPhase = {
+    NONE: 'NONE',
+    WINDUP: 'WINDUP',
+    ACTIVE: 'ACTIVE',
+    RECOVERY: 'RECOVERY'
+};
+
+/**
+ * Get stats for an enemy type
+ * @param {string} type - Enemy type
+ * @returns {Object} Stats config
+ */
+function getStatsForType(type) {
+    switch (type) {
+        case EnemyType.ELITE:
+            return CONFIG.ELITE_SCOUT;
+        case EnemyType.BRUTE:
+            return CONFIG.BRUTE;
+        case EnemyType.SWARM:
+            return CONFIG.SWARM;
+        default:
+            return CONFIG.SCOUT;
+    }
+}
+
 export class Scout {
-    constructor(x, y) {
+    constructor(x, y, type = EnemyType.SCOUT) {
         this.id = generateId();
         this.x = x;
         this.y = y;
-        this.radius = CONFIG.SCOUT.RADIUS;
-        this.color = CONFIG.SCOUT.COLOR;
+        this.type = type;
 
-        this.hp = CONFIG.SCOUT.MAX_HP;
-        this.maxHp = CONFIG.SCOUT.MAX_HP;
-        this.speed = CONFIG.SCOUT.BASE_SPEED;
+        // Get stats based on type
+        const stats = getStatsForType(type);
+        const baseStats = CONFIG.SCOUT;
+
+        this.radius = stats.RADIUS;
+        this.color = stats.COLOR;
+        this.baseColor = stats.COLOR;
+
+        this.hp = stats.MAX_HP;
+        this.maxHp = stats.MAX_HP;
+        this.damage = stats.DAMAGE;
+        this.speed = stats.BASE_SPEED;
+        this.villageAttackDamage = stats.VILLAGE_ATTACK_DAMAGE;
+        this.villageAttackCooldown = stats.VILLAGE_ATTACK_COOLDOWN;
+        this.heroAttackCooldown = stats.HERO_ATTACK_COOLDOWN;
+        this.attackRange = stats.ATTACK_RANGE || baseStats.ATTACK_RANGE;
+
+        // XP and gold drops
+        this.xpDrop = stats.XP_DROP;
+        this.goldDropMin = stats.GOLD_DROP_MIN;
+        this.goldDropMax = stats.GOLD_DROP_MAX;
+        this.goldDropChance = stats.GOLD_DROP_CHANCE;
+
         this.isBuffed = false;
 
         this.state = ScoutState.PATROLLING;
@@ -34,8 +82,19 @@ export class Scout {
 
         // Attack targets
         this.villageAttackTarget = null;
-        this.villageAttackCooldown = 0;
-        this.heroAttackCooldown = 0;
+        this.currentTarget = null; // Generic target (can be hero, hut, castle)
+
+        // Attack state
+        this.attackPhase = AttackPhase.NONE;
+        this.attackTimer = 0;
+        this.attackCooldownTimer = 0;
+        this.attackAngle = 0;
+        this.attackProgress = 0;
+
+        // Attack timing
+        this.attackWindup = baseStats.ATTACK_WINDUP || 0.3;
+        this.attackDuration = baseStats.ATTACK_DURATION || 0.2;
+        this.attackRecovery = 0.1;
     }
 
     /**
@@ -66,7 +125,7 @@ export class Scout {
      * Apply combat buff when entering combat
      */
     applyBuff() {
-        if (!this.isBuffed) {
+        if (!this.isBuffed && this.type === EnemyType.SCOUT) {
             this.isBuffed = true;
             this.speed *= CONFIG.SCOUT.SPEED_BUFF_MULTIPLIER;
             this.maxHp += CONFIG.SCOUT.HP_BUFF_BONUS;
@@ -76,15 +135,29 @@ export class Scout {
     }
 
     /**
+     * Check if currently in an attack animation
+     * @returns {boolean}
+     */
+    isAttacking() {
+        return this.attackPhase !== AttackPhase.NONE;
+    }
+
+    /**
      * Update scout AI and movement
      * @param {number} deltaTime - Time since last frame
      * @param {Object} hero - Hero entity
      * @param {Array} forests - Forest areas
      * @param {Array} villages - Village entities
+     * @param {Object} castle - Castle entity (for player attacking)
+     * @returns {Object|null} Attack event if attack connects
      */
-    update(deltaTime, hero, forests, villages) {
-        this.villageAttackCooldown -= deltaTime;
-        this.heroAttackCooldown -= deltaTime;
+    update(deltaTime, hero, forests, villages, castle = null) {
+        this.attackCooldownTimer -= deltaTime;
+
+        // Update attack animation if in progress
+        if (this.isAttacking()) {
+            return this.updateAttack(deltaTime);
+        }
 
         // State machine
         if (this.state === ScoutState.PATROLLING) {
@@ -92,16 +165,18 @@ export class Scout {
         }
 
         if (this.state === ScoutState.CHASING) {
-            this.targetX = hero.x;
-            this.targetY = hero.y;
+            this.updateChasing(hero);
         } else if (this.state === ScoutState.ATTACKING_VILLAGE) {
             this.updateVillageAttack();
         } else if (this.state === ScoutState.PATROLLING) {
             this.updatePatrolMovement();
         }
 
-        // Movement
+        // Movement (don't move while attacking)
         this.moveTowardsTarget();
+
+        // Check if can start an attack
+        return this.checkForAttack(hero);
     }
 
     /**
@@ -111,21 +186,21 @@ export class Scout {
         // Check if we can see the hero
         if (this.canSeeHero(hero, forests)) {
             this.state = ScoutState.CHASING;
+            this.currentTarget = hero;
             this.applyBuff();
             return;
         }
 
         // Look for village targets
         for (const village of villages) {
-            const allTargets = [...village.villagers, ...village.huts];
+            const allTargets = [...village.huts.filter(h => !h.isDead())];
 
             for (const target of allTargets) {
-                if (target.hp <= 0) continue;
-
                 const distToTarget = distance(this.x, this.y, target.x, target.y);
                 if (distToTarget <= CONFIG.SCOUT.SIGHT_RANGE) {
                     this.state = ScoutState.ATTACKING_VILLAGE;
                     this.villageAttackTarget = target;
+                    this.currentTarget = target;
                     village.isUnderAttack = true;
                     village.attackers.add(this.id);
                     this.applyBuff();
@@ -136,23 +211,27 @@ export class Scout {
     }
 
     /**
+     * Update chasing state
+     */
+    updateChasing(hero) {
+        this.targetX = hero.x + hero.width / 2;
+        this.targetY = hero.y + hero.height / 2;
+        this.currentTarget = hero;
+    }
+
+    /**
      * Update village attack behavior
      */
     updateVillageAttack() {
-        if (!this.villageAttackTarget || this.villageAttackTarget.hp <= 0) {
+        if (!this.villageAttackTarget || this.villageAttackTarget.isDead()) {
             this.state = ScoutState.PATROLLING;
             this.villageAttackTarget = null;
+            this.currentTarget = null;
             return;
         }
 
-        this.targetX = this.villageAttackTarget.x;
-        this.targetY = this.villageAttackTarget.y;
-
-        const distToTarget = distance(this.x, this.y, this.targetX, this.targetY);
-        if (distToTarget < 30 && this.villageAttackCooldown <= 0) {
-            this.villageAttackTarget.hp -= CONFIG.SCOUT.VILLAGE_ATTACK_DAMAGE;
-            this.villageAttackCooldown = CONFIG.SCOUT.VILLAGE_ATTACK_COOLDOWN;
-        }
+        this.targetX = this.villageAttackTarget.x + (this.villageAttackTarget.width || 0) / 2;
+        this.targetY = this.villageAttackTarget.y + (this.villageAttackTarget.height || 0) / 2;
     }
 
     /**
@@ -174,32 +253,108 @@ export class Scout {
         const dy = this.targetY - this.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
-        // Don't move if chasing and in attack range but on cooldown
-        let shouldMove = true;
-        if (this.state === ScoutState.CHASING && dist < 30 && this.heroAttackCooldown > 0) {
-            shouldMove = false;
+        // Don't move if in attack range and waiting for cooldown, or if attacking
+        if (dist < this.attackRange || this.isAttacking()) {
+            return;
         }
 
-        if (dist > this.speed && shouldMove) {
+        if (dist > this.speed) {
             this.x += (dx / dist) * this.speed;
             this.y += (dy / dist) * this.speed;
         }
     }
 
     /**
-     * Try to attack the hero if in range
+     * Check if can start an attack against any valid target
      * @param {Object} hero - Hero entity
-     * @returns {boolean} True if attacked
+     * @returns {Object|null} Attack event
      */
-    tryAttackHero(hero) {
-        const heroCenter = hero.getCenter();
-        const dist = distance(this.x, this.y, heroCenter.x, heroCenter.y);
-
-        if (dist < this.radius + hero.width / 2 && this.heroAttackCooldown <= 0) {
-            this.heroAttackCooldown = CONFIG.SCOUT.HERO_ATTACK_COOLDOWN;
-            return true;
+    checkForAttack(hero) {
+        if (this.attackCooldownTimer > 0 || this.isAttacking()) {
+            return null;
         }
-        return false;
+
+        // Check hero distance
+        const heroCenter = hero.getCenter();
+        const distToHero = distance(this.x, this.y, heroCenter.x, heroCenter.y);
+
+        if (this.state === ScoutState.CHASING && distToHero < this.attackRange + hero.width / 2) {
+            this.startAttack(heroCenter.x, heroCenter.y, 'hero');
+            return null; // Attack will resolve when animation completes
+        }
+
+        // Check village target
+        if (this.state === ScoutState.ATTACKING_VILLAGE && this.villageAttackTarget) {
+            const targetX = this.villageAttackTarget.x + (this.villageAttackTarget.width || 0) / 2;
+            const targetY = this.villageAttackTarget.y + (this.villageAttackTarget.height || 0) / 2;
+            const distToTarget = distance(this.x, this.y, targetX, targetY);
+
+            if (distToTarget < this.attackRange + 20) {
+                this.startAttack(targetX, targetY, 'village');
+                return null;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Start an attack animation
+     * @param {number} targetX - Target X position
+     * @param {number} targetY - Target Y position
+     * @param {string} targetType - 'hero' or 'village'
+     */
+    startAttack(targetX, targetY, targetType) {
+        this.attackPhase = AttackPhase.WINDUP;
+        this.attackTimer = 0;
+        this.attackAngle = Math.atan2(targetY - this.y, targetX - this.x);
+        this.attackTargetType = targetType;
+        this.attackProgress = 0;
+    }
+
+    /**
+     * Update attack animation
+     * @param {number} deltaTime - Time since last frame
+     * @returns {Object|null} Attack event when attack connects
+     */
+    updateAttack(deltaTime) {
+        this.attackTimer += deltaTime;
+
+        if (this.attackPhase === AttackPhase.WINDUP) {
+            this.attackProgress = this.attackTimer / this.attackWindup;
+            if (this.attackTimer >= this.attackWindup) {
+                this.attackPhase = AttackPhase.ACTIVE;
+                this.attackTimer = 0;
+                this.attackProgress = 0;
+
+                // Return the attack event
+                return {
+                    type: this.attackTargetType,
+                    damage: this.attackTargetType === 'hero' ? this.damage : this.villageAttackDamage,
+                    x: this.x + Math.cos(this.attackAngle) * this.attackRange,
+                    y: this.y + Math.sin(this.attackAngle) * this.attackRange,
+                    angle: this.attackAngle,
+                    radius: this.attackRange
+                };
+            }
+        } else if (this.attackPhase === AttackPhase.ACTIVE) {
+            this.attackProgress = this.attackTimer / this.attackDuration;
+            if (this.attackTimer >= this.attackDuration) {
+                this.attackPhase = AttackPhase.RECOVERY;
+                this.attackTimer = 0;
+                this.attackProgress = 0;
+            }
+        } else if (this.attackPhase === AttackPhase.RECOVERY) {
+            this.attackProgress = this.attackTimer / this.attackRecovery;
+            if (this.attackTimer >= this.attackRecovery) {
+                this.attackPhase = AttackPhase.NONE;
+                this.attackCooldownTimer = this.attackTargetType === 'hero'
+                    ? this.heroAttackCooldown
+                    : this.villageAttackCooldown;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -230,14 +385,14 @@ export class Scout {
         // Always drop XP
         drops.push({
             type: 'xp',
-            value: CONFIG.SCOUT.XP_DROP
+            value: this.xpDrop
         });
 
         // Chance to drop gold
-        if (Math.random() < CONFIG.SCOUT.GOLD_DROP_CHANCE) {
+        if (Math.random() < this.goldDropChance) {
             drops.push({
                 type: 'gold',
-                value: Math.floor(randomRange(CONFIG.SCOUT.GOLD_DROP_MIN, CONFIG.SCOUT.GOLD_DROP_MAX))
+                value: Math.floor(randomRange(this.goldDropMin, this.goldDropMax))
             });
         }
 

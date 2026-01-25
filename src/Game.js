@@ -10,12 +10,20 @@ import { Scout } from './entities/Scout.js';
 import { Village } from './entities/Village.js';
 import { Pickup, PickupType } from './entities/Pickup.js';
 import { Projectile } from './entities/Projectile.js';
+import { Castle, EnemyType } from './entities/Castle.js';
 
 import { Camera } from './systems/Camera.js';
 import { Input } from './systems/Input.js';
 import { Renderer } from './systems/Renderer.js';
 import { LevelUpSystem } from './systems/LevelUp.js';
 import { EffectsSystem } from './systems/Effects.js';
+
+export const GameState = {
+    PLAYING: 'PLAYING',
+    PAUSED: 'PAUSED',
+    VICTORY: 'VICTORY',
+    DEFEAT: 'DEFEAT'
+};
 
 export class Game {
     constructor(canvas) {
@@ -29,22 +37,13 @@ export class Game {
         this.effects = new EffectsSystem();
 
         // Game state
-        this.gameOver = false;
-        this.paused = false;
-        this.spawnTimer = CONFIG.DARK_LORD_SPAWN_COOLDOWN;
+        this.state = GameState.PLAYING;
         this.lastTime = 0;
         this.gameTime = 0;
 
-        // World objects
-        this.castle = {
-            x: CONFIG.WORLD.WIDTH / 2,
-            y: CONFIG.WORLD.HEIGHT / 2,
-            width: CONFIG.CASTLE.WIDTH,
-            height: CONFIG.CASTLE.HEIGHT
-        };
-
         // Entities
         this.hero = null;
+        this.castle = null;
         this.scouts = [];
         this.attacks = [];
         this.pickups = [];
@@ -52,12 +51,19 @@ export class Game {
         this.forests = [];
         this.villages = [];
 
+        // Enemy attack visuals
+        this.enemyAttacks = [];
+
         // UI elements
         this.heroHealthBar = document.getElementById('heroHealthBar');
         this.heroHealthText = document.getElementById('heroHealthText');
         this.heroGoldText = document.getElementById('heroGoldText');
         this.gameOverScreen = document.getElementById('gameOverScreen');
+        this.victoryScreen = document.getElementById('victoryScreen');
         this.restartButton = document.getElementById('restartButton');
+        this.victoryRestartButton = document.getElementById('victoryRestartButton');
+        this.gameOverTitle = document.querySelector('#gameOverScreen h2');
+        this.gameOverText = document.querySelector('#gameOverScreen p');
 
         this.initialize();
     }
@@ -66,6 +72,12 @@ export class Game {
      * Initialize the game
      */
     initialize() {
+        // Create castle at center
+        this.castle = new Castle(
+            CONFIG.WORLD.WIDTH / 2 - CONFIG.CASTLE.WIDTH / 2,
+            CONFIG.WORLD.HEIGHT / 2 - CONFIG.CASTLE.HEIGHT / 2
+        );
+
         // Create hero
         this.hero = new Hero(
             CONFIG.WORLD.WIDTH / 2 + 400,
@@ -85,7 +97,7 @@ export class Game {
         // Setup level up system
         this.levelUpSystem.initialize();
         this.levelUpSystem.setLevelUpHandler((level) => {
-            this.paused = true;
+            this.state = GameState.PAUSED;
             this.levelUpSystem.filterChoicesForHero(this.hero.weapons);
             const heroCenter = this.hero.getCenter();
             this.effects.spawnLevelUp(heroCenter.x, heroCenter.y);
@@ -93,12 +105,15 @@ export class Game {
 
         this.levelUpSystem.setChoiceSelectedHandler((choice) => {
             this.handleLevelUpChoice(choice);
-            this.paused = false;
+            this.state = GameState.PLAYING;
         });
 
-        // Setup restart button
+        // Setup restart buttons
         if (this.restartButton) {
             this.restartButton.onclick = () => this.restart();
+        }
+        if (this.victoryRestartButton) {
+            this.victoryRestartButton.onclick = () => this.restart();
         }
 
         // Initial resize
@@ -114,7 +129,7 @@ export class Game {
     setupInput() {
         // Click to move
         this.input.setClickHandler((x, y) => {
-            if (!this.gameOver && !this.paused) {
+            if (this.state === GameState.PLAYING) {
                 this.hero.setTarget(x, y);
             }
         });
@@ -168,13 +183,21 @@ export class Game {
     }
 
     /**
-     * Spawn a new scout
+     * Spawn enemies from castle wave
+     * @param {Array} wave - Array of enemy types
      */
-    spawnScout() {
-        this.scouts.push(new Scout(
-            this.castle.x + CONFIG.CASTLE.WIDTH / 2,
-            this.castle.y + CONFIG.CASTLE.HEIGHT / 2
-        ));
+    spawnWave(wave) {
+        const center = this.castle.getCenter();
+
+        for (const enemyType of wave) {
+            // Spawn at random position around castle
+            const angle = Math.random() * Math.PI * 2;
+            const dist = CONFIG.CASTLE.WIDTH / 2 + 20;
+            const x = center.x + Math.cos(angle) * dist;
+            const y = center.y + Math.sin(angle) * dist;
+
+            this.scouts.push(new Scout(x, y, enemyType));
+        }
     }
 
     /**
@@ -208,12 +231,28 @@ export class Game {
     }
 
     /**
+     * Check win condition (castle destroyed)
+     * @returns {boolean}
+     */
+    checkVictory() {
+        return this.castle && this.castle.isDestroyed();
+    }
+
+    /**
+     * Check lose condition (all villages destroyed)
+     * @returns {boolean}
+     */
+    checkDefeat() {
+        return this.villages.every(v => v.isDestroyed());
+    }
+
+    /**
      * Update game state
      * @param {number} deltaTime - Time since last frame in seconds
      */
     update(deltaTime) {
-        // Don't update if paused (level up screen)
-        if (this.paused) {
+        // Don't update if paused (level up screen) or game over
+        if (this.state !== GameState.PLAYING) {
             return;
         }
 
@@ -232,10 +271,16 @@ export class Game {
             (attack) => this.createAttack(attack)
         );
 
-        // Update scouts
-        for (const scout of this.scouts) {
-            scout.update(deltaTime, this.hero, this.forests, this.villages);
+        // Update castle and spawn waves
+        if (this.castle && !this.castle.isDestroyed()) {
+            const wave = this.castle.update(deltaTime);
+            if (wave) {
+                this.spawnWave(wave);
+            }
         }
+
+        // Update scouts
+        this.updateScouts(deltaTime);
 
         // Update villages and militia
         for (const village of this.villages) {
@@ -246,8 +291,11 @@ export class Game {
             );
         }
 
-        // Update attacks
+        // Update attacks (hero weapons)
         this.updateAttacks(deltaTime);
+
+        // Update enemy attack visuals
+        this.updateEnemyAttacks(deltaTime);
 
         // Update militia projectiles
         this.updateProjectiles();
@@ -261,28 +309,89 @@ export class Game {
         // Update effects
         this.effects.update(deltaTime);
 
-        // Spawn timer
-        this.spawnTimer += deltaTime;
-        if (this.spawnTimer >= CONFIG.DARK_LORD_SPAWN_COOLDOWN) {
-            this.spawnScout();
-            this.spawnTimer = 0;
-        }
-
         // Update camera
         this.camera.follow(this.hero);
 
         // Update UI
         this.updateUI();
+
+        // Check win/lose conditions
+        if (this.checkVictory()) {
+            this.victory();
+        } else if (this.checkDefeat()) {
+            this.defeat();
+        }
     }
 
     /**
-     * Update attacks
+     * Update scouts and handle their attacks
+     * @param {number} deltaTime - Time since last frame
+     */
+    updateScouts(deltaTime) {
+        for (const scout of this.scouts) {
+            const attackEvent = scout.update(deltaTime, this.hero, this.forests, this.villages, this.castle);
+
+            // Handle attack event
+            if (attackEvent) {
+                // Create visual for the attack
+                this.enemyAttacks.push({
+                    x: scout.x,
+                    y: scout.y,
+                    targetX: attackEvent.x,
+                    targetY: attackEvent.y,
+                    angle: attackEvent.angle,
+                    radius: attackEvent.radius,
+                    color: scout.color,
+                    timer: 0,
+                    duration: 0.2,
+                    type: scout.type
+                });
+
+                // Apply damage based on target type
+                if (attackEvent.type === 'hero') {
+                    const died = this.hero.takeDamage(attackEvent.damage);
+                    this.effects.spawnDamageNumber(
+                        this.hero.x + this.hero.width / 2,
+                        this.hero.y,
+                        attackEvent.damage
+                    );
+                    if (died) {
+                        this.defeat();
+                        return;
+                    }
+                } else if (attackEvent.type === 'village' && scout.villageAttackTarget) {
+                    const target = scout.villageAttackTarget;
+                    const destroyed = target.takeDamage(attackEvent.damage);
+                    this.effects.spawnDamageNumber(
+                        target.x + (target.width || 0) / 2,
+                        target.y,
+                        attackEvent.damage
+                    );
+                    if (destroyed) {
+                        this.effects.addFloatingText(
+                            target.x + (target.width || 0) / 2,
+                            target.y - 20,
+                            'Building Destroyed!',
+                            { color: '#ff4444', font: 'bold 16px MedievalSharp', lifetime: 1.5 }
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Update hero weapon attacks
      * @param {number} deltaTime - Time since last frame
      */
     updateAttacks(deltaTime) {
         for (let i = this.attacks.length - 1; i >= 0; i--) {
             const attack = this.attacks[i];
-            const damageEvents = attack.update(deltaTime, this.hero, this.scouts);
+
+            // Combine enemies and castle as potential targets
+            const targets = [...this.scouts];
+
+            const damageEvents = attack.update(deltaTime, this.hero, targets);
 
             // Process damage events
             for (const event of damageEvents) {
@@ -299,9 +408,41 @@ export class Game {
                 }
             }
 
+            // Check for castle damage (hero attacks can hit castle)
+            if (this.castle && !this.castle.isDestroyed()) {
+                const castleCenter = this.castle.getCenter();
+                const dist = Math.sqrt(
+                    Math.pow(attack.x - castleCenter.x, 2) +
+                    Math.pow(attack.y - castleCenter.y, 2)
+                );
+
+                // Simple collision with castle
+                if (dist < CONFIG.CASTLE.WIDTH / 2 + 20 && !attack.hitCastle) {
+                    const damage = attack.weapon.damage * (this.hero.damageMultiplier || 1);
+                    this.castle.takeDamage(damage);
+                    this.effects.spawnDamageNumber(castleCenter.x, castleCenter.y - 50, damage);
+                    attack.hitCastle = true; // Prevent multiple hits per attack
+                }
+            }
+
             // Remove finished attacks
             if (attack.finished) {
                 this.attacks.splice(i, 1);
+            }
+        }
+    }
+
+    /**
+     * Update enemy attack visuals
+     * @param {number} deltaTime - Time since last frame
+     */
+    updateEnemyAttacks(deltaTime) {
+        for (let i = this.enemyAttacks.length - 1; i >= 0; i--) {
+            const attack = this.enemyAttacks[i];
+            attack.timer += deltaTime;
+
+            if (attack.timer >= attack.duration) {
+                this.enemyAttacks.splice(i, 1);
             }
         }
     }
@@ -356,22 +497,6 @@ export class Game {
      * Handle collisions and deaths
      */
     handleCollisions() {
-        // Scout attacks on hero
-        for (const scout of this.scouts) {
-            if (scout.tryAttackHero(this.hero)) {
-                const died = this.hero.takeDamage(CONFIG.SCOUT.DAMAGE);
-                this.effects.spawnDamageNumber(
-                    this.hero.x + this.hero.width / 2,
-                    this.hero.y,
-                    CONFIG.SCOUT.DAMAGE
-                );
-                if (died) {
-                    this.endGame();
-                    return;
-                }
-            }
-        }
-
         // Remove dead scouts
         for (let i = this.scouts.length - 1; i >= 0; i--) {
             if (this.scouts[i].isDead()) {
@@ -390,7 +515,6 @@ export class Game {
                 for (const village of this.villages) {
                     const result = village.removeAttacker(deadScout.id);
                     if (result && result.attackEnded) {
-                        const heroCenter = this.hero.getCenter();
                         if (result.heroHelped) {
                             // Bonus gold for saving village
                             const bonusGold = 50;
@@ -439,7 +563,7 @@ export class Game {
         this.renderer.drawGround();
         this.renderer.drawForests(this.forests);
         this.renderer.drawVillages(this.villages);
-        this.renderer.drawCastle(this.castle, this.spawnTimer);
+        this.renderer.drawCastle(this.castle);
 
         // Pickups
         this.renderer.drawPickups(this.pickups);
@@ -451,6 +575,7 @@ export class Game {
 
         // Attacks
         this.renderer.drawAttacks(this.attacks);
+        this.renderer.drawEnemyAttacks(this.enemyAttacks);
 
         // Effects (world space)
         this.renderer.drawParticles(this.effects.particles);
@@ -460,7 +585,7 @@ export class Game {
 
         // Screen-space UI
         this.renderer.drawAttackIndicators(this.villages);
-        this.renderer.drawHUD(this.hero, this.levelUpSystem);
+        this.renderer.drawHUD(this.hero, this.levelUpSystem, this.castle, this.villages, this.gameTime);
     }
 
     /**
@@ -468,7 +593,11 @@ export class Game {
      * @param {number} timestamp - Current timestamp
      */
     gameLoop(timestamp) {
-        if (this.gameOver) return;
+        if (this.state === GameState.VICTORY || this.state === GameState.DEFEAT) {
+            // Still render but don't update
+            this.render();
+            return;
+        }
 
         if (!this.lastTime) this.lastTime = timestamp;
         const deltaTime = Math.min((timestamp - this.lastTime) / 1000, 0.1); // Cap delta
@@ -495,16 +624,27 @@ export class Game {
             this.hero.targetY = this.hero.y;
         }
 
-        if (!this.gameOver) {
+        if (this.state !== GameState.VICTORY && this.state !== GameState.DEFEAT) {
             this.render();
         }
     }
 
     /**
-     * End the game
+     * Handle victory
      */
-    endGame() {
-        this.gameOver = true;
+    victory() {
+        this.state = GameState.VICTORY;
+        if (this.victoryScreen) {
+            this.victoryScreen.classList.remove('hidden');
+        }
+        this.effects.spawnLevelUp(this.hero.x + this.hero.width / 2, this.hero.y);
+    }
+
+    /**
+     * Handle defeat
+     */
+    defeat() {
+        this.state = GameState.DEFEAT;
         if (this.gameOverScreen) {
             this.gameOverScreen.classList.remove('hidden');
         }
@@ -515,9 +655,7 @@ export class Game {
      */
     restart() {
         // Reset state
-        this.gameOver = false;
-        this.paused = false;
-        this.spawnTimer = CONFIG.DARK_LORD_SPAWN_COOLDOWN;
+        this.state = GameState.PLAYING;
         this.lastTime = 0;
         this.gameTime = 0;
 
@@ -528,6 +666,7 @@ export class Game {
         this.projectiles = [];
         this.villages = [];
         this.forests = [];
+        this.enemyAttacks = [];
 
         // Clear effects
         this.effects.clear();
@@ -542,6 +681,12 @@ export class Game {
         this.generateForests();
         this.generateVillages();
 
+        // Recreate castle
+        this.castle = new Castle(
+            CONFIG.WORLD.WIDTH / 2 - CONFIG.CASTLE.WIDTH / 2,
+            CONFIG.WORLD.HEIGHT / 2 - CONFIG.CASTLE.HEIGHT / 2
+        );
+
         // Recreate hero
         this.hero = new Hero(
             CONFIG.WORLD.WIDTH / 2 + 400,
@@ -549,9 +694,12 @@ export class Game {
         );
         this.hero.addStartingWeapon('basic_sword');
 
-        // Hide game over screen
+        // Hide end screens
         if (this.gameOverScreen) {
             this.gameOverScreen.classList.add('hidden');
+        }
+        if (this.victoryScreen) {
+            this.victoryScreen.classList.add('hidden');
         }
 
         // Restart loop

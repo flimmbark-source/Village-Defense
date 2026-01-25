@@ -21,6 +21,7 @@ export class Villager {
 
 export class Hut {
     constructor(x, y) {
+        this.id = generateId();
         this.x = x;
         this.y = y;
         this.width = CONFIG.VILLAGE.HUT_WIDTH;
@@ -29,8 +30,29 @@ export class Hut {
         this.maxHp = CONFIG.VILLAGE.HUT_HP;
     }
 
+    /**
+     * Take damage
+     * @param {number} amount - Damage amount
+     * @returns {boolean} True if destroyed
+     */
+    takeDamage(amount) {
+        this.hp = Math.max(0, this.hp - amount);
+        return this.hp <= 0;
+    }
+
     isDead() {
         return this.hp <= 0;
+    }
+
+    /**
+     * Get center position
+     * @returns {Object} Center coordinates
+     */
+    getCenter() {
+        return {
+            x: this.x + this.width / 2,
+            y: this.y + this.height / 2
+        };
     }
 }
 
@@ -149,6 +171,37 @@ export class Village {
 
         // Clean up dead villagers
         this.villagers = this.villagers.filter(v => !v.isDead());
+
+        // If all huts are destroyed, stop being under attack
+        if (this.isDestroyed() && this.isUnderAttack) {
+            this.isUnderAttack = false;
+            this.attackers.clear();
+        }
+    }
+
+    /**
+     * Check if village is destroyed (all huts gone)
+     * @returns {boolean} True if all huts are destroyed
+     */
+    isDestroyed() {
+        return this.huts.every(h => h.isDead());
+    }
+
+    /**
+     * Get number of remaining huts
+     * @returns {number} Count of living huts
+     */
+    getRemainingHuts() {
+        return this.huts.filter(h => !h.isDead()).length;
+    }
+
+    /**
+     * Get a specific hut by ID
+     * @param {string} id - Hut ID
+     * @returns {Object|null} Hut or null
+     */
+    getHutById(id) {
+        return this.huts.find(h => h.id === id) || null;
     }
 
     /**

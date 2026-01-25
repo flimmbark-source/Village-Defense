@@ -68,9 +68,10 @@ export class Renderer {
     /**
      * Draw the castle
      * @param {Object} castle - Castle object
-     * @param {number} spawnTimer - Current spawn timer
      */
-    drawCastle(castle, spawnTimer) {
+    drawCastle(castle) {
+        if (!castle) return;
+
         // Castle body
         this.ctx.fillStyle = CONFIG.CASTLE.COLOR;
         this.ctx.fillRect(castle.x, castle.y, castle.width, castle.height);
@@ -84,14 +85,46 @@ export class Renderer {
         this.ctx.fillStyle = '#4a2a2a';
         this.ctx.font = '32px MedievalSharp';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('Castle', castle.x + castle.width / 2, castle.y + castle.height / 2 + 10);
+        this.ctx.fillText('Dark Castle', castle.x + castle.width / 2, castle.y + castle.height / 2 + 10);
 
-        // Spawn bar
-        const spawnRatio = spawnTimer / CONFIG.DARK_LORD_SPAWN_COOLDOWN;
+        // HP bar (above castle)
+        const barWidth = castle.width;
+        const barHeight = 12;
+        const barY = castle.y - 25;
+
+        // Background
         this.ctx.fillStyle = COLORS.HEALTH_BAR_BG;
-        this.ctx.fillRect(castle.x, castle.y - 20, castle.width, 10);
+        this.ctx.fillRect(castle.x, barY, barWidth, barHeight);
+
+        // HP fill (changes color based on HP)
+        const hpPercent = castle.hp / castle.maxHp;
+        let hpColor = '#4cd44c'; // Green
+        if (hpPercent < 0.25) hpColor = '#d44c4c'; // Red
+        else if (hpPercent < 0.5) hpColor = '#d4a44c'; // Orange
+        else if (hpPercent < 0.75) hpColor = '#d4d44c'; // Yellow
+
+        this.ctx.fillStyle = hpColor;
+        this.ctx.fillRect(castle.x, barY, barWidth * hpPercent, barHeight);
+
+        // Border
+        this.ctx.strokeStyle = '#222';
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(castle.x, barY, barWidth, barHeight);
+
+        // HP text
+        this.ctx.fillStyle = '#fff';
+        this.ctx.font = 'bold 10px Inter';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText(`${Math.ceil(castle.hp)} / ${castle.maxHp}`, castle.x + barWidth / 2, barY + 10);
+
+        // Spawn progress bar (below HP bar)
+        const spawnBarY = barY + barHeight + 4;
+        const spawnProgress = castle.getSpawnProgress();
+
+        this.ctx.fillStyle = COLORS.HEALTH_BAR_BG;
+        this.ctx.fillRect(castle.x, spawnBarY, barWidth, 6);
         this.ctx.fillStyle = COLORS.SPAWN_BAR;
-        this.ctx.fillRect(castle.x, castle.y - 20, castle.width * spawnRatio, 10);
+        this.ctx.fillRect(castle.x, spawnBarY, barWidth * spawnProgress, 6);
     }
 
     /**
@@ -106,10 +139,44 @@ export class Renderer {
             this.ctx.arc(v.x, v.y, 100, 0, Math.PI * 2);
             this.ctx.fill();
 
-            // Huts
+            // Huts with health bars
             v.huts.forEach(h => {
-                this.ctx.fillStyle = COLORS.HUT;
-                this.ctx.fillRect(h.x, h.y, h.width, h.height);
+                if (h.isDead()) {
+                    // Draw destroyed hut (rubble)
+                    this.ctx.fillStyle = '#4a3020';
+                    this.ctx.fillRect(h.x + 5, h.y + 10, h.width - 10, h.height - 10);
+                    this.ctx.fillStyle = '#2a1a10';
+                    this.ctx.fillRect(h.x + 10, h.y + 15, 15, 10);
+                    this.ctx.fillRect(h.x + h.width - 25, h.y + 20, 10, 8);
+                } else {
+                    // Draw hut
+                    this.ctx.fillStyle = COLORS.HUT;
+                    this.ctx.fillRect(h.x, h.y, h.width, h.height);
+
+                    // Draw roof
+                    this.ctx.fillStyle = '#5a3420';
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(h.x - 5, h.y);
+                    this.ctx.lineTo(h.x + h.width / 2, h.y - 15);
+                    this.ctx.lineTo(h.x + h.width + 5, h.y);
+                    this.ctx.closePath();
+                    this.ctx.fill();
+
+                    // Health bar (only show if damaged)
+                    if (h.hp < h.maxHp) {
+                        const barWidth = h.width;
+                        const barHeight = 5;
+                        const barX = h.x;
+                        const barY = h.y - 22;
+
+                        this.ctx.fillStyle = COLORS.HEALTH_BAR_BG;
+                        this.ctx.fillRect(barX, barY, barWidth, barHeight);
+
+                        const hpPercent = h.hp / h.maxHp;
+                        this.ctx.fillStyle = hpPercent > 0.5 ? '#4cd44c' : hpPercent > 0.25 ? '#d4a44c' : '#d44c4c';
+                        this.ctx.fillRect(barX, barY, barWidth * hpPercent, barHeight);
+                    }
+                }
             });
 
             // Villagers
@@ -205,11 +272,51 @@ export class Renderer {
                 this.ctx.fill();
             }
 
+            // Attack windup indicator
+            if (scout.attackPhase === 'WINDUP') {
+                // Show a growing circle indicating attack is coming
+                const windupProgress = scout.attackProgress;
+                const indicatorRadius = scout.attackRange * windupProgress;
+
+                this.ctx.beginPath();
+                this.ctx.arc(scout.x, scout.y, indicatorRadius, 0, Math.PI * 2);
+                this.ctx.strokeStyle = `rgba(255, 100, 100, ${0.5 * windupProgress})`;
+                this.ctx.lineWidth = 3;
+                this.ctx.stroke();
+
+                // Direction indicator
+                const dirX = scout.x + Math.cos(scout.attackAngle) * indicatorRadius;
+                const dirY = scout.y + Math.sin(scout.attackAngle) * indicatorRadius;
+                this.ctx.beginPath();
+                this.ctx.moveTo(scout.x, scout.y);
+                this.ctx.lineTo(dirX, dirY);
+                this.ctx.strokeStyle = `rgba(255, 50, 50, ${windupProgress})`;
+                this.ctx.lineWidth = 2;
+                this.ctx.stroke();
+            }
+
             // Body
             this.ctx.beginPath();
             this.ctx.arc(scout.x, scout.y, scout.radius, 0, Math.PI * 2);
             this.ctx.fillStyle = scout.color;
             this.ctx.fill();
+
+            // Type indicator for special enemies
+            if (scout.type === 'elite') {
+                // Purple glow
+                this.ctx.beginPath();
+                this.ctx.arc(scout.x, scout.y, scout.radius + 4, 0, Math.PI * 2);
+                this.ctx.strokeStyle = 'rgba(153, 50, 204, 0.6)';
+                this.ctx.lineWidth = 2;
+                this.ctx.stroke();
+            } else if (scout.type === 'brute') {
+                // Dark outline
+                this.ctx.beginPath();
+                this.ctx.arc(scout.x, scout.y, scout.radius + 3, 0, Math.PI * 2);
+                this.ctx.strokeStyle = 'rgba(74, 26, 26, 0.8)';
+                this.ctx.lineWidth = 4;
+                this.ctx.stroke();
+            }
 
             // Health bar
             const barWidth = scout.radius * 2.5;
@@ -217,6 +324,70 @@ export class Renderer {
             this.ctx.fillRect(scout.x - barWidth / 2, scout.y - scout.radius - 10, barWidth, 5);
             this.ctx.fillStyle = COLORS.HEALTH_BAR_ENEMY;
             this.ctx.fillRect(scout.x - barWidth / 2, scout.y - scout.radius - 10, barWidth * (scout.hp / scout.maxHp), 5);
+        });
+    }
+
+    /**
+     * Draw enemy attack effects
+     * @param {Array} enemyAttacks - Enemy attack visuals
+     */
+    drawEnemyAttacks(enemyAttacks) {
+        const ctx = this.ctx;
+
+        enemyAttacks.forEach(attack => {
+            const progress = attack.timer / attack.duration;
+            const alpha = 1 - progress;
+
+            // Draw slash arc from enemy to target
+            ctx.save();
+            ctx.translate(attack.x, attack.y);
+            ctx.rotate(attack.angle);
+
+            // Slash effect
+            const slashLength = attack.radius * (1 + progress * 0.5);
+            const slashWidth = 20 * (1 - progress);
+
+            ctx.beginPath();
+            ctx.moveTo(0, -slashWidth / 2);
+            ctx.lineTo(slashLength, 0);
+            ctx.lineTo(0, slashWidth / 2);
+            ctx.closePath();
+
+            ctx.fillStyle = `rgba(255, 100, 100, ${alpha * 0.8})`;
+            ctx.fill();
+
+            // Bright edge
+            ctx.beginPath();
+            ctx.moveTo(slashLength * 0.3, 0);
+            ctx.lineTo(slashLength, 0);
+            ctx.strokeStyle = `rgba(255, 200, 200, ${alpha})`;
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            ctx.restore();
+        });
+    }
+
+    /**
+     * Draw militia projectiles
+     * @param {Array} projectiles - Projectile entities
+     */
+    drawProjectiles(projectiles) {
+        const ctx = this.ctx;
+
+        projectiles.forEach(proj => {
+            ctx.beginPath();
+            ctx.arc(proj.x, proj.y, 4, 0, Math.PI * 2);
+            ctx.fillStyle = '#90EE90';
+            ctx.fill();
+
+            // Trail
+            ctx.beginPath();
+            ctx.moveTo(proj.x, proj.y);
+            ctx.lineTo(proj.x - proj.vx * 3, proj.y - proj.vy * 3);
+            ctx.strokeStyle = 'rgba(144, 238, 144, 0.5)';
+            ctx.lineWidth = 3;
+            ctx.stroke();
         });
     }
 
@@ -548,8 +719,11 @@ export class Renderer {
      * Draw HUD elements (screen space)
      * @param {Object} hero - Hero entity
      * @param {Object} levelUpSystem - Level up system
+     * @param {Object} castle - Castle entity
+     * @param {Array} villages - Village entities
+     * @param {number} gameTime - Current game time
      */
-    drawHUD(hero, levelUpSystem) {
+    drawHUD(hero, levelUpSystem, castle, villages, gameTime) {
         const ctx = this.ctx;
         const padding = 20;
 
@@ -577,6 +751,67 @@ export class Renderer {
         ctx.fillStyle = '#fff';
         ctx.textAlign = 'center';
         ctx.fillText(`Level ${levelUpSystem.level}`, this.canvas.width / 2, xpBarY + xpBarHeight + 16);
+
+        // Castle HP bar (top left)
+        if (castle) {
+            const castleBarWidth = 200;
+            const castleBarHeight = 16;
+            const castleBarX = padding;
+            const castleBarY = padding;
+
+            // Label
+            ctx.font = 'bold 12px Inter';
+            ctx.fillStyle = '#fff';
+            ctx.textAlign = 'left';
+            ctx.fillText('Dark Castle', castleBarX, castleBarY - 4);
+
+            // Background
+            ctx.fillStyle = COLORS.HEALTH_BAR_BG;
+            ctx.fillRect(castleBarX, castleBarY + 10, castleBarWidth, castleBarHeight);
+
+            // HP fill
+            const hpPercent = castle.hp / castle.maxHp;
+            let hpColor = '#d44c4c';
+            if (hpPercent > 0.5) hpColor = '#d4a44c';
+            if (hpPercent > 0.75) hpColor = '#4cd44c';
+
+            ctx.fillStyle = hpColor;
+            ctx.fillRect(castleBarX, castleBarY + 10, castleBarWidth * hpPercent, castleBarHeight);
+
+            // Border
+            ctx.strokeStyle = '#444';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(castleBarX, castleBarY + 10, castleBarWidth, castleBarHeight);
+
+            // HP text
+            ctx.font = 'bold 11px Inter';
+            ctx.fillStyle = '#fff';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${Math.ceil(castle.hp)} / ${castle.maxHp}`, castleBarX + castleBarWidth / 2, castleBarY + 23);
+        }
+
+        // Villages status (top left, below castle)
+        if (villages) {
+            const villagesAlive = villages.filter(v => !v.isDestroyed()).length;
+            const totalHuts = villages.reduce((sum, v) => sum + v.getRemainingHuts(), 0);
+
+            ctx.font = 'bold 12px Inter';
+            ctx.fillStyle = villagesAlive > 0 ? '#4cd44c' : '#d44c4c';
+            ctx.textAlign = 'left';
+            ctx.fillText(`Villages: ${villagesAlive}/${villages.length}  |  Buildings: ${totalHuts}`, padding, padding + 55);
+        }
+
+        // Game time (top right)
+        if (gameTime !== undefined) {
+            const minutes = Math.floor(gameTime / 60);
+            const seconds = Math.floor(gameTime % 60);
+            const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+            ctx.font = 'bold 16px Inter';
+            ctx.fillStyle = '#fff';
+            ctx.textAlign = 'right';
+            ctx.fillText(timeStr, this.canvas.width - padding, padding + 16);
+        }
 
         // Weapon icons (bottom right)
         const iconSize = 40;
@@ -617,5 +852,11 @@ export class Renderer {
                 ctx.fillRect(x, y + iconSize * (1 - cooldownRatio), iconSize, iconSize * cooldownRatio);
             }
         });
+
+        // Controls hint (bottom left)
+        ctx.font = '12px Inter';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.textAlign = 'left';
+        ctx.fillText('Click to move | Scroll to zoom | Destroy the castle to win!', padding, this.canvas.height - padding);
     }
 }
