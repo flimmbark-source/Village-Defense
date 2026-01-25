@@ -116,7 +116,8 @@ export const CONFIG = {
     LEVELING: {
         BASE_XP: 30,
         XP_MULTIPLIER: 1.3,
-        CHOICES_PER_LEVEL: 3
+        CHOICES_PER_LEVEL: 3,
+        LEVEL_UP_SCREEN_DELAY: 1000
     }
 };
 
