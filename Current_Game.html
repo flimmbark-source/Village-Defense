@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grimm Dominion - Prototype</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+        .font-medieval {
+            font-family: 'MedievalSharp', cursive;
+        }
+        canvas {
+            background-color: #3a4a3a; /* Dark, mossy green for the ground */
+            cursor: pointer;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        .ui-panel {
+            background-color: rgba(0, 0, 0, 0.85);
+            border: 2px solid #5a3d2b;
+            box-shadow: 0 0 15px rgba(0,0,0,0.8);
+        }
+        .bar-bg {
+            background-color: #333;
+            border: 1px solid #7a5c4b;
+        }
+        .health-bar-fill {
+             background: linear-gradient(90deg, #2a7e2a, #4cd44c);
+             transition: width 0.2s ease-out;
+        }
+        .shop-button {
+            background-color: #4a3a2a;
+            border: 1px solid #7a5c4b;
+            transition: background-color 0.2s;
+        }
+        .shop-button:hover:not(:disabled) {
+            background-color: #6b4f3a;
+        }
+        .shop-button:disabled {
+            background-color: #3a2a1a;
+            color: #777;
+            cursor: not-allowed;
+        }
+        .inventory-slot {
+            width: 48px;
+            height: 48px;
+            background-color: #2a1a0a;
+            border: 1px solid #7a5c4b;
+            position: relative;
+        }
+        .inventory-slot.drag-over {
+            background-color: #4a3a2a;
+            border-color: #d4af37;
+        }
+        .item-icon {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            cursor: grab;
+            user-select: none; /* Prevent text selection while dragging */
+        }
+        .item-icon.dragging-source {
+            opacity: 0.3;
+        }
+        #draggedItemIcon {
+            position: absolute;
+            pointer-events: none; /* Let clicks pass through to elements underneath */
+            z-index: 100;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 flex flex-col h-screen p-4">
+
+    <!-- Header UI -->
+    <div class="ui-panel p-4 rounded-lg mb-4 w-full max-w-5xl mx-auto text-center flex-shrink-0">
+        <h1 class="font-medieval text-3xl text-purple-300">Grimm Dominion - Prototype</h1>
+        <p class="text-gray-400">Status: <span class="font-semibold text-green-400">Milestone 2</span> | Current Step: <span class="font-semibold text-yellow-400">Inventory Management</span></p>
+    </div>
+
+    <!-- Main Game Container -->
+    <div id="gameContainer" class="w-full max-w-5xl mx-auto flex-grow relative rounded-lg overflow-hidden">
+        <canvas id="gameCanvas"></canvas>
+        
+        <!-- Hero UI (Bottom Left) -->
+        <div class="absolute bottom-4 left-4 flex items-end space-x-2">
+            <div class="ui-panel p-2 rounded-lg flex flex-col space-y-2" style="width: 250px;">
+                 <!-- Gold -->
+                <div class="flex items-center space-x-2 w-full">
+                    <span class="font-medieval text-lg text-yellow-400">Gold</span>
+                    <span id="heroGoldText" class="font-bold text-lg flex-grow text-yellow-200 text-center">0</span>
+                </div>
+                 <!-- Health -->
+                <div class="flex items-center space-x-2 w-full">
+                    <span class="font-medieval text-lg text-green-400">Health</span>
+                    <div class="flex-grow h-4 rounded-md bar-bg">
+                        <div id="heroHealthBar" class="h-full rounded-sm health-bar-fill"></div>
+                    </div>
+                    <span id="heroHealthText" class="font-bold text-sm w-24 text-center">100/100</span>
+                </div>
+            </div>
+            <!-- Inventory Panel -->
+            <div id="inventoryPanel" class="ui-panel p-2 rounded-lg grid grid-cols-6 gap-2">
+                <!-- Inventory slots will be populated here -->
+            </div>
+        </div>
+
+        <!-- Shop UI -->
+        <div id="shopPanel" class="hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ui-panel p-4 rounded-lg w-96 z-20">
+            <h2 class="font-medieval text-2xl text-center text-yellow-300 mb-4">Secret Tavern</h2>
+            <div id="shopItemsContainer" class="flex flex-col space-y-2"></div>
+        </div>
+        
+        <!-- Tooltip UI -->
+        <div id="tooltipPanel" class="hidden absolute ui-panel p-2 rounded-md text-sm pointer-events-none z-50"></div>
+
+        <!-- Game Over Screen -->
+        <div id="gameOverScreen" class="hidden absolute inset-0 bg-black bg-opacity-75 flex flex-col justify-center items-center z-30">
+            <h2 class="font-medieval text-6xl text-red-500">You Have Perished</h2>
+            <p class="text-xl mt-4">Refresh to try again.</p>
+        </div>
+        
+        <!-- Dragged Item Icon -->
+        <div id="draggedItemIcon" class="item-icon hidden"></div>
+
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // --- World & Camera Configuration ---
+        const world = { width: 3000, height: 2000 };
+        const camera = { x: 0, y: 0, width: 1280, height: 720 };
+
+        // --- Game Configuration ---
+        const DARK_LORD_SPAWN_COOLDOWN = 6.0; 
+        const VILLAGE_GOLD_REWARD = 100;
+        const INVENTORY_SIZE = 6;
+        const SELL_PRICE_MODIFIER = 0.5;
+
+        // Scout Stats
+        const SCOUT_MAX_HP = 40;
+        const SCOUT_DAMAGE = 10;
+        const SCOUT_SIGHT_RANGE = 400;
+        const SCOUT_CRITICAL_SIGHT_RANGE = 80;
+        const SCOUT_PATROL_RADIUS = 200;
+        const SCOUT_BASE_SPEED = 1.8;
+        const SCOUT_SPEED_BUFF_MULTIPLIER = 1.5;
+        const SCOUT_HP_BUFF_BONUS = 60;
+        const SCOUT_VILLAGE_ATTACK_DAMAGE = 5;
+        const SCOUT_VILLAGE_ATTACK_COOLDOWN = 1;
+        const SCOUT_HERO_ATTACK_COOLDOWN = 1.5;
+        
+        // Militia Stats
+        const MILITIA_MAX_HP = 60;
+        const MILITIA_DAMAGE = 8;
+        const MILITIA_ATTACK_RANGE = 250;
+        const MILITIA_ATTACK_COOLDOWN = 2.0;
+        const MILITIA_SPEED = 2.0;
+
+
+        let spawnTimer = DARK_LORD_SPAWN_COOLDOWN;
+        let gameOver = false;
+
+        // --- Game Objects ---
+        const castle = { x: world.width / 2, y: world.height / 2, width: 150, height: 150, color: '#2c1e1e' };
+        const hero = { 
+            x: world.width / 2 + 400, y: world.height / 2 + 300, 
+            width: 25, height: 25, 
+            color: '#4a90e2',
+            targetX: world.width / 2 + 400, targetY: world.height / 2 + 300,
+            hp: 100, maxHp: 100,
+            gold: 500, // Start with some gold for testing
+            speed: 3.5,
+            attackDamage: 20,
+            attackCooldown: 1.0,
+            attackTimer: 0,
+            attackRange: 300,
+            projectileSpeed: 7,
+            inventory: new Array(INVENTORY_SIZE).fill(null)
+        };
+        const shop = { x: 500, y: 500, radius: 75, interactionRadius: 150 };
+        const shopItems = [
+            { id: 'dmg1', name: 'Sharpen Blade', cost: 150, effect: { stat: 'attackDamage', value: 5 }, description: '+5 Damage', icon: '⚔️' },
+            { id: 'spd1', name: 'Swift Boots', cost: 200, effect: { stat: 'speed', value: 0.5 }, description: '+0.5 Speed', icon: '👢' },
+            { id: 'aspd1', name: 'Quick Gloves', cost: 250, effect: { stat: 'attackCooldown', value: -0.1 }, description: '-0.1s Atk Time', icon: '🧤'},
+            { id: 'hp1', name: 'Tough Jerky', cost: 100, effect: { stat: 'maxHp', value: 25 }, description: '+25 Max HP', icon: '🍖' },
+        ];
+
+        const scouts = [];
+        const projectiles = [];
+        const militiaProjectiles = [];
+        const forests = [];
+        const villages = [];
+        const worldTextEffects = [];
+        
+        // --- Drag & Drop State ---
+        let draggedItem = null;
+        let draggedItemIndex = -1;
+        let draggedIcon = document.getElementById('draggedItemIcon');
+
+        // --- Initialization ---
+        function init() {
+            for (let i = 0; i < 15; i++) forests.push({ x: Math.random() * world.width, y: Math.random() * world.height, width: 200 + Math.random() * 400, height: 200 + Math.random() * 400, color: 'rgba(15, 51, 15, 0.5)' });
+            
+            for (let i = 0; i < 4; i++) {
+                const village = {
+                    id: Math.random(),
+                    x: (Math.random() > 0.5 ? 0.25 : 0.75) * world.width + (Math.random() - 0.5) * 500,
+                    y: (Math.random() > 0.5 ? 0.25 : 0.75) * world.height + (Math.random() - 0.5) * 500,
+                    huts: [], villagers: [], militia: [], 
+                    isUnderAttack: false, attackers: new Set(), heroHasHelped: false
+                };
+                for (let j = 0; j < 3; j++) village.huts.push({ x: village.x + (Math.random() - 0.5) * 150, y: village.y + (Math.random() - 0.5) * 150, width: 50, height: 40, hp: 200, maxHp: 200 });
+                for (let j = 0; j < 5; j++) village.villagers.push({ x: village.x + (Math.random() - 0.5) * 100, y: village.y + (Math.random() - 0.5) * 100, radius: 8, hp: 50, maxHp: 50 });
+                for (let j = 0; j < 2; j++) village.militia.push({ 
+                    id: Math.random(),
+                    x: village.x + (Math.random() - 0.5) * 80, y: village.y + (Math.random() - 0.5) * 80,
+                    width: 20, height: 20, color: '#228B22',
+                    hp: MILITIA_MAX_HP, maxHp: MILITIA_MAX_HP,
+                    attackTimer: 0, targetScout: null
+                });
+                villages.push(village);
+            }
+            populateShop();
+            createInventorySlots();
+            setupDragAndDrop();
+            resizeCanvas();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // --- Input Handling ---
+        canvas.addEventListener('click', (e) => {
+            if (gameOver || draggedItem) return;
+            const shopPanel = document.getElementById('shopPanel');
+            if (shopPanel.contains(e.target)) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = camera.width / rect.width;
+            const scaleY = camera.height / rect.height;
+            hero.targetX = (e.clientX - rect.left) * scaleX + camera.x;
+            hero.targetY = (e.clientY - rect.top) * scaleY + camera.y;
+        });
+        
+        document.body.addEventListener('mousemove', (e) => {
+            const tooltip = document.getElementById('tooltipPanel');
+            tooltip.style.left = `${e.clientX + 15}px`;
+            tooltip.style.top = `${e.clientY + 15}px`;
+
+            if (draggedItem) {
+                draggedIcon.style.left = `${e.clientX - 24}px`;
+                draggedIcon.style.top = `${e.clientY - 24}px`;
+            }
+        });
+
+        // --- AI & Spawning ---
+        function spawnScout() {
+            scouts.push({
+                id: Math.random(), x: castle.x + castle.width / 2, y: castle.y + castle.height / 2,
+                radius: 10, color: '#e24a4a', hp: SCOUT_MAX_HP, maxHp: SCOUT_MAX_HP,
+                speed: SCOUT_BASE_SPEED, isBuffed: false, state: 'PATROLLING',
+                targetX: Math.random() * world.width, targetY: Math.random() * world.height,
+                patrolCenterX: Math.random() * world.width, patrolCenterY: Math.random() * world.height,
+                villageAttackTarget: null, villageAttackCooldown: 0, heroAttackCooldown: 0
+            });
+        }
+
+        // --- Game Logic ---
+        function isPointInRect(point, rect) {
+            const pointX = point.x + (point.width ? point.width / 2 : 0);
+            const pointY = point.y + (point.height ? point.height / 2 : 0);
+            return pointX >= rect.x && pointX <= rect.x + rect.width && pointY >= rect.y && pointY <= rect.y + rect.height;
+        }
+
+        function canScoutSeeHero(scout, hero) {
+            const distToHero = Math.sqrt(Math.pow(hero.x - scout.x, 2) + Math.pow(hero.y - scout.y, 2));
+            if (distToHero <= SCOUT_CRITICAL_SIGHT_RANGE) return true;
+            if (distToHero > SCOUT_SIGHT_RANGE) return false;
+            let heroInForest = forests.some(f => isPointInRect(hero, f));
+            return !heroInForest;
+        }
+
+        function updateHero(deltaTime) {
+            const dx = hero.targetX - hero.x;
+            const dy = hero.targetY - hero.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist > hero.speed) {
+                hero.x += (dx / dist) * hero.speed;
+                hero.y += (dy / dist) * hero.speed;
+            }
+            hero.x = Math.max(0, Math.min(world.width - hero.width, hero.x));
+            hero.y = Math.max(0, Math.min(world.height - hero.height, hero.y));
+
+            hero.attackTimer -= deltaTime;
+            if (hero.attackTimer <= 0) {
+                let nearestScout = scouts.reduce((closest, scout) => {
+                    const d = Math.sqrt(Math.pow(hero.x - scout.x, 2) + Math.pow(hero.y - scout.y, 2));
+                    return (d < hero.attackRange && (!closest || d < closest.dist)) ? { scout, dist: d } : closest;
+                }, null);
+                if (nearestScout) {
+                    projectiles.push({ x: hero.x + hero.width / 2, y: hero.y + hero.height / 2, radius: 5, color: '#f0e68c', targetId: nearestScout.scout.id });
+                    hero.attackTimer = hero.attackCooldown;
+                }
+            }
+        }
+        
+        function updateMilitiaAI(deltaTime) {
+            villages.forEach(v => {
+                v.militia.forEach(m => {
+                    m.attackTimer -= deltaTime;
+                    if (v.isUnderAttack) {
+                        if (!m.targetScout || m.targetScout.hp <= 0 || !v.attackers.has(m.targetScout.id)) {
+                             m.targetScout = scouts.find(s => v.attackers.has(s.id)) || null;
+                        }
+                        
+                        if (m.targetScout) {
+                            const dx = m.targetScout.x - m.x;
+                            const dy = m.targetScout.y - m.y;
+                            const dist = Math.sqrt(dx * dx + dy * dy);
+                            if (dist > MILITIA_SPEED) {
+                                m.x += (dx / dist) * MILITIA_SPEED;
+                                m.y += (dy / dist) * MILITIA_SPEED;
+                            }
+                            
+                            if (dist < MILITIA_ATTACK_RANGE && m.attackTimer <= 0) {
+                                militiaProjectiles.push({ x: m.x, y: m.y, radius: 4, color: '#ADD8E6', targetId: m.targetScout.id });
+                                m.attackTimer = MILITIA_ATTACK_COOLDOWN;
+                            }
+                        }
+                    }
+                });
+            });
+        }
+
+        function updateProjectiles(projs, speed, damage, owner) {
+             for (let i = projs.length - 1; i >= 0; i--) {
+                const p = projs[i];
+                const target = scouts.find(s => s.id === p.targetId);
+                if (!target) { projs.splice(i, 1); continue; }
+                const dx = target.x - p.x;
+                const dy = target.y - p.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist > speed) {
+                    p.x += (dx / dist) * speed;
+                    p.y += (dy / dist) * speed;
+                } else {
+                    projs.splice(i, 1);
+                    target.hp -= damage;
+                    if (owner === 'hero') {
+                         villages.forEach(v => {
+                            if (v.attackers.has(target.id)) {
+                                v.heroHasHelped = true;
+                            }
+                        });
+                    }
+                }
+            }
+        }
+
+        function updateScoutsAI(deltaTime) {
+            scouts.forEach(scout => {
+                scout.villageAttackCooldown -= deltaTime;
+                scout.heroAttackCooldown -= deltaTime;
+
+                if (scout.state === 'PATROLLING') {
+                    if (canScoutSeeHero(scout, hero)) {
+                        scout.state = 'CHASING';
+                    } else {
+                        for (const village of villages) {
+                            const allTargets = [...village.villagers, ...village.huts];
+                            for (const target of allTargets) {
+                                if (target.hp <= 0) continue;
+                                const distToTarget = Math.sqrt(Math.pow(target.x - scout.x, 2) + Math.pow(target.y - scout.y, 2));
+                                if (distToTarget <= SCOUT_SIGHT_RANGE) {
+                                    scout.state = 'ATTACKING_VILLAGE';
+                                    scout.villageAttackTarget = target;
+                                    village.isUnderAttack = true;
+                                    village.attackers.add(scout.id);
+                                    break;
+                                }
+                            }
+                            if (scout.state === 'ATTACKING_VILLAGE') break;
+                        }
+                    }
+                    if (scout.state !== 'PATROLLING' && !scout.isBuffed) {
+                        scout.isBuffed = true;
+                        scout.speed *= SCOUT_SPEED_BUFF_MULTIPLIER;
+                        scout.maxHp += SCOUT_HP_BUFF_BONUS;
+                        scout.hp += SCOUT_HP_BUFF_BONUS;
+                        scout.color = '#ff3333';
+                    }
+                }
+
+                if (scout.state === 'CHASING') {
+                    scout.targetX = hero.x;
+                    scout.targetY = hero.y;
+                } else if (scout.state === 'ATTACKING_VILLAGE') {
+                    if (!scout.villageAttackTarget || scout.villageAttackTarget.hp <= 0) {
+                        scout.state = 'PATROLLING';
+                        scout.villageAttackTarget = null;
+                    } else {
+                        scout.targetX = scout.villageAttackTarget.x;
+                        scout.targetY = scout.villageAttackTarget.y;
+                        const distToTarget = Math.sqrt(Math.pow(scout.targetX - scout.x, 2) + Math.pow(scout.targetY - scout.y, 2));
+                        if (distToTarget < 30 && scout.villageAttackCooldown <= 0) {
+                            scout.villageAttackTarget.hp -= SCOUT_VILLAGE_ATTACK_DAMAGE;
+                            scout.villageAttackCooldown = SCOUT_VILLAGE_ATTACK_COOLDOWN;
+                        }
+                    }
+                } else if (scout.state === 'PATROLLING') {
+                    const distToTarget = Math.sqrt(Math.pow(scout.targetX - scout.x, 2) + Math.pow(scout.targetY - scout.y, 2));
+                    if (distToTarget < 20) {
+                        scout.targetX = scout.patrolCenterX + (Math.random() - 0.5) * 2 * SCOUT_PATROL_RADIUS;
+                        scout.targetY = scout.patrolCenterY + (Math.random() - 0.5) * 2 * SCOUT_PATROL_RADIUS;
+                    }
+                }
+
+                const dx = scout.targetX - scout.x;
+                const dy = scout.targetY - scout.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                
+                let shouldMove = true;
+                if (scout.state === 'CHASING' && dist < 30 && scout.heroAttackCooldown > 0) {
+                    shouldMove = false;
+                }
+
+                if (dist > scout.speed && shouldMove) {
+                    scout.x += (dx / dist) * scout.speed;
+                    scout.y += (dy / dist) * scout.speed;
+                }
+            });
+        }
+
+        function handleCollisionsAndDeaths() {
+            for (let i = scouts.length - 1; i >= 0; i--) {
+                const s = scouts[i];
+                const dist = Math.sqrt(Math.pow(s.x - (hero.x + hero.width/2), 2) + Math.pow(s.y - (hero.y + hero.height/2), 2));
+                if (dist < s.radius + hero.width / 2 && s.heroAttackCooldown <= 0) {
+                    hero.hp -= SCOUT_DAMAGE;
+                    s.heroAttackCooldown = SCOUT_HERO_ATTACK_COOLDOWN;
+                }
+            }
+             if (hero.hp <= 0) {
+                hero.hp = 0;
+                gameOver = true;
+                document.getElementById('gameOverScreen').classList.remove('hidden');
+            }
+
+            for (let i = scouts.length - 1; i >= 0; i--) {
+                if (scouts[i].hp <= 0) {
+                    const deadScout = scouts.splice(i, 1)[0];
+                    villages.forEach(v => {
+                        if (v.attackers.has(deadScout.id)) {
+                            v.attackers.delete(deadScout.id);
+                            if (v.attackers.size === 0 && v.isUnderAttack) {
+                                v.isUnderAttack = false;
+                                if (v.heroHasHelped) {
+                                    hero.gold += VILLAGE_GOLD_REWARD;
+                                    worldTextEffects.push({ text: 'Saved!', x: v.x, y: v.y - 20, color: 'rgba(76, 212, 76, 1)', font: 'bold 24px MedievalSharp', lifespan: 2.0 });
+                                    worldTextEffects.push({ text: `+${VILLAGE_GOLD_REWARD} Gold!`, x: v.x, y: v.y, color: 'rgba(255, 215, 0, 1)', font: 'bold 20px MedievalSharp', lifespan: 2.0 });
+                                } else {
+                                     worldTextEffects.push({ text: 'Militia Saved the Day!', x: v.x, y: v.y - 20, color: 'rgba(173, 216, 230, 1)', font: 'bold 18px MedievalSharp', lifespan: 2.5 });
+                                }
+                                v.heroHasHelped = false;
+                            }
+                        }
+                    });
+                }
+            }
+            villages.forEach(v => {
+                for (let i = v.villagers.length - 1; i >= 0; i--) { if (v.villagers[i].hp <= 0) v.villagers.splice(i, 1); }
+            });
+        }
+        
+        function updateWorldTextEffects(deltaTime) {
+            for (let i = worldTextEffects.length - 1; i >= 0; i--) {
+                const effect = worldTextEffects[i];
+                effect.lifespan -= deltaTime;
+                effect.y -= 10 * deltaTime;
+                const alpha = Math.max(0, effect.lifespan / 2.0);
+                effect.color = effect.color.replace(/rgba\((\d+,\s*\d+,\s*\d+,\s*)[^)]+\)/, `rgba($1${alpha})`);
+                if (effect.lifespan <= 0) { worldTextEffects.splice(i, 1); }
+            }
+        }
+
+        function updateCamera() {
+            camera.x = hero.x - camera.width / 2;
+            camera.y = hero.y - camera.height / 2;
+            camera.x = Math.max(0, Math.min(world.width - camera.width, camera.x));
+            camera.y = Math.max(0, Math.min(world.height - camera.height, camera.y));
+        }
+
+        function updateUI() {
+            document.getElementById('heroHealthBar').style.width = `${(hero.hp / hero.maxHp) * 100}%`;
+            document.getElementById('heroHealthText').textContent = `${Math.ceil(hero.hp)}/${Math.ceil(hero.maxHp)}`;
+            document.getElementById('heroGoldText').textContent = hero.gold;
+
+            const distToShop = Math.sqrt(Math.pow(hero.x - shop.x, 2) + Math.pow(hero.y - shop.y, 2));
+            const shopPanel = document.getElementById('shopPanel');
+            if (distToShop < shop.interactionRadius) {
+                shopPanel.classList.remove('hidden');
+                updateShopButtons();
+            } else {
+                shopPanel.classList.add('hidden');
+            }
+        }
+
+        // --- Inventory & Shop Logic ---
+        function createInventorySlots() {
+            const container = document.getElementById('inventoryPanel');
+            container.innerHTML = '';
+            for (let i = 0; i < INVENTORY_SIZE; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'inventory-slot';
+                slot.dataset.slotIndex = i;
+                container.appendChild(slot);
+            }
+        }
+        
+        function drawInventory() {
+            for (let i = 0; i < INVENTORY_SIZE; i++) {
+                const slot = document.querySelector(`.inventory-slot[data-slot-index='${i}']`);
+                const item = hero.inventory[i];
+                if (item) {
+                    slot.innerHTML = `<div class="item-icon" draggable="true" data-item-id="${item.id}">${item.icon}</div>`;
+                    slot.onmouseenter = () => {
+                        const tooltip = document.getElementById('tooltipPanel');
+                        tooltip.innerHTML = `<div class="font-bold">${item.name}</div><div>${item.description}</div>`;
+                        tooltip.classList.remove('hidden');
+                    };
+                    slot.onmouseleave = () => {
+                        document.getElementById('tooltipPanel').classList.add('hidden');
+                    };
+                } else {
+                    slot.innerHTML = '';
+                    slot.onmouseenter = null;
+                    slot.onmouseleave = null;
+                }
+            }
+        }
+
+        function populateShop() {
+            const container = document.getElementById('shopItemsContainer');
+            container.innerHTML = '';
+            shopItems.forEach(item => {
+                const button = document.createElement('button');
+                button.id = `shop-item-${item.id}`;
+                button.className = 'shop-button p-2 rounded-md text-left';
+                button.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <span class="font-semibold">${item.name} (${item.description})</span>
+                        <span class="font-bold text-yellow-400">${item.cost} G</span>
+                    </div>
+                `;
+                button.onclick = () => buyItem(item);
+                container.appendChild(button);
+            });
+        }
+
+        function buyItem(item) {
+            const emptySlotIndex = hero.inventory.findIndex(slot => slot === null);
+            if (emptySlotIndex === -1) { return; }
+            if (hero.gold >= item.cost) {
+                hero.gold -= item.cost;
+                hero.inventory[emptySlotIndex] = item;
+                applyUpgrade(item.effect, 1);
+                drawInventory();
+                updateShopButtons();
+            }
+        }
+
+        function applyUpgrade(effect, multiplier) {
+            if (effect.stat === 'maxHp') {
+                hero.maxHp += effect.value * multiplier;
+                if (multiplier > 0) {
+                    hero.hp += effect.value * multiplier;
+                }
+                hero.hp = Math.min(hero.hp, hero.maxHp);
+            } else {
+                hero[effect.stat] += effect.value * multiplier;
+            }
+        }
+        
+        function updateShopButtons() {
+            shopItems.forEach(item => {
+                const button = document.getElementById(`shop-item-${item.id}`);
+                if (button) {
+                    const isPurchased = hero.inventory.some(i => i && i.id === item.id);
+                    button.disabled = hero.gold < item.cost || isPurchased;
+                    if(button.disabled) {
+                         button.classList.add('opacity-50');
+                    } else {
+                         button.classList.remove('opacity-50');
+                    }
+                }
+            });
+        }
+        
+        // --- Drag and Drop Logic ---
+        function setupDragAndDrop() {
+            const inventoryPanel = document.getElementById('inventoryPanel');
+            
+            inventoryPanel.addEventListener('dragstart', (e) => {
+                if (e.target.classList.contains('item-icon')) {
+                    const slot = e.target.closest('.inventory-slot');
+                    draggedItemIndex = parseInt(slot.dataset.slotIndex);
+                    draggedItem = hero.inventory[draggedItemIndex];
+                    if (!draggedItem) return;
+
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.target.classList.add('dragging-source');
+                    
+                    draggedIcon.textContent = draggedItem.icon;
+                    draggedIcon.classList.remove('hidden');
+                    draggedIcon.style.left = `${e.clientX - 24}px`;
+                    draggedIcon.style.top = `${e.clientY - 24}px`;
+                }
+            });
+
+            inventoryPanel.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                const slot = e.target.closest('.inventory-slot');
+                if (slot) {
+                    document.querySelectorAll('.inventory-slot').forEach(s => s.classList.remove('drag-over'));
+                    slot.classList.add('drag-over');
+                }
+            });
+            
+            inventoryPanel.addEventListener('dragleave', (e) => {
+                 const slot = e.target.closest('.inventory-slot');
+                 if(slot) slot.classList.remove('drag-over');
+            });
+
+            inventoryPanel.addEventListener('drop', (e) => {
+                e.preventDefault();
+                const slot = e.target.closest('.inventory-slot');
+                if (slot) {
+                    const dropIndex = parseInt(slot.dataset.slotIndex);
+                    [hero.inventory[draggedItemIndex], hero.inventory[dropIndex]] = [hero.inventory[dropIndex], hero.inventory[draggedItemIndex]];
+                    drawInventory();
+                }
+            });
+
+            document.body.addEventListener('dragend', () => {
+                if (draggedItem) {
+                    draggedItem = null;
+                    draggedItemIndex = -1;
+                    draggedIcon.classList.add('hidden');
+                    document.querySelectorAll('.dragging-source').forEach(el => el.classList.remove('dragging-source'));
+                    document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+                }
+            });
+        }
+
+
+        // --- Rendering ---
+        function draw() {
+            ctx.save();
+            ctx.translate(-camera.x, -camera.y);
+
+            ctx.fillStyle = '#3a4a3a'; ctx.fillRect(0, 0, world.width, world.height);
+            forests.forEach(f => { ctx.fillStyle = f.color; ctx.fillRect(f.x, f.y, f.width, f.height); });
+            
+            villages.forEach(v => {
+                ctx.fillStyle = '#6b4f3a'; ctx.beginPath(); ctx.arc(v.x, v.y, 100, 0, Math.PI * 2); ctx.fill();
+                v.huts.forEach(h => { ctx.fillStyle = '#8B4513'; ctx.fillRect(h.x, h.y, h.width, h.height); });
+                v.villagers.forEach(p => { ctx.fillStyle = '#deb887'; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill(); });
+                v.militia.forEach(m => { ctx.fillStyle = m.color; ctx.fillRect(m.x, m.y, m.width, m.height); });
+            });
+
+            ctx.fillStyle = '#654321'; ctx.beginPath(); ctx.arc(shop.x, shop.y, shop.radius, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#d4af37'; ctx.lineWidth = 5; ctx.stroke();
+            ctx.font = '50px MedievalSharp'; ctx.textAlign = 'center'; ctx.fillStyle = '#d4af37'; ctx.fillText('🍺', shop.x, shop.y + 15);
+
+
+            ctx.fillStyle = castle.color; ctx.fillRect(castle.x, castle.y, castle.width, castle.height);
+            ctx.strokeStyle = '#5a3d2b'; ctx.lineWidth = 8; ctx.strokeRect(castle.x, castle.y, castle.width, castle.height);
+            ctx.fillStyle = '#4a2a2a'; ctx.font = '32px MedievalSharp'; ctx.textAlign = 'center';
+            ctx.fillText("Castle", castle.x + castle.width / 2, castle.y + castle.height / 2 + 10);
+            
+            const spawnRatio = spawnTimer / DARK_LORD_SPAWN_COOLDOWN;
+            ctx.fillStyle = '#333'; ctx.fillRect(castle.x, castle.y - 20, castle.width, 10);
+            ctx.fillStyle = '#8a2be2'; ctx.fillRect(castle.x, castle.y - 20, castle.width * spawnRatio, 10);
+
+            ctx.fillStyle = hero.color; ctx.fillRect(hero.x, hero.y, hero.width, hero.height);
+            
+            projectiles.forEach(p => { ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fillStyle = p.color; ctx.fill(); });
+            militiaProjectiles.forEach(p => { ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fillStyle = p.color; ctx.fill(); });
+
+            scouts.forEach(scout => {
+                if (scout.state === 'PATROLLING') {
+                    ctx.beginPath(); ctx.arc(scout.x, scout.y, SCOUT_SIGHT_RANGE, 0, Math.PI * 2); ctx.strokeStyle = 'rgba(255, 255, 0, 0.1)'; ctx.stroke();
+                    ctx.beginPath(); ctx.arc(scout.x, scout.y, SCOUT_CRITICAL_SIGHT_RANGE, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255, 0, 0, 0.1)'; ctx.fill();
+                }
+                ctx.beginPath(); ctx.arc(scout.x, scout.y, scout.radius, 0, Math.PI * 2); ctx.fillStyle = scout.color; ctx.fill();
+                const barWidth = scout.radius * 2.5;
+                ctx.fillStyle = '#333'; ctx.fillRect(scout.x - barWidth / 2, scout.y - scout.radius - 10, barWidth, 5);
+                ctx.fillStyle = '#d44c4c'; ctx.fillRect(scout.x - barWidth / 2, scout.y - scout.radius - 10, barWidth * (scout.hp / scout.maxHp), 5);
+            });
+
+            worldTextEffects.forEach(effect => {
+                 ctx.font = effect.font;
+                 ctx.fillStyle = effect.color;
+                 ctx.textAlign = 'center';
+                 ctx.fillText(effect.text, effect.x, effect.y);
+            });
+
+            ctx.restore();
+
+            villages.forEach(v => {
+                if (v.isUnderAttack) {
+                    const remainingAttackers = v.attackers.size;
+                    const villageScreenX = (v.x - camera.x);
+                    const villageScreenY = (v.y - camera.y);
+                    ctx.fillStyle = 'white';
+                    ctx.font = 'bold 16px Inter';
+                    ctx.textAlign = 'center';
+                    if(remainingAttackers > 0) {
+                        ctx.fillText(`Help Needed!`, villageScreenX, villageScreenY - 50);
+                    }
+
+                    const angle = Math.atan2(villageScreenY - camera.height / 2, villageScreenX - camera.width / 2);
+                    const distFromCenter = Math.min(camera.width / 2 - 30, camera.height / 2 - 30);
+                    const indicatorX = camera.width / 2 + distFromCenter * Math.cos(angle);
+                    const indicatorY = camera.height / 2 + distFromCenter * Math.sin(angle);
+                    
+                    if (villageScreenX < 0 || villageScreenX > camera.width || villageScreenY < 0 || villageScreenY > camera.height) {
+                        ctx.save();
+                        ctx.translate(indicatorX, indicatorY);
+                        ctx.rotate(angle + Math.PI / 2);
+                        ctx.font = '30px Inter';
+                        ctx.fillStyle = 'red';
+                        ctx.fillText('!', 0, 0);
+                        ctx.restore();
+                    }
+                }
+            });
+        }
+
+        // --- Main Game Loop ---
+        let lastTime = 0;
+        function gameLoop(timestamp) {
+            if (gameOver) return;
+            if (!lastTime) lastTime = timestamp;
+            const deltaTime = (timestamp - lastTime) / 1000;
+            lastTime = timestamp;
+
+            updateHero(deltaTime);
+            updateScoutsAI(deltaTime);
+            updateMilitiaAI(deltaTime);
+            updateProjectiles(projectiles, hero.projectileSpeed, hero.attackDamage, 'hero');
+            updateProjectiles(militiaProjectiles, 5, MILITIA_DAMAGE, 'militia');
+            handleCollisionsAndDeaths();
+            updateWorldTextEffects(deltaTime);
+            spawnTimer += deltaTime;
+            if (spawnTimer >= DARK_LORD_SPAWN_COOLDOWN) { spawnScout(); spawnTimer = 0; }
+            updateCamera();
+            updateUI();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function resizeCanvas() {
+            const container = document.getElementById('gameContainer');
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            camera.width = canvas.width;
+            camera.height = canvas.height;
+            hero.targetX = hero.x;
+            hero.targetY = hero.y;
+            if(!gameOver) draw();
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        init();
+    </script>
+</body>
+</html>
