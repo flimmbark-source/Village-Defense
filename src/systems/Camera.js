@@ -139,4 +139,18 @@ export class Camera {
             bottom: this.y + this.height
         };
     }
+
+    /**
+     * Get the visible world bounds with an optional margin
+     * @param {number} margin - Extra padding around the viewport
+     * @returns {Object} Bounds { left, top, right, bottom }
+     */
+    getWorldViewBounds(margin = 200) {
+        return {
+            left: Math.max(0, this.x - margin),
+            top: Math.max(0, this.y - margin),
+            right: Math.min(CONFIG.WORLD.WIDTH, this.x + this.width + margin),
+            bottom: Math.min(CONFIG.WORLD.HEIGHT, this.y + this.height + margin)
+        };
+    }
 }

@@ -15,6 +15,7 @@ export class LevelUpSystem {
         this.currentChoices = [];
         this.onLevelUp = null;
         this.onChoiceSelected = null;
+        this.levelUpScreenTimeoutId = null;
 
         // Track what upgrades have been taken (for stacking limits)
         this.upgradeStacks = {};
@@ -58,13 +59,34 @@ export class LevelUpSystem {
             CONFIG.LEVELING.BASE_XP * Math.pow(CONFIG.LEVELING.XP_MULTIPLIER, this.level - 1)
         );
 
-        // Generate choices
-        this.generateChoices();
-        this.showLevelUpUI();
         this.isLevelingUp = true;
+        this.playLevelUpSequence();
+    }
+
+    /**
+     * Play level up animation sequence before showing UI
+     */
+    playLevelUpSequence() {
+        this.clearLevelUpScreenTimeout();
 
         if (this.onLevelUp) {
             this.onLevelUp(this.level);
+        }
+
+        this.levelUpScreenTimeoutId = window.setTimeout(() => {
+            this.generateChoices();
+            this.showLevelUpUI();
+            this.levelUpScreenTimeoutId = null;
+        }, CONFIG.LEVELING.LEVEL_UP_SCREEN_DELAY);
+    }
+
+    /**
+     * Clear pending level up UI timeout
+     */
+    clearLevelUpScreenTimeout() {
+        if (this.levelUpScreenTimeoutId !== null) {
+            clearTimeout(this.levelUpScreenTimeoutId);
+            this.levelUpScreenTimeoutId = null;
         }
     }
 
@@ -208,6 +230,7 @@ export class LevelUpSystem {
             this.onChoiceSelected(choice);
         }
 
+        this.clearLevelUpScreenTimeout();
         this.hideLevelUpUI();
 
         // Check if there's still XP for another level
@@ -244,6 +267,7 @@ export class LevelUpSystem {
      * Reset the system
      */
     reset() {
+        this.clearLevelUpScreenTimeout();
         this.xp = 0;
         this.level = 1;
         this.xpToNextLevel = CONFIG.LEVELING.BASE_XP;

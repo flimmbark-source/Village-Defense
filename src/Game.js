@@ -395,6 +395,7 @@ export class Game {
 
             // Process damage events
             for (const event of damageEvents) {
+                event.enemy.takeDamage(event.damage);
                 this.effects.spawnDamageNumber(event.enemy.x, event.enemy.y, event.damage);
 
                 // Check if enemy died
@@ -558,28 +559,29 @@ export class Game {
     render() {
         this.renderer.clear();
         this.renderer.beginCamera();
+        const viewBounds = this.camera.getWorldViewBounds();
 
         // World
-        this.renderer.drawGround();
-        this.renderer.drawForests(this.forests);
-        this.renderer.drawVillages(this.villages);
-        this.renderer.drawCastle(this.castle);
+        this.renderer.drawGround(viewBounds);
+        this.renderer.drawForests(this.forests, viewBounds);
+        this.renderer.drawVillages(this.villages, viewBounds);
+        this.renderer.drawCastle(this.castle, viewBounds);
 
         // Pickups
-        this.renderer.drawPickups(this.pickups);
+        this.renderer.drawPickups(this.pickups, viewBounds);
 
         // Entities
-        this.renderer.drawHero(this.hero);
-        this.renderer.drawProjectiles(this.projectiles);
-        this.renderer.drawScouts(this.scouts);
+        this.renderer.drawHero(this.hero, viewBounds);
+        this.renderer.drawProjectiles(this.projectiles, viewBounds);
+        this.renderer.drawScouts(this.scouts, viewBounds);
 
         // Attacks
-        this.renderer.drawAttacks(this.attacks);
-        this.renderer.drawEnemyAttacks(this.enemyAttacks);
+        this.renderer.drawAttacks(this.attacks, viewBounds);
+        this.renderer.drawEnemyAttacks(this.enemyAttacks, viewBounds)
 
         // Effects (world space)
-        this.renderer.drawParticles(this.effects.particles);
-        this.renderer.drawFloatingTexts(this.effects.floatingTexts);
+        this.renderer.drawParticles(this.effects.particles, viewBounds);
+        this.renderer.drawFloatingTexts(this.effects.floatingTexts, viewBounds);
 
         this.renderer.endCamera();
 

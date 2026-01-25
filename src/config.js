@@ -42,6 +42,7 @@ export const CONFIG = {
         BUFFED_COLOR: '#ff3333',
         MAX_HP: 40,
         DAMAGE: 10,
+        MAX_COUNT: 40,
         SIGHT_RANGE: 350,
         CRITICAL_SIGHT_RANGE: 80,
         PATROL_RADIUS: 200,
@@ -182,7 +183,8 @@ export const CONFIG = {
     LEVELING: {
         BASE_XP: 30,
         XP_MULTIPLIER: 1.3,
-        CHOICES_PER_LEVEL: 3
+        CHOICES_PER_LEVEL: 3,
+        LEVEL_UP_SCREEN_DELAY: 1000
     }
 };
 
@@ -196,7 +198,7 @@ export const WEAPONS = {
         type: 'melee',
         damage: 15,
         cooldown: 0.8,
-        range: 60,
+        range: 100,
         attackPattern: 'slash',
         effects: {
             slashArc: 120,
@@ -402,5 +404,7 @@ export const COLORS = {
     TEXT_MILITIA: 'rgba(173, 216, 230, 1)',
     TEXT_XP: 'rgba(127, 255, 127, 1)',
     TEXT_LEVEL_UP: 'rgba(255, 215, 0, 1)',
-    TEXT_DAMAGE: 'rgba(255, 100, 100, 1)'
+    TEXT_DAMAGE: 'rgba(255, 100, 100, 1)',
+    PROJECTILE_HERO: '#ffffff',
+    PROJECTILE_MILITIA: '#ffd27f'
 };
