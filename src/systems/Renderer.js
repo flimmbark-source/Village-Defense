@@ -144,50 +144,16 @@ export class Renderer {
         this.ctx.lineWidth = 8;
         this.ctx.strokeRect(castle.x, castle.y, castle.width, castle.height);
 
-        // Label
-        this.ctx.fillStyle = '#4a2a2a';
-        this.ctx.font = '32px MedievalSharp';
-        this.ctx.textAlign = 'center';
-        this.ctx.fillText('Dark Castle', castle.x + castle.width / 2, castle.y + castle.height / 2 + 10);
-
-        // HP bar (above castle)
+        // Spawn progress bar (above castle)
         const barWidth = castle.width;
-        const barHeight = 12;
-        const barY = castle.y - 25;
-
-        // Background
-        this.ctx.fillStyle = COLORS.HEALTH_BAR_BG;
-        this.ctx.fillRect(castle.x, barY, barWidth, barHeight);
-
-        // HP fill (changes color based on HP)
-        const hpPercent = castle.hp / castle.maxHp;
-        let hpColor = '#4cd44c'; // Green
-        if (hpPercent < 0.25) hpColor = '#d44c4c'; // Red
-        else if (hpPercent < 0.5) hpColor = '#d4a44c'; // Orange
-        else if (hpPercent < 0.75) hpColor = '#d4d44c'; // Yellow
-
-        this.ctx.fillStyle = hpColor;
-        this.ctx.fillRect(castle.x, barY, barWidth * hpPercent, barHeight);
-
-        // Border
-        this.ctx.strokeStyle = '#222';
-        this.ctx.lineWidth = 2;
-        this.ctx.strokeRect(castle.x, barY, barWidth, barHeight);
-
-        // HP text
-        this.ctx.fillStyle = '#fff';
-        this.ctx.font = 'bold 10px Inter';
-        this.ctx.textAlign = 'center';
-        this.ctx.fillText(`${Math.ceil(castle.hp)} / ${castle.maxHp}`, castle.x + barWidth / 2, barY + 10);
-
-        // Spawn progress bar (below HP bar)
-        const spawnBarY = barY + barHeight + 4;
+        const barHeight = 6;
+        const spawnBarY = castle.y - 18;
         const spawnProgress = castle.getSpawnProgress();
 
         this.ctx.fillStyle = COLORS.HEALTH_BAR_BG;
-        this.ctx.fillRect(castle.x, spawnBarY, barWidth, 6);
+        this.ctx.fillRect(castle.x, spawnBarY, barWidth, barHeight);
         this.ctx.fillStyle = COLORS.SPAWN_BAR;
-        this.ctx.fillRect(castle.x, spawnBarY, barWidth * spawnProgress, 6);
+        this.ctx.fillRect(castle.x, spawnBarY, barWidth * spawnProgress, barHeight);
     }
 
     /**
@@ -864,11 +830,26 @@ export class Renderer {
         ctx.lineWidth = 2;
         ctx.strokeRect(xpBarX, xpBarY, xpBarWidth, xpBarHeight);
 
+        // Hero health bar (below XP bar)
+        const healthBarWidth = xpBarWidth / 2;
+        const healthBarHeight = xpBarHeight;
+        const healthBarX = (this.canvas.width - healthBarWidth) / 2;
+        const healthBarY = xpBarY + xpBarHeight + 10;
+        const healthProgress = hero.maxHp > 0 ? hero.hp / hero.maxHp : 0;
+
+        ctx.fillStyle = COLORS.XP_BAR_BG;
+        ctx.fillRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
+        ctx.fillStyle = COLORS.HEALTH_BAR_HERO;
+        ctx.fillRect(healthBarX, healthBarY, healthBarWidth * healthProgress, healthBarHeight);
+        ctx.strokeStyle = '#555';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
+
         // Level text
         ctx.font = 'bold 14px Inter';
         ctx.fillStyle = '#fff';
         ctx.textAlign = 'center';
-        ctx.fillText(`Level ${levelUpSystem.level}`, this.canvas.width / 2, xpBarY + xpBarHeight + 16);
+        ctx.fillText(`Level ${levelUpSystem.level}`, this.canvas.width / 2, healthBarY + healthBarHeight + 16);
 
         // Villages status (top left, below castle)
         if (villages) {
@@ -878,7 +859,7 @@ export class Renderer {
             ctx.font = 'bold 12px Inter';
             ctx.fillStyle = villagesAlive > 0 ? '#4cd44c' : '#d44c4c';
             ctx.textAlign = 'left';
-            ctx.fillText(`Villages: ${villagesAlive}/${villages.length}  |  Buildings: ${totalHuts}`, padding, padding + 55);
+            ctx.fillText(`Villages: ${villagesAlive}/${villages.length}  |  Buildings: ${totalHuts}`, padding, padding + 40);
         }
 
         // Game time (top right)

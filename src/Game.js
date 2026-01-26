@@ -56,8 +56,6 @@ export class Game {
         this.enemyAttacks = [];
 
         // UI elements
-        this.heroHealthBar = document.getElementById('heroHealthBar');
-        this.heroHealthText = document.getElementById('heroHealthText');
         this.heroGoldText = document.getElementById('heroGoldText');
         this.gameOverScreen = document.getElementById('gameOverScreen');
         this.victoryScreen = document.getElementById('victoryScreen');
@@ -597,12 +595,6 @@ export class Game {
      * Update UI elements
      */
     updateUI() {
-        if (this.heroHealthBar) {
-            this.heroHealthBar.style.width = `${(this.hero.hp / this.hero.maxHp) * 100}%`;
-        }
-        if (this.heroHealthText) {
-            this.heroHealthText.textContent = `${Math.ceil(this.hero.hp)}/${Math.ceil(this.hero.maxHp)}`;
-        }
         if (this.heroGoldText) {
             this.heroGoldText.textContent = this.hero.gold;
         }
