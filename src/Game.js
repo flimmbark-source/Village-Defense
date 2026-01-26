@@ -541,10 +541,12 @@ export class Game {
                 // Spawn death effect
                 this.effects.spawnDeathBurst(deadScout.x, deadScout.y, deadScout.color);
 
-                // Spawn drops
+                // Spawn drops with scatter effect
                 const drops = deadScout.getDrops();
                 for (const drop of drops) {
-                    this.spawnPickup(deadScout.x, deadScout.y, drop.type, drop.value);
+                    const offsetX = drop.offsetX || 0;
+                    const offsetY = drop.offsetY || 0;
+                    this.spawnPickup(deadScout.x + offsetX, deadScout.y + offsetY, drop.type, drop.value);
                 }
 
                 // Check villages

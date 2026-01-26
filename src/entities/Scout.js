@@ -377,7 +377,7 @@ export class Scout {
 
     /**
      * Get drops when killed
-     * @returns {Array} Array of drop objects { type, value }
+     * @returns {Array} Array of drop objects { type, value, offsetX, offsetY }
      */
     getDrops() {
         const drops = [];
@@ -385,14 +385,25 @@ export class Scout {
         // Always drop XP
         drops.push({
             type: 'xp',
-            value: this.xpDrop
+            value: this.xpDrop,
+            offsetX: 0,
+            offsetY: 0
         });
 
-        // Chance to drop gold
-        if (Math.random() < this.goldDropChance) {
+        // Always drop gold - spawn multiple coins that scatter
+        const totalGold = Math.floor(randomRange(this.goldDropMin, this.goldDropMax));
+        const coinCount = Math.min(Math.max(2, Math.floor(totalGold / 5)), 6); // 2-6 coins
+        const goldPerCoin = Math.ceil(totalGold / coinCount);
+
+        for (let i = 0; i < coinCount; i++) {
+            // Random scatter offset
+            const angle = (Math.PI * 2 * i / coinCount) + randomRange(-0.3, 0.3);
+            const dist = randomRange(15, 40);
             drops.push({
                 type: 'gold',
-                value: Math.floor(randomRange(this.goldDropMin, this.goldDropMax))
+                value: i === coinCount - 1 ? totalGold - goldPerCoin * (coinCount - 1) : goldPerCoin,
+                offsetX: Math.cos(angle) * dist,
+                offsetY: Math.sin(angle) * dist
             });
         }
 

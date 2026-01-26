@@ -206,12 +206,12 @@ body {
     position: relative;
     background: linear-gradient(180deg, #1a1a2e 0%, #12121f 100%);
     border: 3px solid #d4af37;
-    border-radius: 16px;
-    padding: 24px;
-    max-width: 1000px;
-    width: 95%;
-    max-height: 90vh;
-    overflow-y: auto;
+    border-radius: 12px;
+    padding: 16px 20px;
+    max-width: 1200px;
+    width: 98%;
+    max-height: 98vh;
+    overflow: hidden;
     box-shadow:
         0 0 40px rgba(212, 175, 55, 0.3),
         0 0 80px rgba(0, 0, 0, 0.8),
@@ -235,14 +235,14 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 16px;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
     border-bottom: 2px solid rgba(212, 175, 55, 0.3);
 }
 
 .shop-header h2 {
     margin: 0;
-    font-size: 2.5rem;
+    font-size: 1.8rem;
     color: #d4af37;
     text-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
 }
@@ -250,59 +250,65 @@ body {
 .shop-gold {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     background: rgba(0, 0, 0, 0.5);
-    padding: 10px 20px;
+    padding: 8px 16px;
     border-radius: 8px;
     border: 2px solid #d4af37;
 }
 
 .shop-gold .gold-icon {
-    font-size: 1.5rem;
+    font-size: 1.2rem;
 }
 
 .shop-gold #shopGoldAmount {
-    font-size: 1.5rem;
+    font-size: 1.3rem;
     font-weight: bold;
     color: #ffd700;
 }
 
-/* Shop Sections */
+/* Shop Sections - Horizontal Layout */
 .shop-sections {
     display: flex;
-    flex-direction: column;
-    gap: 20px;
+    flex-direction: row;
+    gap: 12px;
+    justify-content: center;
 }
 
 .shop-section {
     background: rgba(0, 0, 0, 0.3);
-    border-radius: 12px;
-    padding: 16px;
+    border-radius: 10px;
+    padding: 10px;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    flex: 1;
+    max-width: 380px;
 }
 
 .section-title {
-    margin: 0 0 12px 0;
-    font-size: 1.3rem;
+    margin: 0 0 8px 0;
+    font-size: 1rem;
     color: #fff;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
+    text-align: center;
+    justify-content: center;
 }
 
 .weapons-section .section-title { color: #7f7fff; }
 .passives-section .section-title { color: #4ade80; }
 .stats-section .section-title { color: #f59e0b; }
 
-.weapons-section { border-left: 3px solid #7f7fff; }
-.passives-section { border-left: 3px solid #4ade80; }
-.stats-section { border-left: 3px solid #f59e0b; }
+.weapons-section { border-top: 3px solid #7f7fff; }
+.passives-section { border-top: 3px solid #4ade80; }
+.stats-section { border-top: 3px solid #f59e0b; }
 
 /* Shop Cards Grid */
 .shop-cards {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 8px;
+    justify-content: center;
 }
 
 /* Individual Shop Card */
@@ -310,22 +316,23 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 140px;
-    padding: 12px;
+    width: 105px;
+    padding: 8px 6px;
     background: linear-gradient(180deg, rgba(74, 58, 42, 0.6) 0%, rgba(40, 30, 20, 0.8) 100%);
     border: 2px solid #5a3d2b;
-    border-radius: 12px;
+    border-radius: 8px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
     text-align: center;
     color: #e5e7eb;
     font-family: inherit;
 }
 
 .shop-card:hover {
-    transform: translateY(-4px);
+    transform: translateY(-3px) scale(1.05);
     border-color: #d4af37;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4), 0 0 15px rgba(212, 175, 55, 0.3);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4), 0 0 12px rgba(212, 175, 55, 0.3);
+    z-index: 5;
 }
 
 .shop-card.cannot-afford {
@@ -356,59 +363,62 @@ body {
 
 /* Card Content */
 .card-icon {
-    font-size: 2.5rem;
-    margin-bottom: 8px;
-    width: 60px;
-    height: 60px;
+    font-size: 1.6rem;
+    margin-bottom: 4px;
+    width: 40px;
+    height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
     background: rgba(0, 0, 0, 0.4);
-    border-radius: 10px;
+    border-radius: 6px;
 }
 
 .card-info {
     flex-grow: 1;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
 }
 
 .card-name {
-    font-size: 0.9rem;
+    font-size: 0.7rem;
     font-weight: 600;
     color: #fff;
-    margin-bottom: 4px;
-    line-height: 1.2;
+    margin-bottom: 2px;
+    line-height: 1.1;
 }
 
 .stack-count {
-    font-size: 0.7rem;
+    font-size: 0.6rem;
     color: #9ca3af;
-    margin-left: 4px;
+    margin-left: 2px;
 }
 
 .card-desc {
-    font-size: 0.75rem;
+    font-size: 0.6rem;
     color: #9ca3af;
-    line-height: 1.3;
+    line-height: 1.2;
+    max-height: 2.4em;
+    overflow: hidden;
 }
 
 .card-cost {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    gap: 3px;
     background: rgba(0, 0, 0, 0.5);
-    padding: 6px 12px;
-    border-radius: 6px;
+    padding: 4px 8px;
+    border-radius: 4px;
     margin-top: auto;
 }
 
 .card-cost .gold-icon {
-    font-size: 1rem;
+    font-size: 0.8rem;
 }
 
 .card-cost .cost-amount {
     font-weight: bold;
+    font-size: 0.8rem;
     color: #ffd700;
 }
 
@@ -429,15 +439,15 @@ body {
 
 /* Shop Footer */
 .shop-footer {
-    margin-top: 20px;
+    margin-top: 12px;
     text-align: center;
 }
 
 .shop-done-btn {
-    padding: 14px 40px;
-    font-size: 1.2rem;
+    padding: 10px 32px;
+    font-size: 1rem;
     background: linear-gradient(180deg, #2a5a2a 0%, #1a3a1a 100%);
-    border: 3px solid #4ade80;
+    border: 2px solid #4ade80;
 }
 
 .shop-done-btn:hover {
