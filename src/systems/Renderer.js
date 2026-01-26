@@ -870,44 +870,6 @@ export class Renderer {
         ctx.textAlign = 'center';
         ctx.fillText(`Level ${levelUpSystem.level}`, this.canvas.width / 2, xpBarY + xpBarHeight + 16);
 
-        // Castle HP bar (top left)
-        if (castle) {
-            const castleBarWidth = 200;
-            const castleBarHeight = 16;
-            const castleBarX = padding;
-            const castleBarY = padding;
-
-            // Label
-            ctx.font = 'bold 12px Inter';
-            ctx.fillStyle = '#fff';
-            ctx.textAlign = 'left';
-            ctx.fillText('Dark Castle', castleBarX, castleBarY - 4);
-
-            // Background
-            ctx.fillStyle = COLORS.HEALTH_BAR_BG;
-            ctx.fillRect(castleBarX, castleBarY + 10, castleBarWidth, castleBarHeight);
-
-            // HP fill
-            const hpPercent = castle.hp / castle.maxHp;
-            let hpColor = '#d44c4c';
-            if (hpPercent > 0.5) hpColor = '#d4a44c';
-            if (hpPercent > 0.75) hpColor = '#4cd44c';
-
-            ctx.fillStyle = hpColor;
-            ctx.fillRect(castleBarX, castleBarY + 10, castleBarWidth * hpPercent, castleBarHeight);
-
-            // Border
-            ctx.strokeStyle = '#444';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(castleBarX, castleBarY + 10, castleBarWidth, castleBarHeight);
-
-            // HP text
-            ctx.font = 'bold 11px Inter';
-            ctx.fillStyle = '#fff';
-            ctx.textAlign = 'center';
-            ctx.fillText(`${Math.ceil(castle.hp)} / ${castle.maxHp}`, castleBarX + castleBarWidth / 2, castleBarY + 23);
-        }
-
         // Villages status (top left, below castle)
         if (villages) {
             const villagesAlive = villages.filter(v => !v.isDestroyed()).length;
