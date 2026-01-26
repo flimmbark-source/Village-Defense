@@ -851,7 +851,7 @@ export class Renderer {
         ctx.textAlign = 'center';
         ctx.fillText(`Level ${levelUpSystem.level}`, this.canvas.width / 2, healthBarY + healthBarHeight + 16);
 
-        // Villages status (top left, below castle)
+        // Villagers status (top left, below castle)
         if (villages) {
             const villagesAlive = villages.filter(v => !v.isDestroyed()).length;
             const totalHuts = villages.reduce((sum, v) => sum + v.getRemainingHuts(), 0);
@@ -859,7 +859,11 @@ export class Renderer {
             ctx.font = 'bold 12px Inter';
             ctx.fillStyle = villagesAlive > 0 ? '#4cd44c' : '#d44c4c';
             ctx.textAlign = 'left';
-            ctx.fillText(`Villages: ${villagesAlive}/${villages.length}  |  Buildings: ${totalHuts}`, padding, padding + 40);
+            const statusX = padding;
+            const statusY = padding + 22;
+            const lineHeight = 16;
+            ctx.fillText(`Villagers: ${villagesAlive}/${villages.length}`, statusX, statusY);
+            ctx.fillText(`Buildings: ${totalHuts}`, statusX, statusY + lineHeight);
         }
 
         // Game time (top right)
