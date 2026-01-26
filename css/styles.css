@@ -181,7 +181,7 @@ body {
     }
 }
 
-/* Shop Panel */
+/* Shop Panel - Roguelike Card Game Style */
 #shopPanel {
     position: absolute;
     inset: 0;
@@ -198,25 +198,45 @@ body {
 .shop-overlay {
     position: absolute;
     inset: 0;
-    background: rgba(0, 0, 0, 0.85);
-    backdrop-filter: blur(6px);
+    background: linear-gradient(180deg, rgba(30, 20, 10, 0.95) 0%, rgba(15, 10, 5, 0.98) 100%);
+    backdrop-filter: blur(8px);
 }
 
 .shop-content {
     position: relative;
-    background: linear-gradient(180deg, #1a1a2e 0%, #12121f 100%);
-    border: 3px solid #d4af37;
-    border-radius: 12px;
-    padding: 16px 20px;
-    max-width: 1200px;
-    width: 98%;
-    max-height: 98vh;
+    background:
+        linear-gradient(180deg, #3d2817 0%, #2a1a0f 50%, #1f1409 100%);
+    border: 4px solid #8b5a2b;
+    border-radius: 16px;
+    padding: 20px 24px;
+    max-width: 1100px;
+    width: 96%;
+    max-height: 96vh;
     overflow: hidden;
     box-shadow:
-        0 0 40px rgba(212, 175, 55, 0.3),
-        0 0 80px rgba(0, 0, 0, 0.8),
-        inset 0 0 100px rgba(212, 175, 55, 0.05);
+        0 0 0 2px #5a3a1a,
+        0 0 60px rgba(139, 90, 43, 0.4),
+        0 20px 60px rgba(0, 0, 0, 0.8),
+        inset 0 1px 0 rgba(255, 200, 100, 0.1),
+        inset 0 -20px 40px rgba(0, 0, 0, 0.3);
     animation: shopAppear 0.4s ease-out;
+}
+
+/* Wood texture overlay */
+.shop-content::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        repeating-linear-gradient(
+            90deg,
+            transparent 0px,
+            rgba(0, 0, 0, 0.03) 1px,
+            transparent 2px,
+            transparent 20px
+        );
+    pointer-events: none;
+    border-radius: 12px;
 }
 
 @keyframes shopAppear {
@@ -235,195 +255,250 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
-    padding-bottom: 10px;
-    border-bottom: 2px solid rgba(212, 175, 55, 0.3);
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 3px solid #5a3a1a;
+    position: relative;
 }
 
 .shop-header h2 {
     margin: 0;
-    font-size: 1.8rem;
-    color: #d4af37;
-    text-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
+    font-size: 2rem;
+    color: #ffd700;
+    text-shadow:
+        2px 2px 0 #5a3a1a,
+        0 0 20px rgba(255, 215, 0, 0.5);
+    letter-spacing: 1px;
 }
 
 .shop-gold {
     display: flex;
     align-items: center;
-    gap: 6px;
-    background: rgba(0, 0, 0, 0.5);
-    padding: 8px 16px;
-    border-radius: 8px;
-    border: 2px solid #d4af37;
+    gap: 8px;
+    background: linear-gradient(180deg, #4a3520 0%, #2a1a10 100%);
+    padding: 10px 20px;
+    border-radius: 25px;
+    border: 3px solid #d4af37;
+    box-shadow:
+        inset 0 2px 4px rgba(0, 0, 0, 0.5),
+        0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 .shop-gold .gold-icon {
-    font-size: 1.2rem;
+    font-size: 1.4rem;
+    filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.6));
 }
 
 .shop-gold #shopGoldAmount {
-    font-size: 1.3rem;
+    font-size: 1.5rem;
     font-weight: bold;
     color: #ffd700;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
 }
 
 /* Shop Sections - Horizontal Layout */
 .shop-sections {
     display: flex;
     flex-direction: row;
-    gap: 12px;
+    gap: 16px;
     justify-content: center;
 }
 
 .shop-section {
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 10px;
-    padding: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.4) 100%);
+    border-radius: 12px;
+    padding: 12px;
+    border: 2px solid rgba(139, 90, 43, 0.5);
     flex: 1;
-    max-width: 380px;
+    max-width: 360px;
+    position: relative;
 }
 
 .section-title {
-    margin: 0 0 8px 0;
-    font-size: 1rem;
+    margin: 0 0 10px 0;
+    font-size: 1.1rem;
     color: #fff;
     display: flex;
     align-items: center;
-    gap: 6px;
-    text-align: center;
+    gap: 8px;
     justify-content: center;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
 }
 
-.weapons-section .section-title { color: #7f7fff; }
-.passives-section .section-title { color: #4ade80; }
-.stats-section .section-title { color: #f59e0b; }
+.weapons-section .section-title { color: #a0a0ff; }
+.passives-section .section-title { color: #80ff80; }
+.stats-section .section-title { color: #ffb060; }
 
-.weapons-section { border-top: 3px solid #7f7fff; }
-.passives-section { border-top: 3px solid #4ade80; }
-.stats-section { border-top: 3px solid #f59e0b; }
+.weapons-section { border-top: 3px solid #6060c0; }
+.passives-section { border-top: 3px solid #40a040; }
+.stats-section { border-top: 3px solid #c08040; }
 
 /* Shop Cards Grid */
 .shop-cards {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 10px;
     justify-content: center;
 }
 
-/* Individual Shop Card */
+/* Individual Shop Card - Roguelike Style */
 .shop-card {
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 105px;
-    padding: 8px 6px;
-    background: linear-gradient(180deg, rgba(74, 58, 42, 0.6) 0%, rgba(40, 30, 20, 0.8) 100%);
-    border: 2px solid #5a3d2b;
-    border-radius: 8px;
+    width: 100px;
+    height: 140px;
+    padding: 0;
+    background: linear-gradient(180deg, #c44 0%, #a33 40%, #822 100%);
+    border: 3px solid #4a2a1a;
+    border-radius: 10px;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all 0.2s ease;
     text-align: center;
-    color: #e5e7eb;
+    color: #fff;
     font-family: inherit;
+    position: relative;
+    overflow: hidden;
+    box-shadow:
+        0 4px 8px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Card inner frame */
+.shop-card::before {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    border: 2px solid rgba(255, 200, 100, 0.3);
+    border-radius: 6px;
+    pointer-events: none;
 }
 
 .shop-card:hover {
-    transform: translateY(-3px) scale(1.05);
-    border-color: #d4af37;
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4), 0 0 12px rgba(212, 175, 55, 0.3);
-    z-index: 5;
+    transform: translateY(-8px) scale(1.05);
+    box-shadow:
+        0 12px 24px rgba(0, 0, 0, 0.6),
+        0 0 20px rgba(255, 200, 100, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    z-index: 10;
 }
 
 .shop-card.cannot-afford {
-    opacity: 0.5;
-    filter: grayscale(50%);
+    filter: brightness(0.5) saturate(0.5);
 }
 
 .shop-card.cannot-afford:hover {
     transform: none;
-    border-color: #5a3d2b;
-    box-shadow: none;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
 }
 
 /* Card Type Colors */
-.shop-card.card-weapon { border-top: 3px solid #7f7fff; }
-.shop-card.card-weapon-upgrade { border-top: 3px solid #ffd700; }
-.shop-card.card-passive { border-top: 3px solid #4ade80; }
-.shop-card.card-stat { border-top: 3px solid #f59e0b; }
+.shop-card.card-weapon {
+    background: linear-gradient(180deg, #5566cc 0%, #4455aa 40%, #334488 100%);
+}
+.shop-card.card-weapon-upgrade {
+    background: linear-gradient(180deg, #cc9933 0%, #aa7722 40%, #886611 100%);
+}
+.shop-card.card-passive {
+    background: linear-gradient(180deg, #44aa44 0%, #338833 40%, #226622 100%);
+}
+.shop-card.card-stat {
+    background: linear-gradient(180deg, #cc7744 0%, #aa5533 40%, #884422 100%);
+}
 
-/* Rarity Colors */
-.shop-card.rarity-common { }
+/* Rarity Glow Effects */
 .shop-card.rarity-uncommon {
-    background: linear-gradient(180deg, rgba(50, 80, 50, 0.6) 0%, rgba(30, 50, 30, 0.8) 100%);
+    box-shadow:
+        0 4px 8px rgba(0, 0, 0, 0.5),
+        0 0 15px rgba(100, 200, 100, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 .shop-card.rarity-rare {
-    background: linear-gradient(180deg, rgba(50, 50, 100, 0.6) 0%, rgba(30, 30, 60, 0.8) 100%);
+    box-shadow:
+        0 4px 8px rgba(0, 0, 0, 0.5),
+        0 0 20px rgba(100, 150, 255, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
-/* Card Content */
+/* Card Icon Area */
 .card-icon {
-    font-size: 1.6rem;
-    margin-bottom: 4px;
-    width: 40px;
-    height: 40px;
+    font-size: 2rem;
+    width: 100%;
+    height: 55px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(0, 0, 0, 0.4);
-    border-radius: 6px;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.1) 100%);
+    border-bottom: 2px solid rgba(0, 0, 0, 0.3);
+    margin-bottom: 0;
+    border-radius: 7px 7px 0 0;
 }
 
+/* Card Name Banner */
 .card-info {
     flex-grow: 1;
-    margin-bottom: 4px;
+    width: 100%;
+    padding: 4px 6px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
 }
 
 .card-name {
     font-size: 0.7rem;
-    font-weight: 600;
+    font-weight: bold;
     color: #fff;
     margin-bottom: 2px;
     line-height: 1.1;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .stack-count {
     font-size: 0.6rem;
-    color: #9ca3af;
+    color: rgba(255, 255, 255, 0.7);
     margin-left: 2px;
 }
 
 .card-desc {
-    font-size: 0.6rem;
-    color: #9ca3af;
-    line-height: 1.2;
-    max-height: 2.4em;
+    font-size: 0.55rem;
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.15;
+    max-height: 2.3em;
     overflow: hidden;
 }
 
+/* Card Cost Banner - Bottom of card */
 .card-cost {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 3px;
-    background: rgba(0, 0, 0, 0.5);
-    padding: 4px 8px;
-    border-radius: 4px;
+    gap: 4px;
+    width: 100%;
+    background: linear-gradient(180deg, #3a2a1a 0%, #2a1a0a 100%);
+    padding: 6px 8px;
+    border-top: 2px solid rgba(139, 90, 43, 0.6);
     margin-top: auto;
 }
 
 .card-cost .gold-icon {
-    font-size: 0.8rem;
+    font-size: 0.9rem;
+    filter: drop-shadow(0 0 3px rgba(255, 215, 0, 0.5));
 }
 
 .card-cost .cost-amount {
     font-weight: bold;
-    font-size: 0.8rem;
+    font-size: 0.9rem;
     color: #ffd700;
+    text-shadow: 0 0 6px rgba(255, 215, 0, 0.4);
 }
 
 .card-cost.too-expensive .cost-amount {
-    color: #ef4444;
+    color: #ff6666;
+    text-shadow: 0 0 6px rgba(255, 100, 100, 0.4);
 }
 
 /* Shake Animation */
@@ -439,20 +514,30 @@ body {
 
 /* Shop Footer */
 .shop-footer {
-    margin-top: 12px;
+    margin-top: 16px;
     text-align: center;
 }
 
 .shop-done-btn {
-    padding: 10px 32px;
-    font-size: 1rem;
-    background: linear-gradient(180deg, #2a5a2a 0%, #1a3a1a 100%);
-    border: 2px solid #4ade80;
+    padding: 12px 40px;
+    font-size: 1.1rem;
+    background: linear-gradient(180deg, #4a7a4a 0%, #2a5a2a 50%, #1a4a1a 100%);
+    border: 3px solid #6abe6a;
+    border-radius: 25px;
+    box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    text-transform: uppercase;
+    letter-spacing: 2px;
 }
 
 .shop-done-btn:hover {
-    background: linear-gradient(180deg, #3a7a3a 0%, #2a5a2a 100%);
+    background: linear-gradient(180deg, #5a9a5a 0%, #3a7a3a 50%, #2a6a2a 100%);
     border-color: #ffd700;
+    box-shadow:
+        0 6px 16px rgba(0, 0, 0, 0.5),
+        0 0 20px rgba(255, 215, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 /* Game Over Screen */
@@ -628,27 +713,26 @@ body {
 @media (max-width: 900px) {
     /* Shop adjustments for tablet */
     .shop-content {
-        padding: 12px 16px;
+        padding: 14px 16px;
         max-width: 98%;
     }
 
     .shop-card {
-        width: 95px;
-        padding: 6px 4px;
+        width: 90px;
+        height: 125px;
     }
 
     .card-icon {
-        width: 36px;
-        height: 36px;
-        font-size: 1.4rem;
+        height: 48px;
+        font-size: 1.6rem;
     }
 
     .card-name {
-        font-size: 0.65rem;
+        font-size: 0.6rem;
     }
 
     .card-desc {
-        font-size: 0.55rem;
+        font-size: 0.5rem;
     }
 }
 
@@ -689,19 +773,19 @@ body {
 
     /* Shop header */
     .shop-header h2 {
-        font-size: 1.4rem;
+        font-size: 1.5rem;
     }
 
     .shop-gold {
-        padding: 6px 12px;
+        padding: 6px 14px;
     }
 
     .shop-gold .gold-icon {
-        font-size: 1rem;
+        font-size: 1.1rem;
     }
 
     .shop-gold #shopGoldAmount {
-        font-size: 1.1rem;
+        font-size: 1.2rem;
     }
 
     /* Shop sections */
@@ -710,42 +794,41 @@ body {
     }
 
     .section-title {
-        font-size: 0.85rem;
+        font-size: 0.8rem;
         margin-bottom: 6px;
+        letter-spacing: 1px;
     }
 
     /* Shop cards smaller */
     .shop-card {
-        width: 85px;
-        padding: 6px 4px;
+        width: 80px;
+        height: 115px;
     }
 
     .card-icon {
-        width: 32px;
-        height: 32px;
-        font-size: 1.2rem;
-        margin-bottom: 3px;
+        height: 42px;
+        font-size: 1.4rem;
     }
 
     .card-name {
-        font-size: 0.6rem;
+        font-size: 0.55rem;
     }
 
     .card-desc {
-        font-size: 0.5rem;
+        font-size: 0.45rem;
         max-height: 2em;
     }
 
     .card-cost {
-        padding: 3px 6px;
+        padding: 4px 6px;
     }
 
     .card-cost .gold-icon {
-        font-size: 0.7rem;
+        font-size: 0.75rem;
     }
 
     .card-cost .cost-amount {
-        font-size: 0.7rem;
+        font-size: 0.75rem;
     }
 
     /* Game over screens */
@@ -781,7 +864,7 @@ body {
     /* Shop goes vertical in portrait */
     .shop-sections {
         flex-direction: column;
-        gap: 8px;
+        gap: 10px;
     }
 
     .shop-section {
@@ -789,23 +872,22 @@ body {
     }
 
     .shop-cards {
-        gap: 6px;
+        gap: 8px;
     }
 
-    /* Cards in a row for vertical layout */
+    /* Cards stay card-like but smaller */
     .shop-card {
-        width: 75px;
-        padding: 5px 3px;
+        width: 72px;
+        height: 105px;
     }
 
     .card-icon {
-        width: 28px;
-        height: 28px;
-        font-size: 1rem;
+        height: 38px;
+        font-size: 1.2rem;
     }
 
     .card-name {
-        font-size: 0.55rem;
+        font-size: 0.5rem;
     }
 
     .card-desc {
@@ -813,36 +895,36 @@ body {
     }
 
     .card-cost {
-        padding: 2px 5px;
+        padding: 3px 5px;
     }
 
     .card-cost .gold-icon,
     .card-cost .cost-amount {
-        font-size: 0.65rem;
+        font-size: 0.7rem;
     }
 
     /* Shop content scrollable in portrait */
     .shop-content {
         max-height: 95vh;
         overflow-y: auto;
-        padding: 10px 12px;
+        padding: 12px;
     }
 
     .shop-header {
-        margin-bottom: 8px;
+        margin-bottom: 10px;
         padding-bottom: 8px;
     }
 
     .shop-header h2 {
-        font-size: 1.2rem;
+        font-size: 1.3rem;
     }
 
     .shop-footer {
-        margin-top: 8px;
+        margin-top: 10px;
     }
 
     .shop-done-btn {
-        padding: 8px 24px;
+        padding: 10px 28px;
         font-size: 0.9rem;
     }
 
@@ -908,18 +990,17 @@ body {
 /* Very small screens (small phones) */
 @media (max-width: 400px) {
     .shop-card {
-        width: 65px;
-        padding: 4px 2px;
+        width: 62px;
+        height: 95px;
     }
 
     .card-icon {
-        width: 24px;
-        height: 24px;
-        font-size: 0.9rem;
+        height: 34px;
+        font-size: 1rem;
     }
 
     .card-name {
-        font-size: 0.5rem;
+        font-size: 0.45rem;
     }
 
     .hero-stats {
@@ -935,22 +1016,22 @@ body {
 @media (max-height: 500px) and (orientation: landscape) {
     /* Compact shop for landscape */
     .shop-content {
-        padding: 8px 12px;
+        padding: 10px 14px;
         max-height: 98vh;
     }
 
     .shop-header {
-        margin-bottom: 6px;
+        margin-bottom: 8px;
         padding-bottom: 6px;
     }
 
     .shop-header h2 {
-        font-size: 1.2rem;
+        font-size: 1.3rem;
     }
 
     .shop-sections {
         flex-direction: row;
-        gap: 8px;
+        gap: 10px;
     }
 
     .shop-section {
@@ -958,24 +1039,22 @@ body {
     }
 
     .section-title {
-        font-size: 0.8rem;
+        font-size: 0.75rem;
         margin-bottom: 4px;
     }
 
     .shop-card {
-        width: 70px;
-        padding: 4px 3px;
+        width: 68px;
+        height: 95px;
     }
 
     .card-icon {
-        width: 26px;
-        height: 26px;
+        height: 32px;
         font-size: 1rem;
-        margin-bottom: 2px;
     }
 
     .card-name {
-        font-size: 0.55rem;
+        font-size: 0.5rem;
     }
 
     .card-desc {
@@ -983,15 +1062,20 @@ body {
     }
 
     .card-cost {
-        padding: 2px 4px;
+        padding: 3px 4px;
+    }
+
+    .card-cost .gold-icon,
+    .card-cost .cost-amount {
+        font-size: 0.65rem;
     }
 
     .shop-footer {
-        margin-top: 6px;
+        margin-top: 8px;
     }
 
     .shop-done-btn {
-        padding: 6px 20px;
+        padding: 8px 24px;
         font-size: 0.85rem;
     }
 
