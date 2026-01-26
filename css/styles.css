@@ -70,10 +70,11 @@ body {
 /* Hero UI Panel */
 #heroPanel {
     position: absolute;
-    bottom: 16px;
-    left: 16px;
+    top: 56px;
+    left: 50%;
+    transform: translateX(-50%);
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     gap: 8px;
     z-index: 10;
 }
@@ -81,7 +82,7 @@ body {
 .hero-stats {
     padding: 12px;
     border-radius: 8px;
-    width: 220px;
+    width: 340px;
 }
 
 .stat-row {
@@ -776,7 +777,7 @@ body {
 
     /* Hero panel adjustments */
     .hero-stats {
-        width: 160px;
+        width: 220px;
         padding: 8px;
     }
 
@@ -966,12 +967,13 @@ body {
 
     /* Hero panel smaller */
     #heroPanel {
-        bottom: 8px;
-        left: 8px;
+        top: 52px;
+        left: 50%;
+        transform: translateX(-50%);
     }
 
     .hero-stats {
-        width: 140px;
+        width: 200px;
         padding: 6px;
     }
 
@@ -1040,7 +1042,7 @@ body {
     }
 
     .hero-stats {
-        width: 120px;
+        width: 180px;
     }
 
     .level-up-text {
