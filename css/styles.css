@@ -296,12 +296,26 @@ body {
     text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
 }
 
-/* Shop Sections - Horizontal Layout */
+/* Shop Sections - Two Row Layout */
 .shop-sections {
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Shop Rows */
+.shop-row {
+    display: flex;
     gap: 16px;
     justify-content: center;
+}
+
+.shop-row-top {
+    /* Stats row spans full width */
+}
+
+.shop-row-bottom {
+    /* Weapons and Passives side by side */
 }
 
 .shop-section {
@@ -309,9 +323,23 @@ body {
     border-radius: 12px;
     padding: 12px;
     border: 2px solid rgba(139, 90, 43, 0.5);
-    flex: 1;
-    max-width: 360px;
     position: relative;
+}
+
+/* Stats section spans full width at top */
+.shop-row-top .stats-section {
+    flex: 1;
+    max-width: 100%;
+}
+
+.shop-row-top .shop-cards {
+    justify-content: center;
+}
+
+/* Bottom sections are equal width */
+.shop-row-bottom .shop-section {
+    flex: 1;
+    max-width: 50%;
 }
 
 .section-title {
@@ -861,10 +889,18 @@ body {
 
 /* Mobile portrait - stack shop sections vertically */
 @media (max-width: 600px) {
-    /* Shop goes vertical in portrait */
-    .shop-sections {
+    /* Shop rows stack vertically */
+    .shop-row {
         flex-direction: column;
-        gap: 10px;
+        gap: 8px;
+    }
+
+    .shop-row-bottom {
+        flex-direction: column;
+    }
+
+    .shop-row-bottom .shop-section {
+        max-width: 100%;
     }
 
     .shop-section {
@@ -1016,22 +1052,33 @@ body {
 @media (max-height: 500px) and (orientation: landscape) {
     /* Compact shop for landscape */
     .shop-content {
-        padding: 10px 14px;
+        padding: 8px 12px;
         max-height: 98vh;
     }
 
     .shop-header {
-        margin-bottom: 8px;
-        padding-bottom: 6px;
+        margin-bottom: 6px;
+        padding-bottom: 4px;
     }
 
     .shop-header h2 {
-        font-size: 1.3rem;
+        font-size: 1.2rem;
     }
 
     .shop-sections {
-        flex-direction: row;
-        gap: 10px;
+        gap: 6px;
+    }
+
+    .shop-row {
+        gap: 8px;
+    }
+
+    .shop-row-top .stats-section {
+        padding: 4px 8px;
+    }
+
+    .shop-row-top .section-title {
+        margin-bottom: 4px;
     }
 
     .shop-section {
@@ -1039,22 +1086,22 @@ body {
     }
 
     .section-title {
-        font-size: 0.75rem;
+        font-size: 0.7rem;
         margin-bottom: 4px;
     }
 
     .shop-card {
-        width: 68px;
-        height: 95px;
+        width: 62px;
+        height: 88px;
     }
 
     .card-icon {
-        height: 32px;
-        font-size: 1rem;
+        height: 28px;
+        font-size: 0.9rem;
     }
 
     .card-name {
-        font-size: 0.5rem;
+        font-size: 0.45rem;
     }
 
     .card-desc {
@@ -1062,7 +1109,7 @@ body {
     }
 
     .card-cost {
-        padding: 3px 4px;
+        padding: 2px 4px;
     }
 
     .card-cost .gold-icon,
