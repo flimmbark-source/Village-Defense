@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>Grimm Dominion</title>
     <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
@@ -21,9 +23,14 @@
         body {
             display: flex;
             flex-direction: column;
-            padding: 16px;
+            padding: 8px;
+            padding: env(safe-area-inset-top, 8px) env(safe-area-inset-right, 8px) env(safe-area-inset-bottom, 8px) env(safe-area-inset-left, 8px);
             font-family: 'Inter', sans-serif;
             overflow: hidden;
+            touch-action: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
         #gameContainer {
             flex-grow: 1;
@@ -132,7 +139,8 @@
 
         <!-- Controls hint -->
         <div id="controlsHint" class="ui-panel">
-            <span>Click to move | Scroll to zoom</span>
+            <span class="desktop-hint">Click to move | Scroll to zoom</span>
+            <span class="mobile-hint">Tap to move | Pinch to zoom</span>
         </div>
     </div>
 
