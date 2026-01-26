@@ -70,9 +70,9 @@ body {
 /* Hero UI Panel */
 #heroPanel {
     position: absolute;
-    top: 56px;
-    left: 50%;
-    transform: translateX(-50%);
+    bottom: 20px;
+    left: 20px;
+    transform: none;
     display: flex;
     align-items: center;
     gap: 8px;
