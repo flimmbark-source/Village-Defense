@@ -40,6 +40,7 @@ export class Game {
         this.state = GameState.PLAYING;
         this.lastTime = 0;
         this.gameTime = 0;
+        this.difficulty = 0; // Increases by 1 each level up
 
         // Entities
         this.hero = null;
@@ -101,6 +102,8 @@ export class Game {
         this.levelUpSystem.setHeroRef(this.hero);
         this.levelUpSystem.setLevelUpHandler((level) => {
             this.state = GameState.PAUSED;
+            // Increase difficulty
+            this.difficulty++;
             // Show level up animation
             this.showLevelUpAnimation();
             // Spawn particle effect
@@ -215,6 +218,10 @@ export class Game {
     spawnWave(wave) {
         const center = this.castle.getCenter();
 
+        // Calculate bonus scouts from difficulty (every 3 difficulty = +1 scout)
+        const bonusScouts = Math.floor(this.difficulty / 3);
+
+        // Spawn base wave enemies
         for (const enemyType of wave) {
             // Spawn at random position around castle
             const angle = Math.random() * Math.PI * 2;
@@ -223,6 +230,17 @@ export class Game {
             const y = center.y + Math.sin(angle) * dist;
 
             this.scouts.push(new Scout(x, y, enemyType));
+        }
+
+        // Spawn bonus scouts from difficulty
+        for (let i = 0; i < bonusScouts; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const dist = CONFIG.CASTLE.WIDTH / 2 + 20;
+            const x = center.x + Math.cos(angle) * dist;
+            const y = center.y + Math.sin(angle) * dist;
+
+            // Bonus scouts are always basic scouts
+            this.scouts.push(new Scout(x, y, EnemyType.SCOUT));
         }
     }
 
@@ -697,6 +715,7 @@ export class Game {
         this.state = GameState.PLAYING;
         this.lastTime = 0;
         this.gameTime = 0;
+        this.difficulty = 0;
 
         // Clear entities
         this.scouts = [];
