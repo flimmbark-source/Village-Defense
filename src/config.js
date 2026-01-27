@@ -4,6 +4,9 @@
  */
 
 export const CONFIG = {
+    DEBUG: {
+        DRAW_SCOUT_SIGHT: false
+    },
     // World & Camera
     WORLD: {
         WIDTH: 3000,
