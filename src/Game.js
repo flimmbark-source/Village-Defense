@@ -75,6 +75,7 @@ export class Game {
         this.shopDoneButton = document.getElementById('shopDoneButton');
         this.levelUpAnimation = document.getElementById('levelUpAnimation');
         this.tavernAnimation = document.getElementById('tavernAnimation');
+        this.lastGold = null;
 
         this.initialize();
     }
@@ -772,7 +773,10 @@ export class Game {
      */
     updateUI() {
         if (this.heroGoldText) {
-            this.heroGoldText.textContent = this.hero.gold;
+            if (this.lastGold !== this.hero.gold) {
+                this.heroGoldText.textContent = this.hero.gold;
+                this.lastGold = this.hero.gold;
+            }
         }
     }
 
@@ -925,6 +929,7 @@ export class Game {
             CONFIG.WORLD.HEIGHT / 2 + 300
         );
         this.hero.addStartingWeapon('basic_sword');
+        this.lastGold = null;
 
         // Update level up system hero reference
         this.levelUpSystem.setHeroRef(this.hero);
