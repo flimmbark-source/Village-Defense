@@ -77,6 +77,7 @@
                     <!-- Header -->
                     <div class="shop-header">
                         <h2 class="font-medieval" id="shopLevelText">Level 2</h2>
+                        <button id="shopDoneButton" class="game-button shop-done-btn">Done</button>
                         <div class="shop-gold">
                             <span class="gold-icon">🪙</span>
                             <span id="shopGoldAmount">0</span>
@@ -88,7 +89,7 @@
                         <!-- Stats Section - Top Row -->
                         <div class="shop-row shop-row-top">
                             <div class="shop-section stats-section" id="statsSection">
-                                <button class="section-expand-btn" data-section="stats" title="Expand Stats">⊕</button>
+                                <button class="section-expand-btn" data-section="stats" title="View Details">Info</button>
                                 <h3 class="section-title font-medieval">Stats</h3>
                                 <div id="shopStats" class="shop-cards">
                                     <!-- Stat cards populated by JS -->
@@ -100,7 +101,7 @@
                         <div class="shop-row shop-row-bottom">
                             <!-- Weapons Section -->
                             <div class="shop-section weapons-section" id="weaponsSection">
-                                <button class="section-expand-btn" data-section="weapons" title="Expand Weapons">⊕</button>
+                                <button class="section-expand-btn" data-section="weapons" title="View Details">Info</button>
                                 <h3 class="section-title font-medieval">Weapons</h3>
                                 <div id="shopWeapons" class="shop-cards">
                                     <!-- Weapon cards populated by JS -->
@@ -109,7 +110,7 @@
 
                             <!-- Passives Section -->
                             <div class="shop-section passives-section" id="passivesSection">
-                                <button class="section-expand-btn" data-section="passives" title="Expand Passives">⊕</button>
+                                <button class="section-expand-btn" data-section="passives" title="View Details">Info</button>
                                 <h3 class="section-title font-medieval">Passives</h3>
                                 <div id="shopPassives" class="shop-cards">
                                     <!-- Passive cards populated by JS -->
@@ -118,16 +119,12 @@
                         </div>
                     </div>
 
-                    <!-- Done Button -->
-                    <div class="shop-footer">
-                        <button id="shopDoneButton" class="game-button shop-done-btn">Done Shopping</button>
-                    </div>
                 </div>
 
                 <!-- Expanded Section View (hidden by default, covers entire shop) -->
                 <div id="expandedSectionView" class="expanded-section-view hidden">
                     <div class="expanded-header">
-                        <button class="section-collapse-btn" id="collapseSectionBtn" title="Back to Shop">⊖</button>
+                        <button class="section-collapse-btn" id="collapseSectionBtn" title="Back to Shop">Back</button>
                         <h3 class="expanded-section-title font-medieval" id="expandedSectionTitle">Section</h3>
                         <div class="expanded-gold">
                             <span class="gold-icon">🪙</span>

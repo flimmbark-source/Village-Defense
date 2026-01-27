@@ -471,9 +471,13 @@ export class Game {
 
     /**
      * Update enemy projectiles (movement and collision)
+     * Optimized: uses squared distance to avoid sqrt calls
      * @param {number} deltaTime - Time since last frame
      */
     updateEnemyProjectiles(deltaTime) {
+        const heroCenter = this.hero.getCenter();
+        const heroRadiusSq = (this.hero.width / 2) * (this.hero.width / 2);
+
         for (let i = this.enemyProjectiles.length - 1; i >= 0; i--) {
             const proj = this.enemyProjectiles[i];
 
@@ -488,14 +492,14 @@ export class Game {
                 continue;
             }
 
-            // Check for collision with hero
+            // Check for collision with hero (squared distance)
             if (proj.targetType === 'hero') {
-                const heroCenter = this.hero.getCenter();
                 const dx = proj.x - heroCenter.x;
                 const dy = proj.y - heroCenter.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
+                const distSq = dx * dx + dy * dy;
+                const collisionDist = proj.radius + this.hero.width / 2;
 
-                if (dist < proj.radius + this.hero.width / 2) {
+                if (distSq < collisionDist * collisionDist) {
                     // Hit hero
                     const result = this.hero.takeDamage(proj.damage);
                     this.effects.spawnDamageNumber(
@@ -521,7 +525,7 @@ export class Game {
                 }
             }
 
-            // Check for collision with village target
+            // Check for collision with village target (squared distance)
             if (proj.targetType === 'village' && proj.targetRef) {
                 const target = proj.targetRef;
                 if (target.isDead && target.isDead()) {
@@ -534,10 +538,11 @@ export class Game {
                 const targetCenterY = target.y + (target.height || 0) / 2;
                 const dx = proj.x - targetCenterX;
                 const dy = proj.y - targetCenterY;
-                const dist = Math.sqrt(dx * dx + dy * dy);
+                const distSq = dx * dx + dy * dy;
                 const targetRadius = Math.max(target.width || 20, target.height || 20) / 2;
+                const collisionDist = proj.radius + targetRadius;
 
-                if (dist < proj.radius + targetRadius) {
+                if (distSq < collisionDist * collisionDist) {
                     // Hit village structure
                     const destroyed = target.takeDamage(proj.damage);
                     this.effects.spawnDamageNumber(

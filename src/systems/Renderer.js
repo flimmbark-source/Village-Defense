@@ -448,59 +448,41 @@ export class Renderer {
     }
 
     /**
-     * Draw enemy projectiles
+     * Draw enemy projectiles (optimized - no gradients per frame)
      * @param {Array} enemyProjectiles - Enemy projectile entities
      */
     drawEnemyProjectiles(enemyProjectiles, viewBounds = null) {
         const ctx = this.ctx;
 
-        enemyProjectiles.forEach(proj => {
+        for (let i = 0; i < enemyProjectiles.length; i++) {
+            const proj = enemyProjectiles[i];
+
             if (!this.isCircleVisible(viewBounds, proj.x, proj.y, proj.radius * 2)) {
-                return;
+                continue;
             }
 
-            // Calculate angle from velocity for trail
-            const angle = Math.atan2(proj.vy, proj.vx);
-
-            // Draw trail
-            ctx.save();
-            ctx.translate(proj.x, proj.y);
-            ctx.rotate(angle);
-
-            // Trail effect
-            const trailLength = proj.radius * 3;
-            const gradient = ctx.createLinearGradient(-trailLength, 0, 0, 0);
-            gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
-            gradient.addColorStop(1, proj.color);
+            // Simple trail using velocity (no gradients)
+            const trailX = proj.x - proj.vx * 2;
+            const trailY = proj.y - proj.vy * 2;
 
             ctx.beginPath();
-            ctx.moveTo(-trailLength, -proj.radius * 0.5);
-            ctx.lineTo(0, -proj.radius * 0.3);
-            ctx.lineTo(0, proj.radius * 0.3);
-            ctx.lineTo(-trailLength, proj.radius * 0.5);
-            ctx.closePath();
-            ctx.fillStyle = gradient;
-            ctx.globalAlpha = 0.6;
+            ctx.moveTo(trailX, trailY);
+            ctx.lineTo(proj.x, proj.y);
+            ctx.strokeStyle = proj.color;
+            ctx.lineWidth = proj.radius;
+            ctx.globalAlpha = 0.4;
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+
+            // Outer glow (simple circle, no gradient)
+            ctx.beginPath();
+            ctx.arc(proj.x, proj.y, proj.radius * 1.3, 0, Math.PI * 2);
+            ctx.fillStyle = proj.color;
+            ctx.globalAlpha = 0.3;
             ctx.fill();
             ctx.globalAlpha = 1;
 
-            ctx.restore();
-
-            // Draw glow
-            ctx.beginPath();
-            ctx.arc(proj.x, proj.y, proj.radius * 1.5, 0, Math.PI * 2);
-            const glowGradient = ctx.createRadialGradient(
-                proj.x, proj.y, 0,
-                proj.x, proj.y, proj.radius * 1.5
-            );
-            glowGradient.addColorStop(0, proj.color);
-            glowGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-            ctx.fillStyle = glowGradient;
-            ctx.globalAlpha = 0.5;
-            ctx.fill();
-            ctx.globalAlpha = 1;
-
-            // Draw main projectile body
+            // Main projectile body
             ctx.beginPath();
             ctx.arc(proj.x, proj.y, proj.radius, 0, Math.PI * 2);
             ctx.fillStyle = proj.color;
@@ -508,10 +490,12 @@ export class Renderer {
 
             // Inner bright core
             ctx.beginPath();
-            ctx.arc(proj.x, proj.y, proj.radius * 0.5, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.arc(proj.x, proj.y, proj.radius * 0.4, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.globalAlpha = 0.7;
             ctx.fill();
-        });
+            ctx.globalAlpha = 1;
+        }
     }
 
     /**
