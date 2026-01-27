@@ -11,6 +11,7 @@ export class Renderer {
         this.ctx = canvas.getContext('2d');
         this.camera = camera;
         this.time = 0;
+        this.pickupSpriteCache = new Map();
     }
 
     isRectVisible(bounds, x, y, width, height) {
@@ -81,6 +82,60 @@ export class Renderer {
         this.ctx.filter = 'none';
         this.ctx.globalCompositeOperation = 'source-over';
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+
+    toRGBA(color, alpha) {
+        if (color.startsWith('#')) {
+            const hex = color.replace('#', '');
+            const bigint = parseInt(hex, 16);
+            const r = (bigint >> 16) & 255;
+            const g = (bigint >> 8) & 255;
+            const b = bigint & 255;
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }
+        if (color.startsWith('rgb(')) {
+            return color.replace('rgb(', 'rgba(').replace(')', `, ${alpha})`);
+        }
+        if (color.startsWith('rgba(')) {
+            return color.replace(/rgba\(([^,]+),([^,]+),([^,]+),([^)]+)\)/, `rgba($1,$2,$3,${alpha})`);
+        }
+        return color;
+    }
+
+    getPickupSprite(pickup) {
+        const key = `${pickup.type}-${pickup.radius}-${pickup.color}-${pickup.glowColor}`;
+        if (this.pickupSpriteCache.has(key)) {
+            return this.pickupSpriteCache.get(key);
+        }
+
+        const size = Math.ceil(pickup.radius * 4);
+        const center = size / 2;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+
+        const glowRadius = pickup.radius * 1.5;
+        const gradient = ctx.createRadialGradient(center, center, 0, center, center, glowRadius);
+        gradient.addColorStop(0, this.toRGBA(pickup.glowColor, 0.5));
+        gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(center, center, glowRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = pickup.color;
+        ctx.beginPath();
+        ctx.arc(center, center, pickup.radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.beginPath();
+        ctx.arc(center - pickup.radius * 0.3, center - pickup.radius * 0.3, pickup.radius * 0.3, 0, Math.PI * 2);
+        ctx.fill();
+
+        this.pickupSpriteCache.set(key, canvas);
+        return canvas;
     }
 
     /**
@@ -274,32 +329,11 @@ export class Renderer {
                 return;
             }
             const alpha = pickup.getAlpha();
-
-            // Glow
-            ctx.beginPath();
-            ctx.arc(pickup.x, pickup.y, pickup.radius * 1.5, 0, Math.PI * 2);
-            const gradient = ctx.createRadialGradient(
-                pickup.x, pickup.y, 0,
-                pickup.x, pickup.y, pickup.radius * 1.5
-            );
-            gradient.addColorStop(0, pickup.glowColor.replace(')', `, ${alpha * 0.5})`).replace('rgb', 'rgba'));
-            gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-            ctx.fillStyle = gradient;
-            ctx.fill();
-
-            // Body
-            ctx.beginPath();
-            ctx.arc(pickup.x, pickup.y, pickup.radius, 0, Math.PI * 2);
-            ctx.fillStyle = pickup.color;
+            const sprite = this.getPickupSprite(pickup);
+            ctx.save();
             ctx.globalAlpha = alpha;
-            ctx.fill();
-            ctx.globalAlpha = 1;
-
-            // Shine
-            ctx.beginPath();
-            ctx.arc(pickup.x - pickup.radius * 0.3, pickup.y - pickup.radius * 0.3, pickup.radius * 0.3, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.5})`;
-            ctx.fill();
+            ctx.drawImage(sprite, pickup.x - sprite.width / 2, pickup.y - sprite.height / 2);
+            ctx.restore();
         });
     }
 
@@ -391,21 +425,6 @@ export class Renderer {
             this.ctx.fillRect(scout.x - barWidth / 2, scout.y - scout.radius - 10, barWidth, 5);
             this.ctx.fillStyle = COLORS.HEALTH_BAR_ENEMY;
             this.ctx.fillRect(scout.x - barWidth / 2, scout.y - scout.radius - 10, barWidth * (scout.hp / scout.maxHp), 5);
-        });
-    }
-
-        /**
-     * Draw militia/hero projectiles
-     * @param {Array} projectiles - Projectile entities
-     */
-    drawProjectiles(projectiles) {
-        const ctx = this.ctx;
-
-        projectiles.forEach(projectile => {
-            ctx.beginPath();
-            ctx.arc(projectile.x, projectile.y, projectile.radius, 0, Math.PI * 2);
-            ctx.fillStyle = projectile.color;
-            ctx.fill();
         });
     }
 
@@ -518,29 +537,6 @@ export class Renderer {
             ctx.fill();
             ctx.globalAlpha = 1;
         }
-    }
-
-    /**
-     * Draw militia projectiles
-     * @param {Array} projectiles - Projectile entities
-     */
-    drawProjectiles(projectiles) {
-        const ctx = this.ctx;
-
-        projectiles.forEach(proj => {
-            ctx.beginPath();
-            ctx.arc(proj.x, proj.y, 4, 0, Math.PI * 2);
-            ctx.fillStyle = '#90EE90';
-            ctx.fill();
-
-            // Trail
-            ctx.beginPath();
-            ctx.moveTo(proj.x, proj.y);
-            ctx.lineTo(proj.x - proj.vx * 3, proj.y - proj.vy * 3);
-            ctx.strokeStyle = 'rgba(144, 238, 144, 0.5)';
-            ctx.lineWidth = 3;
-            ctx.stroke();
-        });
     }
 
     /**
@@ -738,14 +734,15 @@ export class Renderer {
             ctx.beginPath();
             ctx.moveTo(chain.startX, chain.startY);
 
-            // Add some randomness for lightning effect
             const segments = 5;
             const dx = (chain.endX - chain.startX) / segments;
             const dy = (chain.endY - chain.startY) / segments;
+            const jitter = chain.jitter || [];
 
             for (let i = 1; i < segments; i++) {
-                const x = chain.startX + dx * i + (Math.random() - 0.5) * 20;
-                const y = chain.startY + dy * i + (Math.random() - 0.5) * 20;
+                const offset = jitter[i - 1] || { x: 0, y: 0 };
+                const x = chain.startX + dx * i + offset.x;
+                const y = chain.startY + dy * i + offset.y;
                 ctx.lineTo(x, y);
             }
             ctx.lineTo(chain.endX, chain.endY);

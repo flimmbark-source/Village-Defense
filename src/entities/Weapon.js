@@ -99,6 +99,17 @@ export class Attack {
         }
     }
 
+    createLightningJitter(segments, magnitude) {
+        const jitter = [];
+        for (let i = 1; i < segments; i++) {
+            jitter.push({
+                x: (Math.random() - 0.5) * magnitude,
+                y: (Math.random() - 0.5) * magnitude
+            });
+        }
+        return jitter;
+    }
+
     /**
      * Update attack
      * @param {number} deltaTime - Time since last frame
@@ -382,7 +393,8 @@ export class Attack {
                     startX: heroCenter.x,
                     startY: heroCenter.y,
                     endX: nearest.x,
-                    endY: nearest.y
+                    endY: nearest.y,
+                    jitter: this.createLightningJitter(5, 20)
                 });
                 this.hitEnemies.add(nearest.id);
                 damageEvents.push({ enemy: nearest, damage: this.damage });
@@ -411,7 +423,8 @@ export class Attack {
                     startX: this.lastHit.x,
                     startY: this.lastHit.y,
                     endX: nearest.x,
-                    endY: nearest.y
+                    endY: nearest.y,
+                    jitter: this.createLightningJitter(5, 20)
                 });
                 this.hitEnemies.add(nearest.id);
                 damageEvents.push({ enemy: nearest, damage: this.damage * 0.7 });
