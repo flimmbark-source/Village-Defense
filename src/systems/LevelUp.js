@@ -37,10 +37,11 @@ export class LevelUpSystem {
         this.statsContainer = null;
 
         // Expanded view elements
-        this.shopSections = null;
+        this.normalShopView = null;
         this.expandedView = null;
         this.expandedTitle = null;
         this.expandedCards = null;
+        this.expandedGoldDisplay = null;
         this.currentExpandedSection = null;
     }
 
@@ -56,10 +57,11 @@ export class LevelUpSystem {
         this.levelText = document.getElementById('shopLevelText');
 
         // Expanded view elements
-        this.shopSections = document.getElementById('shopSections');
+        this.normalShopView = document.getElementById('normalShopView');
         this.expandedView = document.getElementById('expandedSectionView');
         this.expandedTitle = document.getElementById('expandedSectionTitle');
         this.expandedCards = document.getElementById('expandedSectionCards');
+        this.expandedGoldDisplay = document.getElementById('expandedGoldAmount');
 
         // Setup expand button listeners
         this.setupExpandButtons();
@@ -93,12 +95,12 @@ export class LevelUpSystem {
      * @param {string} section - Section to expand ('stats', 'weapons', 'passives')
      */
     expandSection(section) {
-        if (!this.shopSections || !this.expandedView) return;
+        if (!this.normalShopView || !this.expandedView) return;
 
         this.currentExpandedSection = section;
 
-        // Hide the normal shop sections
-        this.shopSections.classList.add('hidden');
+        // Hide the entire normal shop view
+        this.normalShopView.classList.add('hidden');
 
         // Show expanded view
         this.expandedView.classList.remove('hidden');
@@ -117,6 +119,9 @@ export class LevelUpSystem {
             this.expandedTitle.textContent = titles[section] || section;
         }
 
+        // Update gold display in expanded view
+        this.updateExpandedGoldDisplay();
+
         // Render extended cards
         this.renderExpandedSection(section);
     }
@@ -125,15 +130,29 @@ export class LevelUpSystem {
      * Collapse the expanded view back to normal shop
      */
     collapseSection() {
-        if (!this.shopSections || !this.expandedView) return;
+        if (!this.normalShopView || !this.expandedView) return;
 
         this.currentExpandedSection = null;
 
-        // Show normal shop sections
-        this.shopSections.classList.remove('hidden');
+        // Show normal shop view
+        this.normalShopView.classList.remove('hidden');
 
         // Hide expanded view
         this.expandedView.classList.add('hidden');
+
+        // Re-render all sections to update affordability after purchases in expanded view
+        this.renderSection(this.weaponsContainer, this.shopWeapons, 'weapon');
+        this.renderSection(this.passivesContainer, this.shopPassives, 'passive');
+        this.renderSection(this.statsContainer, this.shopStats, 'stat');
+    }
+
+    /**
+     * Update gold display in expanded view
+     */
+    updateExpandedGoldDisplay() {
+        if (this.expandedGoldDisplay && this.heroRef) {
+            this.expandedGoldDisplay.textContent = this.heroRef.gold;
+        }
     }
 
     /**
@@ -543,76 +562,128 @@ export class LevelUpSystem {
     getExtendedDescription(item) {
         if (item.type === 'weapon') {
             const w = item.data;
-            let desc = `${w.description}\n\n`;
-            desc += `• Damage: ${w.damage}\n`;
-            desc += `• Cooldown: ${w.cooldown}s\n`;
-            desc += `• Range: ${w.range}`;
+            let lines = [];
+            lines.push(`Damage: ${w.damage}`);
+            lines.push(`Attack Speed: ${(1 / w.cooldown).toFixed(1)}/sec`);
+            lines.push(`Range: ${w.range}`);
+
+            // Add special effects
             if (w.pierceCount) {
-                desc += `\n• Pierces ${w.pierceCount} enemies`;
+                lines.push(`Pierces: ${w.pierceCount} enemies`);
             }
             if (w.chainCount) {
-                desc += `\n• Chains to ${w.chainCount} enemies`;
+                lines.push(`Chains: ${w.chainCount} targets`);
             }
-            return desc;
+            if (w.type === 'homing') {
+                lines.push(`Special: Homing projectiles`);
+            }
+            if (w.attackPattern === 'nova') {
+                lines.push(`Special: Area of effect`);
+            }
+            if (w.attackPattern === 'boomerang') {
+                lines.push(`Special: Returns to caster`);
+            }
+
+            return lines.join('\n');
         } else if (item.type === 'weapon_upgrade') {
             const w = item.data;
-            return `Upgrade your ${w.name} to increase its damage and effectiveness. Each upgrade level improves the weapon's base stats by 20%.`;
+            // Get the hero's current weapon level
+            let currentLevel = 1;
+            if (this.heroRef) {
+                const heroWeapon = this.heroRef.weapons.find(hw => hw.id === w.id);
+                if (heroWeapon) {
+                    currentLevel = heroWeapon.level;
+                }
+            }
+            const newDamage = Math.floor(w.damage * (1 + currentLevel * 0.2));
+
+            let lines = [];
+            lines.push(`+20% Damage`);
+            lines.push(`+20% Effect Potency`);
+            lines.push(`Current Level: ${currentLevel}`);
+            lines.push(`New Damage: ${newDamage}`);
+
+            return lines.join('\n');
         } else if (item.type === 'passive') {
             const p = item.data;
-            let desc = `${p.description}\n\n`;
-            desc += `Effect: ${this.formatEffect(p.effect)}\n`;
-            desc += `Max Stacks: ${p.maxStacks}`;
+            let lines = [];
+
+            // Direct effect description
+            lines.push(this.formatEffectDirect(p.effect));
+
+            // Stack info
             if (item.currentStacks > 0) {
-                desc += `\nCurrent: ${item.currentStacks}/${p.maxStacks}`;
+                lines.push(`Owned: ${item.currentStacks}/${p.maxStacks}`);
+            } else {
+                lines.push(`Max: ${p.maxStacks} stacks`);
             }
-            return desc;
+
+            return lines.join('\n');
         } else if (item.type === 'stat') {
             const s = item.data;
-            let desc = `${s.description}\n\n`;
-            desc += `Effect: ${this.formatEffect(s.effect)}\n`;
-            desc += `Max Stacks: ${s.maxStacks}`;
+            let lines = [];
+
+            // Direct effect description
+            lines.push(this.formatEffectDirect(s.effect));
+
+            // Stack info
             if (item.currentStacks > 0) {
-                desc += `\nCurrent: ${item.currentStacks}/${s.maxStacks}`;
+                lines.push(`Owned: ${item.currentStacks}/${s.maxStacks}`);
+            } else {
+                lines.push(`Max: ${s.maxStacks} stacks`);
             }
-            return desc;
+
+            return lines.join('\n');
         }
         return item.data.description || 'No description available.';
     }
 
     /**
-     * Format an effect for display
+     * Format an effect directly (no "Effect:" prefix)
      * @param {Object} effect - Effect object
      * @returns {string} Formatted effect string
      */
-    formatEffect(effect) {
+    formatEffectDirect(effect) {
         if (!effect) return 'Unknown';
 
-        const statNames = {
-            maxHp: 'Max HP',
-            speed: 'Movement Speed',
-            damageMultiplier: 'Damage',
-            cooldownMultiplier: 'Cooldown Reduction',
-            attackRange: 'Attack Range',
-            pickupRange: 'Pickup Range',
-            hpRegen: 'HP Regeneration',
-            damageReduction: 'Damage Reduction',
-            critChance: 'Critical Hit Chance',
-            lifesteal: 'Lifesteal',
-            goldMultiplier: 'Gold Find',
-            xpMultiplier: 'XP Gain',
-            thorns: 'Thorns Damage'
-        };
-
-        const statName = statNames[effect.stat] || effect.stat;
         const value = effect.value;
 
-        // Format based on value type
-        if (value >= 1 || value <= -1) {
-            return `+${value} ${statName}`;
-        } else if (value > 0) {
-            return `+${Math.round(value * 100)}% ${statName}`;
-        } else {
-            return `${Math.round(value * 100)}% ${statName}`;
+        // Format based on stat type
+        switch (effect.stat) {
+            case 'maxHp':
+                return `+${value} Max HP`;
+            case 'speed':
+                return `+${value} Movement Speed`;
+            case 'damageMultiplier':
+                return `+${Math.round(value * 100)}% Damage`;
+            case 'cooldownMultiplier':
+                return `${Math.round(value * 100)}% Cooldown`;
+            case 'attackRange':
+                return `+${Math.round(value * 100)}% Attack Range`;
+            case 'pickupRange':
+                return `+${Math.round(value * 100)}% Pickup Range`;
+            case 'hpRegen':
+                return `+${value} HP/sec`;
+            case 'damageReduction':
+                return `-${Math.round(value * 100)}% Damage Taken`;
+            case 'critChance':
+                return `+${Math.round(value * 100)}% Crit Chance`;
+            case 'lifesteal':
+                return `+${Math.round(value * 100)}% Lifesteal`;
+            case 'goldMultiplier':
+                return `+${Math.round(value * 100)}% Gold Find`;
+            case 'xpMultiplier':
+                return `+${Math.round(value * 100)}% XP Gain`;
+            case 'thorns':
+                return `+${value} Thorns Damage`;
+            default:
+                if (value >= 1 || value <= -1) {
+                    return `+${value} ${effect.stat}`;
+                } else if (value > 0) {
+                    return `+${Math.round(value * 100)}% ${effect.stat}`;
+                } else {
+                    return `${Math.round(value * 100)}% ${effect.stat}`;
+                }
         }
     }
 
@@ -625,6 +696,9 @@ export class LevelUpSystem {
     purchaseItemFromExpanded(item, sectionType, index) {
         // Call the regular purchase method
         this.purchaseItem(item, sectionType, index);
+
+        // Update the expanded gold display
+        this.updateExpandedGoldDisplay();
 
         // Re-render the expanded section to update the view
         if (this.currentExpandedSection) {
@@ -704,6 +778,11 @@ export class LevelUpSystem {
         // Collapse any expanded section first
         if (this.currentExpandedSection) {
             this.collapseSection();
+        }
+
+        // Make sure normal shop view is visible for next time
+        if (this.normalShopView) {
+            this.normalShopView.classList.remove('hidden');
         }
 
         if (this.shopPanel) {
