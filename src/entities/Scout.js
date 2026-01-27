@@ -4,7 +4,7 @@
  */
 
 import { CONFIG } from '../config.js';
-import { distance, isPointInRect, generateId, randomRange } from '../utils.js';
+import { distance, distanceSquared, isPointInRect, generateId, randomRange } from '../utils.js';
 import { EnemyType } from './Castle.js';
 
 export const ScoutState = {
@@ -129,15 +129,17 @@ export class Scout {
      * @returns {boolean} True if hero is visible
      */
     canSeeHero(hero, forests) {
-        const distToHero = distance(this.x, this.y, hero.x, hero.y);
+        const distToHeroSq = distanceSquared(this.x, this.y, hero.x, hero.y);
+        const criticalSightSq = CONFIG.SCOUT.CRITICAL_SIGHT_RANGE * CONFIG.SCOUT.CRITICAL_SIGHT_RANGE;
+        const sightRangeSq = CONFIG.SCOUT.SIGHT_RANGE * CONFIG.SCOUT.SIGHT_RANGE;
 
         // Always see hero if in critical range
-        if (distToHero <= CONFIG.SCOUT.CRITICAL_SIGHT_RANGE) {
+        if (distToHeroSq <= criticalSightSq) {
             return true;
         }
 
         // Can't see beyond sight range
-        if (distToHero > CONFIG.SCOUT.SIGHT_RANGE) {
+        if (distToHeroSq > sightRangeSq) {
             return false;
         }
 
@@ -228,8 +230,8 @@ export class Scout {
             const allTargets = [...village.huts.filter(h => !h.isDead())];
 
             for (const target of allTargets) {
-                const distToTarget = distance(this.x, this.y, target.x, target.y);
-                if (distToTarget <= CONFIG.SCOUT.SIGHT_RANGE) {
+                const distToTargetSq = distanceSquared(this.x, this.y, target.x, target.y);
+                if (distToTargetSq <= CONFIG.SCOUT.SIGHT_RANGE * CONFIG.SCOUT.SIGHT_RANGE) {
                     this.state = ScoutState.ATTACKING_VILLAGE;
                     this.villageAttackTarget = target;
                     this.currentTarget = target;
@@ -272,8 +274,8 @@ export class Scout {
      * Update patrol movement
      */
     updatePatrolMovement() {
-        const distToTarget = distance(this.x, this.y, this.targetX, this.targetY);
-        if (distToTarget < 20) {
+        const distToTargetSq = distanceSquared(this.x, this.y, this.targetX, this.targetY);
+        if (distToTargetSq < 400) {
             this.targetX = this.patrolCenterX + (Math.random() - 0.5) * 2 * CONFIG.SCOUT.PATROL_RADIUS;
             this.targetY = this.patrolCenterY + (Math.random() - 0.5) * 2 * CONFIG.SCOUT.PATROL_RADIUS;
         }
@@ -305,9 +307,10 @@ export class Scout {
 
         // Check hero distance
         const heroCenter = hero.getCenter();
-        const distToHero = distance(this.x, this.y, heroCenter.x, heroCenter.y);
+        const distToHeroSq = distanceSquared(this.x, this.y, heroCenter.x, heroCenter.y);
+        const heroAttackRange = this.attackRange + hero.width / 2;
 
-        if (this.state === ScoutState.CHASING && distToHero < this.attackRange + hero.width / 2) {
+        if (this.state === ScoutState.CHASING && distToHeroSq < heroAttackRange * heroAttackRange) {
             const aimTarget = this.getAttackTarget(heroCenter);
             this.startAttack(aimTarget.x, aimTarget.y, 'hero');
             return null; // Attack will resolve when animation completes
@@ -317,9 +320,10 @@ export class Scout {
         if (this.state === ScoutState.ATTACKING_VILLAGE && this.villageAttackTarget) {
             const targetX = this.villageAttackTarget.x + (this.villageAttackTarget.width || 0) / 2;
             const targetY = this.villageAttackTarget.y + (this.villageAttackTarget.height || 0) / 2;
-            const distToTarget = distance(this.x, this.y, targetX, targetY);
+            const distToTargetSq = distanceSquared(this.x, this.y, targetX, targetY);
+            const villageAttackRange = this.attackRange + 20;
 
-            if (distToTarget < this.attackRange + 20) {
+            if (distToTargetSq < villageAttackRange * villageAttackRange) {
                 this.startAttack(targetX, targetY, 'village');
                 return null;
             }

@@ -448,7 +448,7 @@ export class Game {
         }
 
         // Update attacks (hero weapons)
-        this.updateAttacks(deltaTime);
+        this.updateAttacks(deltaTime, weaponTargets);
 
         // Update enemy attack visuals
         this.updateEnemyAttacks(deltaTime);
@@ -516,14 +516,11 @@ export class Game {
      * Update hero weapon attacks
      * @param {number} deltaTime - Time since last frame
      */
-    updateAttacks(deltaTime) {
+    updateAttacks(deltaTime, weaponTargets) {
         for (let i = this.attacks.length - 1; i >= 0; i--) {
             const attack = this.attacks[i];
 
-            // Combine enemies and castle as potential targets
-            const targets = this.getWeaponTargets();
-
-            const damageEvents = attack.update(deltaTime, this.hero, targets);
+            const damageEvents = attack.update(deltaTime, this.hero, weaponTargets);
 
             // Process damage events
             for (const event of damageEvents) {

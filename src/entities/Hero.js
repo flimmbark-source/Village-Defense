@@ -4,7 +4,7 @@
  */
 
 import { CONFIG } from '../config.js';
-import { distance, clamp } from '../utils.js';
+import { distanceSquared, clamp } from '../utils.js';
 import { WeaponInstance } from './Weapon.js';
 
 export class Hero {
@@ -158,12 +158,12 @@ export class Hero {
                 // Find nearest enemy in range
                 const center = this.getCenter();
                 let nearest = null;
-                let nearestDist = weapon.definition.range;
+                let nearestDistSq = weapon.definition.range * weapon.definition.range;
 
                 for (const enemy of enemies) {
-                    const d = distance(center.x, center.y, enemy.x, enemy.y);
-                    if (d < nearestDist) {
-                        nearestDist = d;
+                    const distSq = distanceSquared(center.x, center.y, enemy.x, enemy.y);
+                    if (distSq < nearestDistSq) {
+                        nearestDistSq = distSq;
                         nearest = enemy;
                     }
                 }
