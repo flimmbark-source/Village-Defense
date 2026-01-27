@@ -100,6 +100,16 @@ export class Scout {
         this.attackWindup = baseStats.ATTACK_WINDUP || 0.3;
         this.attackDuration = baseStats.ATTACK_DURATION || 0.2;
         this.attackRecovery = 0.1;
+
+        // Combat behavior variation
+        this.combatProfile = this.createCombatProfile(stats, baseStats);
+        this.replanTimer = 0;
+
+        // Hero tracking for predictive movement/aim
+        this.lastHeroX = null;
+        this.lastHeroY = null;
+        this.heroVelocityX = 0;
+        this.heroVelocityY = 0;
     }
 
     /**
@@ -158,6 +168,7 @@ export class Scout {
      */
     update(deltaTime, hero, forests, villages, castle = null) {
         this.attackCooldownTimer -= deltaTime;
+        this.updateHeroTracking(hero, deltaTime);
 
         // Update attack animation if in progress
         if (this.isAttacking()) {
@@ -170,7 +181,7 @@ export class Scout {
         }
 
         if (this.state === ScoutState.CHASING) {
-            this.updateChasing(hero);
+            this.updateChasing(hero, deltaTime);
         } else if (this.state === ScoutState.ATTACKING_VILLAGE) {
             this.updateVillageAttack();
         } else if (this.state === ScoutState.PATROLLING) {
@@ -218,9 +229,11 @@ export class Scout {
     /**
      * Update chasing state
      */
-    updateChasing(hero) {
-        this.targetX = hero.x + hero.width / 2;
-        this.targetY = hero.y + hero.height / 2;
+    updateChasing(hero, deltaTime) {
+        const heroCenter = hero.getCenter();
+        const combatTarget = this.getCombatTarget(heroCenter, deltaTime);
+        this.targetX = combatTarget.x;
+        this.targetY = combatTarget.y;
         this.currentTarget = hero;
     }
 
@@ -259,7 +272,7 @@ export class Scout {
         const dist = Math.sqrt(dx * dx + dy * dy);
 
         // Don't move if in attack range and waiting for cooldown, or if attacking
-        if (dist < this.attackRange || this.isAttacking()) {
+        if ((dist < this.attackRange && this.state !== ScoutState.CHASING) || this.isAttacking()) {
             return;
         }
 
@@ -284,7 +297,8 @@ export class Scout {
         const distToHero = distance(this.x, this.y, heroCenter.x, heroCenter.y);
 
         if (this.state === ScoutState.CHASING && distToHero < this.attackRange + hero.width / 2) {
-            this.startAttack(heroCenter.x, heroCenter.y, 'hero');
+            const aimTarget = this.getAttackTarget(heroCenter);
+            this.startAttack(aimTarget.x, aimTarget.y, 'hero');
             return null; // Attack will resolve when animation completes
         }
 
@@ -366,6 +380,133 @@ export class Scout {
         }
 
         return null;
+    }
+
+    /**
+     * Create a combat profile that adds variation to enemy behavior
+     * @param {Object} stats - Type-specific stats
+     * @param {Object} baseStats - Base scout stats
+     * @returns {Object} Combat profile settings
+     */
+    createCombatProfile(stats, baseStats) {
+        const isElite = this.type === EnemyType.ELITE;
+        const isBrute = this.type === EnemyType.BRUTE;
+        const isSwarm = this.type === EnemyType.SWARM;
+
+        const styleOptions = isBrute
+            ? ['crusher']
+            : isSwarm
+                ? ['dart', 'skirmisher']
+                : isElite
+                    ? ['flanker', 'skirmisher']
+                    : ['skirmisher', 'flanker', 'dart'];
+
+        const style = styleOptions[Math.floor(Math.random() * styleOptions.length)];
+        const baseRange = (stats.ATTACK_RANGE || baseStats.ATTACK_RANGE) + randomRange(10, 45);
+
+        return {
+            style,
+            baseRange,
+            preferredRange: baseRange,
+            strafeDirection: Math.random() < 0.5 ? -1 : 1,
+            strafeRadius: randomRange(25, isElite ? 90 : 70),
+            leadFactor: randomRange(isBrute ? 0.4 : 0.6, isElite ? 1.2 : 1.0),
+            replanCooldown: randomRange(0.6, 1.4),
+            switchChance: isBrute ? 0.1 : 0.35,
+            jukeMagnitude: isSwarm ? randomRange(8, 22) : randomRange(4, 14)
+        };
+    }
+
+    /**
+     * Track hero velocity for predictive movement/aiming
+     * @param {Object} hero - Hero entity
+     * @param {number} deltaTime - Frame delta
+     */
+    updateHeroTracking(hero, deltaTime) {
+        if (!hero) return;
+        const heroCenter = hero.getCenter();
+        if (this.lastHeroX !== null && this.lastHeroY !== null && deltaTime > 0) {
+            const rawVx = (heroCenter.x - this.lastHeroX) / deltaTime;
+            const rawVy = (heroCenter.y - this.lastHeroY) / deltaTime;
+            this.heroVelocityX = this.heroVelocityX * 0.6 + rawVx * 0.4;
+            this.heroVelocityY = this.heroVelocityY * 0.6 + rawVy * 0.4;
+        }
+        this.lastHeroX = heroCenter.x;
+        this.lastHeroY = heroCenter.y;
+    }
+
+    /**
+     * Calculate a combat movement target based on behavior profile
+     * @param {Object} heroCenter - Hero center position
+     * @returns {Object} Movement target
+     */
+    getCombatTarget(heroCenter, deltaTime) {
+        const profile = this.combatProfile;
+        const dx = heroCenter.x - this.x;
+        const dy = heroCenter.y - this.y;
+        const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+        const dirX = dx / dist;
+        const dirY = dy / dist;
+        const perpX = -dirY;
+        const perpY = dirX;
+
+        if (this.replanTimer <= 0) {
+            this.replanTimer = profile.replanCooldown;
+            if (Math.random() < profile.switchChance) {
+                profile.strafeDirection *= -1;
+            }
+            profile.preferredRange = profile.baseRange + randomRange(-10, 15);
+            profile.strafeRadius = Math.max(15, profile.strafeRadius + randomRange(-10, 12));
+        } else {
+            this.replanTimer -= deltaTime;
+        }
+
+        const leadTime = Math.min(0.8, Math.max(0.15, (dist / this.projectileSpeed) * profile.leadFactor));
+        const predictedX = heroCenter.x + this.heroVelocityX * leadTime;
+        const predictedY = heroCenter.y + this.heroVelocityY * leadTime;
+
+        let offsetScale = profile.strafeRadius;
+        if (profile.style === 'flanker') offsetScale *= 1.3;
+        if (profile.style === 'crusher') offsetScale *= 0.25;
+        if (profile.style === 'dart') offsetScale *= 0.8;
+
+        let targetX = predictedX + perpX * offsetScale * profile.strafeDirection;
+        let targetY = predictedY + perpY * offsetScale * profile.strafeDirection;
+
+        if (profile.style === 'dart') {
+            targetX += randomRange(-profile.jukeMagnitude, profile.jukeMagnitude);
+            targetY += randomRange(-profile.jukeMagnitude, profile.jukeMagnitude);
+        }
+
+        if (dist < profile.preferredRange * 0.85 && profile.style !== 'crusher') {
+            const retreat = profile.preferredRange - dist;
+            targetX -= dirX * retreat;
+            targetY -= dirY * retreat;
+        }
+
+        if (profile.style === 'crusher' && dist > profile.preferredRange * 0.75) {
+            targetX = predictedX;
+            targetY = predictedY;
+        }
+
+        return { x: targetX, y: targetY };
+    }
+
+    /**
+     * Calculate a predictive aim target for projectiles
+     * @param {Object} heroCenter - Hero center position
+     * @returns {Object} Aim target
+     */
+    getAttackTarget(heroCenter) {
+        const dx = heroCenter.x - this.x;
+        const dy = heroCenter.y - this.y;
+        const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+        const leadTime = Math.min(0.7, Math.max(0.1, dist / this.projectileSpeed));
+        const leadScale = this.combatProfile ? this.combatProfile.leadFactor : 1;
+        return {
+            x: heroCenter.x + this.heroVelocityX * leadTime * leadScale,
+            y: heroCenter.y + this.heroVelocityY * leadTime * leadScale
+        };
     }
 
     /**
