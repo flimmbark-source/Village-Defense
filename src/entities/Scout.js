@@ -500,14 +500,9 @@ export class Scout {
      * @returns {Object} Aim target
      */
     getAttackTarget(heroCenter) {
-        const dx = heroCenter.x - this.x;
-        const dy = heroCenter.y - this.y;
-        const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
-        const leadTime = Math.min(0.7, Math.max(0.1, dist / this.projectileSpeed));
-        const leadScale = this.combatProfile ? this.combatProfile.leadFactor : 1;
         return {
-            x: heroCenter.x + this.heroVelocityX * leadTime * leadScale,
-            y: heroCenter.y + this.heroVelocityY * leadTime * leadScale
+            x: heroCenter.x ,
+            y: heroCenter.y
         };
     }
 

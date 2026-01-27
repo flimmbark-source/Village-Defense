@@ -52,7 +52,7 @@ export const CONFIG = {
         VILLAGE_ATTACK_DAMAGE: 15,
         VILLAGE_ATTACK_COOLDOWN: 1.5,
         HERO_ATTACK_COOLDOWN: 1.5,
-        ATTACK_RANGE: 35,
+        ATTACK_RANGE: 135,
         ATTACK_WINDUP: 0.3,
         ATTACK_DURATION: 0.2,
         PROJECTILE_SPEED: 5,
