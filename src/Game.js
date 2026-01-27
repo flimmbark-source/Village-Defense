@@ -457,7 +457,7 @@ export class Game {
         this.updateEnemyProjectiles(deltaTime);
 
         // Update militia projectiles
-        this.updateProjectiles();
+        this.updateProjectiles(deltaTime);
 
         // Update pickups
         this.updatePickups(deltaTime);
@@ -576,12 +576,13 @@ export class Game {
         const heroCenter = this.hero.getCenter();
         const heroRadiusSq = (this.hero.width / 2) * (this.hero.width / 2);
 
+        const moveScale = deltaTime * 60;
         for (let i = this.enemyProjectiles.length - 1; i >= 0; i--) {
             const proj = this.enemyProjectiles[i];
 
             // Move projectile
-            proj.x += proj.vx;
-            proj.y += proj.vy;
+            proj.x += proj.vx * moveScale;
+            proj.y += proj.vy * moveScale;
             proj.age += deltaTime;
 
             // Check if expired
@@ -674,10 +675,10 @@ export class Game {
     /**
      * Update militia projectiles
      */
-    updateProjectiles() {
+    updateProjectiles(deltaTime) {
         for (let i = this.projectiles.length - 1; i >= 0; i--) {
             const proj = this.projectiles[i];
-            const result = proj.update(this.scouts, CONFIG.MILITIA.DAMAGE);
+            const result = proj.update(deltaTime, this.scouts, CONFIG.MILITIA.DAMAGE);
 
             if (result) {
                 if (result.remove) {

@@ -347,7 +347,7 @@ export class Renderer {
                 return;
             }
             // Sight range (only when patrolling)
-            if (scout.state === 'PATROLLING') {
+            if (CONFIG.DEBUG.DRAW_SCOUT_SIGHT && scout.state === 'PATROLLING') {
                 this.ctx.beginPath();
                 this.ctx.arc(scout.x, scout.y, CONFIG.SCOUT.SIGHT_RANGE, 0, Math.PI * 2);
                 this.ctx.strokeStyle = 'rgba(255, 255, 0, 0.1)';

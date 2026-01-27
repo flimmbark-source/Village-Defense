@@ -108,10 +108,12 @@ export class Hero {
      * @param {Function} createAttack - Callback to create an attack
      */
     update(deltaTime, enemies, createAttack, movementInput = null) {
+        const moveStep = this.speed * deltaTime * 60;
+
         // Movement
         if (movementInput && movementInput.active) {
-            const moveX = movementInput.x * this.speed;
-            const moveY = movementInput.y * this.speed;
+            const moveX = movementInput.x * moveStep;
+            const moveY = movementInput.y * moveStep;
             this.x += moveX;
             this.y += moveY;
             this.targetX = this.x;
@@ -125,9 +127,9 @@ export class Hero {
             const dy = this.targetY - this.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
 
-            if (dist > this.speed) {
-                const moveX = (dx / dist) * this.speed;
-                const moveY = (dy / dist) * this.speed;
+            if (dist > moveStep) {
+                const moveX = (dx / dist) * moveStep;
+                const moveY = (dy / dist) * moveStep;
                 this.x += moveX;
                 this.y += moveY;
 

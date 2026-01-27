@@ -202,7 +202,7 @@ export class Scout {
 
         // Movement
         if (!this.updateDash(deltaTime)) {
-            this.moveTowardsTarget();
+            this.moveTowardsTarget(deltaTime);
         }
 
         // Check if can start an attack
@@ -284,14 +284,15 @@ export class Scout {
     /**
      * Move towards current target
      */
-    moveTowardsTarget() {
+    moveTowardsTarget(deltaTime) {
         const dx = this.targetX - this.x;
         const dy = this.targetY - this.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
+        const step = this.speed * deltaTime * 60;
 
-        if (dist > this.speed) {
-            this.x += (dx / dist) * this.speed;
-            this.y += (dy / dist) * this.speed;
+        if (dist > step) {
+            this.x += (dx / dist) * step;
+            this.y += (dy / dist) * step;
         }
     }
 
