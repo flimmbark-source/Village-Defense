@@ -541,6 +541,261 @@ body {
     animation: shake 0.3s ease;
 }
 
+/* Section Expand/Collapse Buttons */
+.section-expand-btn {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    width: 28px;
+    height: 28px;
+    border: 2px solid rgba(255, 200, 100, 0.5);
+    border-radius: 50%;
+    background: linear-gradient(180deg, rgba(60, 40, 20, 0.9) 0%, rgba(30, 20, 10, 0.95) 100%);
+    color: #ffd700;
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    z-index: 5;
+    padding: 0;
+    line-height: 1;
+}
+
+.section-expand-btn:hover {
+    border-color: #ffd700;
+    background: linear-gradient(180deg, rgba(80, 60, 30, 0.95) 0%, rgba(50, 35, 15, 0.98) 100%);
+    transform: scale(1.1);
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+}
+
+.section-collapse-btn {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    width: 36px;
+    height: 36px;
+    border: 2px solid rgba(255, 200, 100, 0.6);
+    border-radius: 50%;
+    background: linear-gradient(180deg, rgba(60, 40, 20, 0.9) 0%, rgba(30, 20, 10, 0.95) 100%);
+    color: #ffd700;
+    font-size: 1.4rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    z-index: 5;
+    padding: 0;
+    line-height: 1;
+}
+
+.section-collapse-btn:hover {
+    border-color: #ffd700;
+    background: linear-gradient(180deg, rgba(80, 60, 30, 0.95) 0%, rgba(50, 35, 15, 0.98) 100%);
+    transform: scale(1.1);
+    box-shadow: 0 0 12px rgba(255, 215, 0, 0.5);
+}
+
+/* Expanded Section View */
+.expanded-section-view {
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.5) 100%);
+    border-radius: 12px;
+    padding: 16px;
+    border: 2px solid rgba(139, 90, 43, 0.6);
+    animation: expandIn 0.3s ease-out;
+    overflow-y: auto;
+    max-height: 70vh;
+}
+
+.expanded-section-view.hidden {
+    display: none;
+}
+
+@keyframes expandIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.expanded-section-title {
+    margin: 0 0 16px 50px;
+    font-size: 1.5rem;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.expanded-section-view.stats-expanded .expanded-section-title { color: #ffb060; }
+.expanded-section-view.weapons-expanded .expanded-section-title { color: #a0a0ff; }
+.expanded-section-view.passives-expanded .expanded-section-title { color: #80ff80; }
+
+.expanded-section-view.stats-expanded { border-top: 3px solid #c08040; }
+.expanded-section-view.weapons-expanded { border-top: 3px solid #6060c0; }
+.expanded-section-view.passives-expanded { border-top: 3px solid #40a040; }
+
+/* Expanded Cards Container */
+.expanded-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    justify-content: center;
+    padding: 8px;
+}
+
+/* Extended Shop Card - Larger with full description */
+.shop-card-extended {
+    display: flex;
+    flex-direction: column;
+    width: 200px;
+    min-height: 220px;
+    padding: 0;
+    background: linear-gradient(180deg, #c44 0%, #a33 40%, #822 100%);
+    border: 3px solid #4a2a1a;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+    color: #fff;
+    font-family: inherit;
+    position: relative;
+    overflow: hidden;
+    box-shadow:
+        0 6px 12px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.shop-card-extended::before {
+    content: '';
+    position: absolute;
+    inset: 5px;
+    border: 2px solid rgba(255, 200, 100, 0.3);
+    border-radius: 8px;
+    pointer-events: none;
+}
+
+.shop-card-extended:hover {
+    transform: translateY(-6px) scale(1.02);
+    box-shadow:
+        0 14px 28px rgba(0, 0, 0, 0.6),
+        0 0 24px rgba(255, 200, 100, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    z-index: 10;
+}
+
+.shop-card-extended.cannot-afford {
+    filter: brightness(0.5) saturate(0.5);
+}
+
+.shop-card-extended.cannot-afford:hover {
+    transform: none;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* Extended Card Type Colors */
+.shop-card-extended.card-weapon {
+    background: linear-gradient(180deg, #5566cc 0%, #4455aa 40%, #334488 100%);
+}
+.shop-card-extended.card-weapon-upgrade {
+    background: linear-gradient(180deg, #cc9933 0%, #aa7722 40%, #886611 100%);
+}
+.shop-card-extended.card-passive {
+    background: linear-gradient(180deg, #44aa44 0%, #338833 40%, #226622 100%);
+}
+.shop-card-extended.card-stat {
+    background: linear-gradient(180deg, #cc7744 0%, #aa5533 40%, #884422 100%);
+}
+
+/* Extended Card Icon Area */
+.card-icon-extended {
+    font-size: 2.8rem;
+    width: 100%;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.15) 100%);
+    border-bottom: 2px solid rgba(0, 0, 0, 0.3);
+    border-radius: 9px 9px 0 0;
+}
+
+/* Extended Card Info Area */
+.card-info-extended {
+    flex-grow: 1;
+    width: 100%;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.card-name-extended {
+    font-size: 1rem;
+    font-weight: bold;
+    color: #fff;
+    line-height: 1.2;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.card-name-extended .stack-count {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin-left: 4px;
+}
+
+.card-desc-extended {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.4;
+    text-align: left;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+}
+
+/* Extended Card Cost Banner */
+.card-cost-extended {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    background: linear-gradient(180deg, #3a2a1a 0%, #2a1a0a 100%);
+    padding: 10px 12px;
+    border-top: 2px solid rgba(139, 90, 43, 0.6);
+    margin-top: auto;
+}
+
+.card-cost-extended .gold-icon {
+    font-size: 1.1rem;
+    filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.5));
+}
+
+.card-cost-extended .cost-amount {
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: #ffd700;
+    text-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+}
+
+.card-cost-extended.too-expensive .cost-amount {
+    color: #ff6666;
+    text-shadow: 0 0 8px rgba(255, 100, 100, 0.4);
+}
+
 /* Shop Footer */
 .shop-footer {
     margin-top: 16px;
@@ -1050,6 +1305,156 @@ body {
     }
 }
 
+/* Mobile responsive styles for expanded view */
+@media (max-width: 768px) {
+    .section-expand-btn {
+        width: 24px;
+        height: 24px;
+        font-size: 0.9rem;
+        top: 6px;
+        left: 6px;
+    }
+
+    .expanded-section-view {
+        padding: 12px;
+        max-height: 65vh;
+    }
+
+    .section-collapse-btn {
+        width: 30px;
+        height: 30px;
+        font-size: 1.1rem;
+        top: 8px;
+        left: 8px;
+    }
+
+    .expanded-section-title {
+        font-size: 1.2rem;
+        margin-left: 40px;
+    }
+
+    .shop-card-extended {
+        width: 160px;
+        min-height: 190px;
+    }
+
+    .card-icon-extended {
+        height: 60px;
+        font-size: 2.2rem;
+    }
+
+    .card-info-extended {
+        padding: 8px;
+        gap: 6px;
+    }
+
+    .card-name-extended {
+        font-size: 0.85rem;
+    }
+
+    .card-desc-extended {
+        font-size: 0.7rem;
+        padding: 6px;
+    }
+
+    .card-cost-extended {
+        padding: 8px 10px;
+    }
+
+    .card-cost-extended .gold-icon,
+    .card-cost-extended .cost-amount {
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 600px) {
+    .section-expand-btn {
+        width: 22px;
+        height: 22px;
+        font-size: 0.8rem;
+        top: 4px;
+        left: 4px;
+    }
+
+    .expanded-section-view {
+        padding: 10px;
+        max-height: 60vh;
+    }
+
+    .section-collapse-btn {
+        width: 28px;
+        height: 28px;
+        font-size: 1rem;
+    }
+
+    .expanded-section-title {
+        font-size: 1rem;
+        margin-left: 36px;
+        margin-bottom: 12px;
+    }
+
+    .expanded-cards {
+        gap: 10px;
+        padding: 4px;
+    }
+
+    .shop-card-extended {
+        width: 140px;
+        min-height: 170px;
+    }
+
+    .card-icon-extended {
+        height: 50px;
+        font-size: 1.8rem;
+    }
+
+    .card-info-extended {
+        padding: 6px;
+        gap: 4px;
+    }
+
+    .card-name-extended {
+        font-size: 0.75rem;
+    }
+
+    .card-desc-extended {
+        font-size: 0.6rem;
+        padding: 4px;
+        line-height: 1.3;
+    }
+
+    .card-cost-extended {
+        padding: 6px 8px;
+    }
+
+    .card-cost-extended .gold-icon,
+    .card-cost-extended .cost-amount {
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 400px) {
+    .shop-card-extended {
+        width: 120px;
+        min-height: 155px;
+    }
+
+    .card-icon-extended {
+        height: 42px;
+        font-size: 1.5rem;
+    }
+
+    .card-name-extended {
+        font-size: 0.65rem;
+    }
+
+    .card-desc-extended {
+        font-size: 0.55rem;
+        max-height: 4em;
+        overflow-y: auto;
+    }
+}
+
 /* Landscape orientation specific */
 @media (max-height: 500px) and (orientation: landscape) {
     /* Compact shop for landscape */
@@ -1137,5 +1542,68 @@ body {
     .hero-stats {
         width: 150px;
         padding: 6px;
+    }
+
+    /* Expanded view compact for landscape */
+    .section-expand-btn {
+        width: 22px;
+        height: 22px;
+        font-size: 0.8rem;
+    }
+
+    .expanded-section-view {
+        padding: 8px;
+        max-height: 90vh;
+    }
+
+    .section-collapse-btn {
+        width: 26px;
+        height: 26px;
+        font-size: 0.9rem;
+    }
+
+    .expanded-section-title {
+        font-size: 0.9rem;
+        margin-left: 32px;
+        margin-bottom: 8px;
+    }
+
+    .expanded-cards {
+        gap: 8px;
+    }
+
+    .shop-card-extended {
+        width: 110px;
+        min-height: 130px;
+    }
+
+    .card-icon-extended {
+        height: 36px;
+        font-size: 1.3rem;
+    }
+
+    .card-info-extended {
+        padding: 4px;
+        gap: 2px;
+    }
+
+    .card-name-extended {
+        font-size: 0.55rem;
+    }
+
+    .card-desc-extended {
+        font-size: 0.5rem;
+        padding: 3px;
+        max-height: 3em;
+        overflow-y: auto;
+    }
+
+    .card-cost-extended {
+        padding: 4px 6px;
+    }
+
+    .card-cost-extended .gold-icon,
+    .card-cost-extended .cost-amount {
+        font-size: 0.7rem;
     }
 }

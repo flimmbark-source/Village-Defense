@@ -76,6 +76,10 @@ export class Renderer {
      * Clear the canvas
      */
     clear() {
+        // Reset any context state that might persist
+        this.ctx.globalAlpha = 1;
+        this.ctx.filter = 'none';
+        this.ctx.globalCompositeOperation = 'source-over';
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
 

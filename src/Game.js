@@ -724,8 +724,8 @@ export class Game {
         // Reset level up system
         this.levelUpSystem.reset();
 
-        // Reset camera
-        this.camera.setZoom(1);
+        // Reset camera - start zoomed all the way out
+        this.camera.setZoom(CONFIG.CAMERA.MIN_ZOOM);
 
         // Recreate world
         this.generateForests();

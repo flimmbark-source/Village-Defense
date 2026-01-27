@@ -35,6 +35,13 @@ export class LevelUpSystem {
         this.weaponsContainer = null;
         this.passivesContainer = null;
         this.statsContainer = null;
+
+        // Expanded view elements
+        this.shopSections = null;
+        this.expandedView = null;
+        this.expandedTitle = null;
+        this.expandedCards = null;
+        this.currentExpandedSection = null;
     }
 
     /**
@@ -47,6 +54,119 @@ export class LevelUpSystem {
         this.passivesContainer = document.getElementById('shopPassives');
         this.statsContainer = document.getElementById('shopStats');
         this.levelText = document.getElementById('shopLevelText');
+
+        // Expanded view elements
+        this.shopSections = document.getElementById('shopSections');
+        this.expandedView = document.getElementById('expandedSectionView');
+        this.expandedTitle = document.getElementById('expandedSectionTitle');
+        this.expandedCards = document.getElementById('expandedSectionCards');
+
+        // Setup expand button listeners
+        this.setupExpandButtons();
+    }
+
+    /**
+     * Setup expand/collapse button event listeners
+     */
+    setupExpandButtons() {
+        // Expand buttons for each section
+        const expandButtons = document.querySelectorAll('.section-expand-btn');
+        expandButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const section = btn.dataset.section;
+                this.expandSection(section);
+            });
+        });
+
+        // Collapse button
+        const collapseBtn = document.getElementById('collapseSectionBtn');
+        if (collapseBtn) {
+            collapseBtn.addEventListener('click', () => {
+                this.collapseSection();
+            });
+        }
+    }
+
+    /**
+     * Expand a section to show detailed cards
+     * @param {string} section - Section to expand ('stats', 'weapons', 'passives')
+     */
+    expandSection(section) {
+        if (!this.shopSections || !this.expandedView) return;
+
+        this.currentExpandedSection = section;
+
+        // Hide the normal shop sections
+        this.shopSections.classList.add('hidden');
+
+        // Show expanded view
+        this.expandedView.classList.remove('hidden');
+
+        // Remove previous section classes and add new one
+        this.expandedView.classList.remove('stats-expanded', 'weapons-expanded', 'passives-expanded');
+        this.expandedView.classList.add(`${section}-expanded`);
+
+        // Set title
+        const titles = {
+            stats: 'Stats',
+            weapons: 'Weapons',
+            passives: 'Passives'
+        };
+        if (this.expandedTitle) {
+            this.expandedTitle.textContent = titles[section] || section;
+        }
+
+        // Render extended cards
+        this.renderExpandedSection(section);
+    }
+
+    /**
+     * Collapse the expanded view back to normal shop
+     */
+    collapseSection() {
+        if (!this.shopSections || !this.expandedView) return;
+
+        this.currentExpandedSection = null;
+
+        // Show normal shop sections
+        this.shopSections.classList.remove('hidden');
+
+        // Hide expanded view
+        this.expandedView.classList.add('hidden');
+    }
+
+    /**
+     * Render extended cards for expanded section
+     * @param {string} section - Section to render
+     */
+    renderExpandedSection(section) {
+        if (!this.expandedCards) return;
+
+        this.expandedCards.innerHTML = '';
+
+        let items = [];
+        let sectionType = '';
+
+        switch (section) {
+            case 'stats':
+                items = this.shopStats;
+                sectionType = 'stat';
+                break;
+            case 'weapons':
+                items = this.shopWeapons;
+                sectionType = 'weapon';
+                break;
+            case 'passives':
+                items = this.shopPassives;
+                sectionType = 'passive';
+                break;
+        }
+
+        items.forEach((item, index) => {
+            const card = this.createExtendedShopCard(item, sectionType, index);
+            this.expandedCards.appendChild(card);
+        });
     }
 
     /**
@@ -349,6 +469,170 @@ export class LevelUpSystem {
     }
 
     /**
+     * Create an extended shop card element with full description
+     * @param {Object} item - Item data
+     * @param {string} sectionType - Section type
+     * @param {number} index - Item index
+     * @returns {HTMLElement} Extended card element
+     */
+    createExtendedShopCard(item, sectionType, index) {
+        const card = document.createElement('button');
+        card.className = 'shop-card-extended';
+
+        const canAfford = this.heroRef && this.heroRef.gold >= item.cost;
+        if (!canAfford) {
+            card.classList.add('cannot-afford');
+        }
+
+        // Add rarity class if available
+        if (item.data.rarity) {
+            card.classList.add(`rarity-${item.data.rarity}`);
+        }
+
+        // Different styling based on type
+        if (item.type === 'weapon') {
+            card.classList.add('card-weapon');
+        } else if (item.type === 'weapon_upgrade') {
+            card.classList.add('card-weapon-upgrade');
+        } else if (item.type === 'passive') {
+            card.classList.add('card-passive');
+        } else {
+            card.classList.add('card-stat');
+        }
+
+        // Build extended card content
+        let name = item.data.name;
+        let description = this.getExtendedDescription(item);
+
+        if (item.type === 'weapon_upgrade') {
+            name = `${item.data.name} +1`;
+        }
+
+        // Show stack count for upgrades
+        let stackInfo = '';
+        if (item.currentStacks !== undefined && item.currentStacks > 0) {
+            stackInfo = `<span class="stack-count">${item.currentStacks}/${item.data.maxStacks}</span>`;
+        }
+
+        card.innerHTML = `
+            <div class="card-icon-extended">${item.data.icon}</div>
+            <div class="card-info-extended">
+                <div class="card-name-extended">${name}${stackInfo}</div>
+                <div class="card-desc-extended">${description}</div>
+            </div>
+            <div class="card-cost-extended ${canAfford ? '' : 'too-expensive'}">
+                <span class="gold-icon">🪙</span>
+                <span class="cost-amount">${item.cost}</span>
+            </div>
+        `;
+
+        if (canAfford) {
+            card.onclick = () => this.purchaseItemFromExpanded(item, sectionType, index);
+        } else {
+            card.onclick = () => this.showCannotAffordFeedback(card);
+        }
+
+        return card;
+    }
+
+    /**
+     * Get extended description for an item
+     * @param {Object} item - Item data
+     * @returns {string} Extended description
+     */
+    getExtendedDescription(item) {
+        if (item.type === 'weapon') {
+            const w = item.data;
+            let desc = `${w.description}\n\n`;
+            desc += `• Damage: ${w.damage}\n`;
+            desc += `• Cooldown: ${w.cooldown}s\n`;
+            desc += `• Range: ${w.range}`;
+            if (w.pierceCount) {
+                desc += `\n• Pierces ${w.pierceCount} enemies`;
+            }
+            if (w.chainCount) {
+                desc += `\n• Chains to ${w.chainCount} enemies`;
+            }
+            return desc;
+        } else if (item.type === 'weapon_upgrade') {
+            const w = item.data;
+            return `Upgrade your ${w.name} to increase its damage and effectiveness. Each upgrade level improves the weapon's base stats by 20%.`;
+        } else if (item.type === 'passive') {
+            const p = item.data;
+            let desc = `${p.description}\n\n`;
+            desc += `Effect: ${this.formatEffect(p.effect)}\n`;
+            desc += `Max Stacks: ${p.maxStacks}`;
+            if (item.currentStacks > 0) {
+                desc += `\nCurrent: ${item.currentStacks}/${p.maxStacks}`;
+            }
+            return desc;
+        } else if (item.type === 'stat') {
+            const s = item.data;
+            let desc = `${s.description}\n\n`;
+            desc += `Effect: ${this.formatEffect(s.effect)}\n`;
+            desc += `Max Stacks: ${s.maxStacks}`;
+            if (item.currentStacks > 0) {
+                desc += `\nCurrent: ${item.currentStacks}/${s.maxStacks}`;
+            }
+            return desc;
+        }
+        return item.data.description || 'No description available.';
+    }
+
+    /**
+     * Format an effect for display
+     * @param {Object} effect - Effect object
+     * @returns {string} Formatted effect string
+     */
+    formatEffect(effect) {
+        if (!effect) return 'Unknown';
+
+        const statNames = {
+            maxHp: 'Max HP',
+            speed: 'Movement Speed',
+            damageMultiplier: 'Damage',
+            cooldownMultiplier: 'Cooldown Reduction',
+            attackRange: 'Attack Range',
+            pickupRange: 'Pickup Range',
+            hpRegen: 'HP Regeneration',
+            damageReduction: 'Damage Reduction',
+            critChance: 'Critical Hit Chance',
+            lifesteal: 'Lifesteal',
+            goldMultiplier: 'Gold Find',
+            xpMultiplier: 'XP Gain',
+            thorns: 'Thorns Damage'
+        };
+
+        const statName = statNames[effect.stat] || effect.stat;
+        const value = effect.value;
+
+        // Format based on value type
+        if (value >= 1 || value <= -1) {
+            return `+${value} ${statName}`;
+        } else if (value > 0) {
+            return `+${Math.round(value * 100)}% ${statName}`;
+        } else {
+            return `${Math.round(value * 100)}% ${statName}`;
+        }
+    }
+
+    /**
+     * Purchase an item from the expanded view
+     * @param {Object} item - Item to purchase
+     * @param {string} sectionType - Section type
+     * @param {number} index - Item index
+     */
+    purchaseItemFromExpanded(item, sectionType, index) {
+        // Call the regular purchase method
+        this.purchaseItem(item, sectionType, index);
+
+        // Re-render the expanded section to update the view
+        if (this.currentExpandedSection) {
+            this.renderExpandedSection(this.currentExpandedSection);
+        }
+    }
+
+    /**
      * Show feedback when player can't afford an item
      * @param {HTMLElement} card - Card element
      */
@@ -417,6 +701,11 @@ export class LevelUpSystem {
      * Hide shop UI
      */
     hideShopUI() {
+        // Collapse any expanded section first
+        if (this.currentExpandedSection) {
+            this.collapseSection();
+        }
+
         if (this.shopPanel) {
             this.shopPanel.classList.add('hidden');
         }
