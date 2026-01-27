@@ -68,6 +68,18 @@
             <div class="level-up-text font-medieval">LEVEL UP!</div>
         </div>
 
+        <!-- Level Up Choice Panel (3 cards or skip) -->
+        <div id="levelUpChoicePanel" class="hidden">
+            <div class="shop-overlay"></div>
+            <div class="levelup-choice-content">
+                <h2 class="font-medieval levelup-choice-title">Choose a Reward</h2>
+                <div id="levelUpChoiceCards" class="levelup-choice-cards">
+                    <!-- 3 random cards populated by JS -->
+                </div>
+                <button id="levelUpSkipBtn" class="game-button levelup-skip-btn">Skip (+30 🪙)</button>
+            </div>
+        </div>
+
         <!-- Shop Panel -->
         <div id="shopPanel" class="hidden">
             <div class="shop-overlay"></div>
@@ -116,6 +128,14 @@
                                     <!-- Passive cards populated by JS -->
                                 </div>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Player Inventory Section -->
+                    <div class="shop-inventory-section">
+                        <h3 class="section-title font-medieval inventory-title">Your Inventory <span class="inventory-hint">(Click to sell)</span></h3>
+                        <div id="shopInventory" class="shop-inventory">
+                            <!-- Inventory items populated by JS -->
                         </div>
                     </div>
 

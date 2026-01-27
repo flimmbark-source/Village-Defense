@@ -42,6 +42,12 @@ export class Game {
         this.gameTime = 0;
         this.difficulty = 0; // Increases by 1 each level up
 
+        // Shop timing (opens at time thresholds, not level up)
+        this.nextShopTime = 40; // First shop at 40 seconds
+        this.shopOpenCount = 0;
+        this.shopTimeIncrement = 20; // Add 20 seconds each time
+        this.maxShopInterval = 120; // Cap at 2 minutes
+
         // Entities
         this.hero = null;
         this.castle = null;
@@ -101,20 +107,39 @@ export class Game {
         // Setup level up system
         this.levelUpSystem.initialize();
         this.levelUpSystem.setHeroRef(this.hero);
+
+        // Level up now shows choice popup (3 cards or skip for gold)
         this.levelUpSystem.setLevelUpHandler((level) => {
             this.state = GameState.PAUSED;
-            // Increase difficulty
             this.difficulty++;
-            // Show level up animation
             this.showLevelUpAnimation();
-            // Spawn particle effect
             const heroCenter = this.hero.getCenter();
             this.effects.spawnLevelUp(heroCenter.x, heroCenter.y);
         });
 
+        // Handler for level up choice selection
+        this.levelUpSystem.setLevelUpChoiceHandler((choice) => {
+            this.handleLevelUpChoice(choice);
+            this.state = GameState.PLAYING;
+        });
+
+        // Handler for skipping level up choice (get gold instead)
+        this.levelUpSystem.setSkipChoiceHandler(() => {
+            this.hero.addGold(30);
+            this.effects.spawnGoldPickup(this.hero.x, this.hero.y, 30);
+            this.state = GameState.PLAYING;
+        });
+
+        // Handler for shop purchases
         this.levelUpSystem.setChoiceSelectedHandler((choice) => {
             this.handleLevelUpChoice(choice);
             // Don't change state - shop stays open until done
+        });
+
+        // Handler for selling items from inventory
+        this.levelUpSystem.setSellHandler((item, goldValue) => {
+            this.hero.addGold(goldValue);
+            this.effects.spawnGoldPickup(this.hero.x, this.hero.y, goldValue);
         });
 
         // Setup shop done button
@@ -196,6 +221,26 @@ export class Game {
                 this.levelUpAnimation.classList.add('hidden');
             }, 1500);
         }
+    }
+
+    /**
+     * Open shop based on time threshold
+     */
+    openTimedShop() {
+        this.state = GameState.PAUSED;
+        this.shopOpenCount++;
+
+        // Calculate next shop time
+        // Start at 40s, add 20s each time, cap at 2 minutes between openings
+        const interval = Math.min(
+            40 + this.shopOpenCount * this.shopTimeIncrement,
+            this.maxShopInterval
+        );
+        this.nextShopTime = this.gameTime + interval;
+
+        // Open the shop
+        this.levelUpSystem.generateShopInventory();
+        this.levelUpSystem.showShopUI();
     }
 
     /**
@@ -302,6 +347,11 @@ export class Game {
         }
 
         this.gameTime += deltaTime;
+
+        // Check if it's time to open the shop
+        if (this.gameTime >= this.nextShopTime) {
+            this.openTimedShop();
+        }
 
         // Update camera zoom
         this.camera.update(deltaTime);
@@ -785,6 +835,10 @@ export class Game {
         this.lastTime = 0;
         this.gameTime = 0;
         this.difficulty = 0;
+
+        // Reset shop timing
+        this.nextShopTime = 40;
+        this.shopOpenCount = 0;
 
         // Clear entities
         this.scouts = [];

@@ -242,6 +242,55 @@ export class Hero {
     }
 
     /**
+     * Remove a stat upgrade (for selling)
+     * @param {Object} effect - Effect with stat and value
+     */
+    removeUpgrade(effect) {
+        switch (effect.stat) {
+            case 'maxHp':
+                this.maxHp -= effect.value;
+                this.hp = Math.min(this.hp, this.maxHp);
+                break;
+            case 'speed':
+                this.speed -= effect.value;
+                break;
+            case 'damageMultiplier':
+                this.damageMultiplier -= effect.value;
+                break;
+            case 'cooldownMultiplier':
+                this.cooldownMultiplier -= effect.value;
+                break;
+            case 'pickupRange':
+                this.pickupRangeMultiplier -= effect.value;
+                break;
+            case 'hpRegen':
+                this.hpRegen -= effect.value;
+                break;
+            case 'damageReduction':
+                this.damageReduction = Math.max(0, this.damageReduction - effect.value);
+                break;
+            case 'critChance':
+                this.critChance = Math.max(0, this.critChance - effect.value);
+                break;
+            case 'lifesteal':
+                this.lifesteal -= effect.value;
+                break;
+            case 'goldMultiplier':
+                this.goldMultiplier -= effect.value;
+                break;
+            case 'xpMultiplier':
+                this.xpMultiplier -= effect.value;
+                break;
+            case 'thorns':
+                this.thorns -= effect.value;
+                break;
+            case 'attackRange':
+                this.attackRangeMultiplier -= effect.value;
+                break;
+        }
+    }
+
+    /**
      * Add gold to hero
      * @param {number} amount - Amount of gold to add
      */

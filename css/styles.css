@@ -876,6 +876,194 @@ body {
         inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
+/* ========== LEVEL UP CHOICE PANEL ========== */
+#levelUpChoicePanel {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 52;
+}
+
+#levelUpChoicePanel.hidden {
+    display: none;
+}
+
+.levelup-choice-content {
+    position: relative;
+    background: linear-gradient(180deg, #3d2817 0%, #2a1a0f 50%, #1f1409 100%);
+    border: 4px solid #8b5a2b;
+    border-radius: 16px;
+    padding: 24px;
+    max-width: 600px;
+    width: 90%;
+    box-shadow:
+        0 0 0 2px #5a3a1a,
+        0 0 60px rgba(139, 90, 43, 0.4),
+        0 20px 60px rgba(0, 0, 0, 0.8);
+    animation: shopAppear 0.4s ease-out;
+    text-align: center;
+}
+
+.levelup-choice-title {
+    margin: 0 0 20px 0;
+    font-size: 2rem;
+    color: #ffd700;
+    text-shadow: 2px 2px 0 #5a3a1a, 0 0 20px rgba(255, 215, 0, 0.5);
+}
+
+.levelup-choice-cards {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+
+.levelup-skip-btn {
+    padding: 12px 32px;
+    font-size: 1rem;
+    background: linear-gradient(180deg, #5a4a3a 0%, #3a2a1a 50%, #2a1a0a 100%);
+    border: 2px solid #7a5c4b;
+}
+
+.levelup-skip-btn:hover {
+    background: linear-gradient(180deg, #6a5a4a 0%, #4a3a2a 50%, #3a2a1a 100%);
+    border-color: #ffd700;
+}
+
+/* ========== SHOP INVENTORY SECTION ========== */
+.shop-inventory-section {
+    margin-top: 12px;
+    padding: 12px;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.5) 100%);
+    border-radius: 10px;
+    border-top: 3px solid #5a5a3a;
+}
+
+.inventory-title {
+    color: #c0c0c0;
+    margin: 0 0 10px 0;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.inventory-hint {
+    font-size: 0.7rem;
+    color: #888;
+    font-family: 'Inter', sans-serif;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.shop-inventory {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    min-height: 60px;
+}
+
+/* Inventory Item */
+.inventory-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 70px;
+    padding: 8px 4px;
+    background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 100%);
+    border: 2px solid #5a5a5a;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.inventory-item:hover {
+    border-color: #ffd700;
+    transform: translateY(-3px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+}
+
+.inventory-item.weapon {
+    background: linear-gradient(180deg, #3a3a5a 0%, #2a2a4a 100%);
+    border-color: #5566cc;
+}
+
+.inventory-item.passive {
+    background: linear-gradient(180deg, #3a5a3a 0%, #2a4a2a 100%);
+    border-color: #44aa44;
+}
+
+.inventory-item-icon {
+    font-size: 1.5rem;
+    margin-bottom: 4px;
+}
+
+.inventory-item-name {
+    font-size: 0.5rem;
+    color: #ccc;
+    text-align: center;
+    line-height: 1.1;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.inventory-item-level {
+    font-size: 0.55rem;
+    color: #ffd700;
+    margin-top: 2px;
+}
+
+/* Sell confirmation popup */
+.sell-popup {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(180deg, #4a3a2a 0%, #2a1a0a 100%);
+    border: 2px solid #ffd700;
+    border-radius: 8px;
+    padding: 6px 10px;
+    white-space: nowrap;
+    z-index: 10;
+    animation: popIn 0.2s ease-out;
+    margin-bottom: 5px;
+}
+
+.sell-popup::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: #ffd700;
+}
+
+@keyframes popIn {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+.sell-popup-text {
+    color: #ffd700;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+.sell-popup-text .gold-icon {
+    font-size: 0.7rem;
+}
+
 /* Game Over Screen */
 #gameOverScreen {
     position: absolute;
