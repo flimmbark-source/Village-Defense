@@ -448,6 +448,73 @@ export class Renderer {
     }
 
     /**
+     * Draw enemy projectiles
+     * @param {Array} enemyProjectiles - Enemy projectile entities
+     */
+    drawEnemyProjectiles(enemyProjectiles, viewBounds = null) {
+        const ctx = this.ctx;
+
+        enemyProjectiles.forEach(proj => {
+            if (!this.isCircleVisible(viewBounds, proj.x, proj.y, proj.radius * 2)) {
+                return;
+            }
+
+            // Calculate angle from velocity for trail
+            const angle = Math.atan2(proj.vy, proj.vx);
+
+            // Draw trail
+            ctx.save();
+            ctx.translate(proj.x, proj.y);
+            ctx.rotate(angle);
+
+            // Trail effect
+            const trailLength = proj.radius * 3;
+            const gradient = ctx.createLinearGradient(-trailLength, 0, 0, 0);
+            gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+            gradient.addColorStop(1, proj.color);
+
+            ctx.beginPath();
+            ctx.moveTo(-trailLength, -proj.radius * 0.5);
+            ctx.lineTo(0, -proj.radius * 0.3);
+            ctx.lineTo(0, proj.radius * 0.3);
+            ctx.lineTo(-trailLength, proj.radius * 0.5);
+            ctx.closePath();
+            ctx.fillStyle = gradient;
+            ctx.globalAlpha = 0.6;
+            ctx.fill();
+            ctx.globalAlpha = 1;
+
+            ctx.restore();
+
+            // Draw glow
+            ctx.beginPath();
+            ctx.arc(proj.x, proj.y, proj.radius * 1.5, 0, Math.PI * 2);
+            const glowGradient = ctx.createRadialGradient(
+                proj.x, proj.y, 0,
+                proj.x, proj.y, proj.radius * 1.5
+            );
+            glowGradient.addColorStop(0, proj.color);
+            glowGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = glowGradient;
+            ctx.globalAlpha = 0.5;
+            ctx.fill();
+            ctx.globalAlpha = 1;
+
+            // Draw main projectile body
+            ctx.beginPath();
+            ctx.arc(proj.x, proj.y, proj.radius, 0, Math.PI * 2);
+            ctx.fillStyle = proj.color;
+            ctx.fill();
+
+            // Inner bright core
+            ctx.beginPath();
+            ctx.arc(proj.x, proj.y, proj.radius * 0.5, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.fill();
+        });
+    }
+
+    /**
      * Draw militia projectiles
      * @param {Array} projectiles - Projectile entities
      */

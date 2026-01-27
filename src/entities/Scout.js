@@ -64,6 +64,11 @@ export class Scout {
         this.heroAttackCooldown = stats.HERO_ATTACK_COOLDOWN;
         this.attackRange = stats.ATTACK_RANGE || baseStats.ATTACK_RANGE;
 
+        // Projectile properties
+        this.projectileSpeed = stats.PROJECTILE_SPEED || baseStats.PROJECTILE_SPEED;
+        this.projectileRadius = stats.PROJECTILE_RADIUS || baseStats.PROJECTILE_RADIUS;
+        this.projectileColor = stats.PROJECTILE_COLOR || baseStats.PROJECTILE_COLOR;
+
         // XP and gold drops
         this.xpDrop = stats.XP_DROP;
         this.goldDropMin = stats.GOLD_DROP_MIN;
@@ -315,7 +320,7 @@ export class Scout {
     /**
      * Update attack animation
      * @param {number} deltaTime - Time since last frame
-     * @returns {Object|null} Attack event when attack connects
+     * @returns {Object|null} Projectile data when attack fires
      */
     updateAttack(deltaTime) {
         this.attackTimer += deltaTime;
@@ -327,14 +332,20 @@ export class Scout {
                 this.attackTimer = 0;
                 this.attackProgress = 0;
 
-                // Return the attack event
+                // Return projectile creation data instead of instant damage
+                const speed = this.projectileSpeed;
                 return {
-                    type: this.attackTargetType,
+                    isProjectile: true,
+                    x: this.x,
+                    y: this.y,
+                    vx: Math.cos(this.attackAngle) * speed,
+                    vy: Math.sin(this.attackAngle) * speed,
                     damage: this.attackTargetType === 'hero' ? this.damage : this.villageAttackDamage,
-                    x: this.x + Math.cos(this.attackAngle) * this.attackRange,
-                    y: this.y + Math.sin(this.attackAngle) * this.attackRange,
-                    angle: this.attackAngle,
-                    radius: this.attackRange
+                    targetType: this.attackTargetType,
+                    targetRef: this.attackTargetType === 'village' ? this.villageAttackTarget : null,
+                    radius: this.projectileRadius,
+                    color: this.projectileColor,
+                    enemyType: this.type
                 };
             }
         } else if (this.attackPhase === AttackPhase.ACTIVE) {

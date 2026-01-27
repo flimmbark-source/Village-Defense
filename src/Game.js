@@ -55,6 +55,9 @@ export class Game {
         // Enemy attack visuals
         this.enemyAttacks = [];
 
+        // Enemy projectiles (visible moving projectiles)
+        this.enemyProjectiles = [];
+
         // UI elements
         this.heroGoldText = document.getElementById('heroGoldText');
         this.gameOverScreen = document.getElementById('gameOverScreen');
@@ -339,6 +342,9 @@ export class Game {
         // Update enemy attack visuals
         this.updateEnemyAttacks(deltaTime);
 
+        // Update enemy projectiles
+        this.updateEnemyProjectiles(deltaTime);
+
         // Update militia projectiles
         this.updateProjectiles();
 
@@ -373,58 +379,24 @@ export class Game {
         for (const scout of this.scouts) {
             const attackEvent = scout.update(deltaTime, this.hero, this.forests, this.villages, this.castle);
 
-            // Handle attack event
-            if (attackEvent) {
-                // Create visual for the attack
-                this.enemyAttacks.push({
-                    x: scout.x,
-                    y: scout.y,
-                    targetX: attackEvent.x,
-                    targetY: attackEvent.y,
-                    angle: attackEvent.angle,
+            // Handle attack event - now creates projectiles
+            if (attackEvent && attackEvent.isProjectile) {
+                // Create a projectile that travels to target
+                this.enemyProjectiles.push({
+                    x: attackEvent.x,
+                    y: attackEvent.y,
+                    vx: attackEvent.vx,
+                    vy: attackEvent.vy,
+                    damage: attackEvent.damage,
+                    targetType: attackEvent.targetType,
+                    targetRef: attackEvent.targetRef,
                     radius: attackEvent.radius,
-                    color: scout.color,
-                    timer: 0,
-                    duration: 0.2,
-                    type: scout.type
+                    color: attackEvent.color,
+                    enemyType: attackEvent.enemyType,
+                    sourceScout: scout, // Reference for thorns damage
+                    lifetime: 3.0, // Max lifetime in seconds
+                    age: 0
                 });
-
-                // Apply damage based on target type
-                if (attackEvent.type === 'hero') {
-                    const result = this.hero.takeDamage(attackEvent.damage);
-                    this.effects.spawnDamageNumber(
-                        this.hero.x + this.hero.width / 2,
-                        this.hero.y,
-                        Math.round(result.actualDamage)
-                    );
-
-                    // Apply thorns damage back to attacker
-                    if (result.thornsReflect > 0) {
-                        scout.takeDamage(result.thornsReflect);
-                        this.effects.spawnDamageNumber(scout.x, scout.y - 10, result.thornsReflect, true);
-                    }
-
-                    if (result.died) {
-                        this.defeat();
-                        return;
-                    }
-                } else if (attackEvent.type === 'village' && scout.villageAttackTarget) {
-                    const target = scout.villageAttackTarget;
-                    const destroyed = target.takeDamage(attackEvent.damage);
-                    this.effects.spawnDamageNumber(
-                        target.x + (target.width || 0) / 2,
-                        target.y,
-                        attackEvent.damage
-                    );
-                    if (destroyed) {
-                        this.effects.addFloatingText(
-                            target.x + (target.width || 0) / 2,
-                            target.y - 20,
-                            'Building Destroyed!',
-                            { color: '#ff4444', font: 'bold 16px MedievalSharp', lifetime: 1.5 }
-                        );
-                    }
-                }
             }
         }
     }
@@ -493,6 +465,105 @@ export class Game {
 
             if (attack.timer >= attack.duration) {
                 this.enemyAttacks.splice(i, 1);
+            }
+        }
+    }
+
+    /**
+     * Update enemy projectiles (movement and collision)
+     * @param {number} deltaTime - Time since last frame
+     */
+    updateEnemyProjectiles(deltaTime) {
+        for (let i = this.enemyProjectiles.length - 1; i >= 0; i--) {
+            const proj = this.enemyProjectiles[i];
+
+            // Move projectile
+            proj.x += proj.vx;
+            proj.y += proj.vy;
+            proj.age += deltaTime;
+
+            // Check if expired
+            if (proj.age >= proj.lifetime) {
+                this.enemyProjectiles.splice(i, 1);
+                continue;
+            }
+
+            // Check for collision with hero
+            if (proj.targetType === 'hero') {
+                const heroCenter = this.hero.getCenter();
+                const dx = proj.x - heroCenter.x;
+                const dy = proj.y - heroCenter.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist < proj.radius + this.hero.width / 2) {
+                    // Hit hero
+                    const result = this.hero.takeDamage(proj.damage);
+                    this.effects.spawnDamageNumber(
+                        this.hero.x + this.hero.width / 2,
+                        this.hero.y,
+                        Math.round(result.actualDamage)
+                    );
+
+                    // Apply thorns damage back to source scout if still alive
+                    if (result.thornsReflect > 0 && proj.sourceScout && !proj.sourceScout.isDead()) {
+                        proj.sourceScout.takeDamage(result.thornsReflect);
+                        this.effects.spawnDamageNumber(proj.sourceScout.x, proj.sourceScout.y - 10, result.thornsReflect, true);
+                    }
+
+                    // Remove projectile
+                    this.enemyProjectiles.splice(i, 1);
+
+                    if (result.died) {
+                        this.defeat();
+                        return;
+                    }
+                    continue;
+                }
+            }
+
+            // Check for collision with village target
+            if (proj.targetType === 'village' && proj.targetRef) {
+                const target = proj.targetRef;
+                if (target.isDead && target.isDead()) {
+                    // Target already destroyed, remove projectile
+                    this.enemyProjectiles.splice(i, 1);
+                    continue;
+                }
+
+                const targetCenterX = target.x + (target.width || 0) / 2;
+                const targetCenterY = target.y + (target.height || 0) / 2;
+                const dx = proj.x - targetCenterX;
+                const dy = proj.y - targetCenterY;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const targetRadius = Math.max(target.width || 20, target.height || 20) / 2;
+
+                if (dist < proj.radius + targetRadius) {
+                    // Hit village structure
+                    const destroyed = target.takeDamage(proj.damage);
+                    this.effects.spawnDamageNumber(
+                        targetCenterX,
+                        target.y,
+                        proj.damage
+                    );
+                    if (destroyed) {
+                        this.effects.addFloatingText(
+                            targetCenterX,
+                            target.y - 20,
+                            'Building Destroyed!',
+                            { color: '#ff4444', font: 'bold 16px MedievalSharp', lifetime: 1.5 }
+                        );
+                    }
+
+                    // Remove projectile
+                    this.enemyProjectiles.splice(i, 1);
+                    continue;
+                }
+            }
+
+            // Check if projectile is out of bounds
+            if (proj.x < -100 || proj.x > CONFIG.WORLD.WIDTH + 100 ||
+                proj.y < -100 || proj.y > CONFIG.WORLD.HEIGHT + 100) {
+                this.enemyProjectiles.splice(i, 1);
             }
         }
     }
@@ -624,7 +695,8 @@ export class Game {
 
         // Attacks
         this.renderer.drawAttacks(this.attacks, viewBounds);
-        this.renderer.drawEnemyAttacks(this.enemyAttacks, viewBounds)
+        this.renderer.drawEnemyAttacks(this.enemyAttacks, viewBounds);
+        this.renderer.drawEnemyProjectiles(this.enemyProjectiles, viewBounds);
 
         // Effects (world space)
         this.renderer.drawParticles(this.effects.particles, viewBounds);
@@ -717,6 +789,7 @@ export class Game {
         this.villages = [];
         this.forests = [];
         this.enemyAttacks = [];
+        this.enemyProjectiles = [];
 
         // Clear effects
         this.effects.clear();
