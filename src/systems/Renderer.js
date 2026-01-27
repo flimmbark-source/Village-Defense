@@ -158,6 +158,14 @@ export class Renderer {
         this.ctx.fillRect(castle.x, spawnBarY, barWidth, barHeight);
         this.ctx.fillStyle = COLORS.SPAWN_BAR;
         this.ctx.fillRect(castle.x, spawnBarY, barWidth * spawnProgress, barHeight);
+
+        // Castle HP bar (below castle)
+        const hpBarY = castle.y + castle.height + 12;
+        const hpPercent = castle.getHPPercent();
+        this.ctx.fillStyle = COLORS.HEALTH_BAR_BG;
+        this.ctx.fillRect(castle.x, hpBarY, barWidth, barHeight);
+        this.ctx.fillStyle = COLORS.SPAWN_BAR;
+        this.ctx.fillRect(castle.x, hpBarY, barWidth * hpPercent, barHeight);
     }
 
     /**
@@ -982,6 +990,6 @@ export class Renderer {
         ctx.font = '12px Inter';
         ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
         ctx.textAlign = 'left';
-        ctx.fillText('Click to move | Scroll to zoom | Destroy the castle to win!', padding, this.canvas.height - padding);
+        ctx.fillText('Click to move | WASD to move | Scroll to zoom | Destroy the castle to win!', padding, this.canvas.height - padding);
     }
 }
