@@ -11,6 +11,7 @@ export class Input {
         this.onClick = null;
         this.onMouseMove = null;
         this.onZoom = null;
+        this.keysDown = new Set();
 
         // Touch state for pinch-to-zoom
         this.touches = [];
@@ -35,6 +36,10 @@ export class Input {
 
         // Prevent default touch behaviors on canvas
         this.canvas.addEventListener('touchcancel', (e) => e.preventDefault());
+
+        // Keyboard events
+        window.addEventListener('keydown', (e) => this.handleKeyDown(e));
+        window.addEventListener('keyup', (e) => this.handleKeyUp(e));
     }
 
     /**
@@ -158,6 +163,54 @@ export class Input {
         if (this.onMouseMove) {
             this.onMouseMove(e.clientX, e.clientY);
         }
+    }
+
+    /**
+     * Handle key down
+     * @param {KeyboardEvent} e - Keyboard event
+     */
+    handleKeyDown(e) {
+        const key = e.key.toLowerCase();
+        if (['w', 'a', 's', 'd'].includes(key)) {
+            this.keysDown.add(key);
+        }
+    }
+
+    /**
+     * Handle key up
+     * @param {KeyboardEvent} e - Keyboard event
+     */
+    handleKeyUp(e) {
+        const key = e.key.toLowerCase();
+        if (['w', 'a', 's', 'd'].includes(key)) {
+            this.keysDown.delete(key);
+        }
+    }
+
+    /**
+     * Get movement vector from WASD input
+     * @returns {Object} Movement vector { x, y, active }
+     */
+    getMovementVector() {
+        let x = 0;
+        let y = 0;
+
+        if (this.keysDown.has('a')) x -= 1;
+        if (this.keysDown.has('d')) x += 1;
+        if (this.keysDown.has('w')) y -= 1;
+        if (this.keysDown.has('s')) y += 1;
+
+        const length = Math.sqrt(x * x + y * y);
+        if (length > 0) {
+            x /= length;
+            y /= length;
+        }
+
+        return {
+            x,
+            y,
+            active: length > 0
+        };
     }
 
     /**

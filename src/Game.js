@@ -74,6 +74,7 @@ export class Game {
         this.gameOverText = document.querySelector('#gameOverScreen p');
         this.shopDoneButton = document.getElementById('shopDoneButton');
         this.levelUpAnimation = document.getElementById('levelUpAnimation');
+        this.tavernAnimation = document.getElementById('tavernAnimation');
 
         this.initialize();
     }
@@ -238,9 +239,64 @@ export class Game {
         );
         this.nextShopTime = this.gameTime + interval;
 
-        // Open the shop
-        this.levelUpSystem.generateShopInventory();
-        this.levelUpSystem.showShopUI();
+        // Open the shop (after tavern animation)
+        this.showTavernAnimation(() => {
+            this.levelUpSystem.generateShopInventory();
+            this.levelUpSystem.showShopUI();
+        });
+    }
+
+    /**
+     * Show tavern shop animation before opening the shop
+     * @param {Function} onComplete - Callback after animation completes
+     */
+    showTavernAnimation(onComplete) {
+        const animationDuration = 1200;
+
+        if (this.tavernAnimation) {
+            this.tavernAnimation.classList.remove('hidden');
+            setTimeout(() => {
+                this.tavernAnimation.classList.add('hidden');
+            }, animationDuration);
+        }
+
+        setTimeout(() => {
+            if (onComplete) {
+                onComplete();
+            }
+        }, animationDuration);
+    }
+
+    /**
+     * Get castle target data for weapon targeting
+     * @returns {Object|null} Castle target data
+     */
+    getCastleTarget() {
+        if (!this.castle || this.castle.isDestroyed()) {
+            return null;
+        }
+
+        const center = this.castle.getCenter();
+        return {
+            id: this.castle.id,
+            x: center.x,
+            y: center.y,
+            radius: this.castle.radius,
+            isCastle: true
+        };
+    }
+
+    /**
+     * Get weapon targets (enemies + castle)
+     * @returns {Array} Targets array
+     */
+    getWeaponTargets() {
+        const targets = [...this.scouts];
+        const castleTarget = this.getCastleTarget();
+        if (castleTarget) {
+            targets.push(castleTarget);
+        }
+        return targets;
     }
 
     /**
@@ -360,10 +416,14 @@ export class Game {
         this.renderer.update(deltaTime);
 
         // Update hero
+        const movementInput = this.input.getMovementVector();
+        const weaponTargets = this.getWeaponTargets();
+
         this.hero.update(
             deltaTime,
-            this.scouts,
-            (attack) => this.createAttack(attack)
+            weaponTargets,
+            (attack) => this.createAttack(attack),
+            movementInput
         );
 
         // Update castle and spawn waves
@@ -460,12 +520,19 @@ export class Game {
             const attack = this.attacks[i];
 
             // Combine enemies and castle as potential targets
-            const targets = [...this.scouts];
+            const targets = this.getWeaponTargets();
 
             const damageEvents = attack.update(deltaTime, this.hero, targets);
 
             // Process damage events
             for (const event of damageEvents) {
+                if (event.enemy.isCastle && this.castle && !this.castle.isDestroyed()) {
+                    const castleCenter = this.castle.getCenter();
+                    this.castle.takeDamage(event.damage);
+                    this.effects.spawnDamageNumber(castleCenter.x, castleCenter.y - 50, event.damage);
+                    continue;
+                }
+
                 event.enemy.takeDamage(event.damage);
                 this.effects.spawnDamageNumber(event.enemy.x, event.enemy.y, event.damage);
 
@@ -477,23 +544,6 @@ export class Game {
                             village.markHeroHelped();
                         }
                     }
-                }
-            }
-
-            // Check for castle damage (hero attacks can hit castle)
-            if (this.castle && !this.castle.isDestroyed()) {
-                const castleCenter = this.castle.getCenter();
-                const dist = Math.sqrt(
-                    Math.pow(attack.x - castleCenter.x, 2) +
-                    Math.pow(attack.y - castleCenter.y, 2)
-                );
-
-                // Simple collision with castle
-                if (dist < CONFIG.CASTLE.WIDTH / 2 + 20 && !attack.hitCastle) {
-                    const damage = attack.weapon.damage * (this.hero.damageMultiplier || 1);
-                    this.castle.takeDamage(damage);
-                    this.effects.spawnDamageNumber(castleCenter.x, castleCenter.y - 50, damage);
-                    attack.hitCastle = true; // Prevent multiple hits per attack
                 }
             }
 

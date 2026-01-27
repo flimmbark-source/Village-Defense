@@ -107,21 +107,34 @@ export class Hero {
      * @param {Array} enemies - Array of enemies for targeting
      * @param {Function} createAttack - Callback to create an attack
      */
-    update(deltaTime, enemies, createAttack) {
+    update(deltaTime, enemies, createAttack, movementInput = null) {
         // Movement
-        const dx = this.targetX - this.x;
-        const dy = this.targetY - this.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-
-        if (dist > this.speed) {
-            const moveX = (dx / dist) * this.speed;
-            const moveY = (dy / dist) * this.speed;
+        if (movementInput && movementInput.active) {
+            const moveX = movementInput.x * this.speed;
+            const moveY = movementInput.y * this.speed;
             this.x += moveX;
             this.y += moveY;
+            this.targetX = this.x;
+            this.targetY = this.y;
 
             // Update facing direction
-            this.facingX = dx / dist;
-            this.facingY = dy / dist;
+            this.facingX = movementInput.x;
+            this.facingY = movementInput.y;
+        } else {
+            const dx = this.targetX - this.x;
+            const dy = this.targetY - this.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist > this.speed) {
+                const moveX = (dx / dist) * this.speed;
+                const moveY = (dy / dist) * this.speed;
+                this.x += moveX;
+                this.y += moveY;
+
+                // Update facing direction
+                this.facingX = dx / dist;
+                this.facingY = dy / dist;
+            }
         }
 
         // Clamp to world bounds
