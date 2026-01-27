@@ -1,0 +1,1141 @@
+/* Grimm Dominion - Game Styles */
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+}
+
+.font-medieval {
+    font-family: 'MedievalSharp', cursive;
+}
+
+/* Canvas Styles */
+#gameCanvas {
+    background-color: #3a4a3a;
+    cursor: pointer;
+    display: block;
+}
+
+/* UI Panel Base */
+.ui-panel {
+    background-color: rgba(0, 0, 0, 0.85);
+    border: 2px solid #5a3d2b;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.8);
+}
+
+/* Health/Progress Bars */
+.bar-bg {
+    background-color: #333;
+    border: 1px solid #7a5c4b;
+}
+
+.health-bar-fill {
+    background: linear-gradient(90deg, #2a7e2a, #4cd44c);
+    transition: width 0.2s ease-out;
+}
+
+/* Game Buttons */
+.game-button {
+    background-color: #4a3a2a;
+    border: 2px solid #7a5c4b;
+    transition: all 0.2s;
+    color: #e5e7eb;
+    cursor: pointer;
+    font-family: 'MedievalSharp', cursive;
+    padding: 12px 32px;
+    font-size: 1.25rem;
+    border-radius: 8px;
+}
+
+.game-button:hover {
+    background-color: #6b4f3a;
+    border-color: #d4af37;
+    transform: scale(1.05);
+}
+
+/* Game Container */
+#gameContainer {
+    position: relative;
+    width: 100%;
+    max-width: 1920px;
+    margin: 0 auto;
+}
+
+/* Hero UI Panel */
+#heroPanel {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    transform: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 10;
+}
+
+.hero-stats {
+    padding: 12px;
+    border-radius: 8px;
+    width: 340px;
+}
+
+.stat-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.stat-row:last-child {
+    margin-bottom: 0;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    min-width: 55px;
+}
+
+.stat-label.gold {
+    color: #facc15;
+}
+
+.stat-label.health {
+    color: #4ade80;
+}
+
+.stat-value {
+    font-weight: bold;
+    font-size: 0.9rem;
+    flex-grow: 1;
+    text-align: center;
+}
+
+.stat-value.gold {
+    color: #fef08a;
+}
+
+.health-bar-container {
+    flex-grow: 1;
+    height: 14px;
+    border-radius: 4px;
+}
+
+.health-bar-container .health-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+}
+
+#heroHealthText {
+    font-weight: bold;
+    font-size: 0.75rem;
+    width: 65px;
+    text-align: center;
+}
+
+/* Level Up Animation */
+#levelUpAnimation {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 55;
+    pointer-events: none;
+}
+
+#levelUpAnimation.hidden {
+    display: none;
+}
+
+.level-up-text {
+    font-size: 6rem;
+    color: #ffd700;
+    text-shadow:
+        0 0 20px rgba(255, 215, 0, 0.8),
+        0 0 40px rgba(255, 215, 0, 0.6),
+        0 0 60px rgba(255, 215, 0, 0.4),
+        4px 4px 0 #8b6914;
+    animation: levelUpTextAnim 1.5s ease-out forwards;
+}
+
+@keyframes levelUpTextAnim {
+    0% {
+        opacity: 0;
+        transform: scale(0.5) translateY(50px);
+    }
+    30% {
+        opacity: 1;
+        transform: scale(1.2) translateY(0);
+    }
+    50% {
+        transform: scale(1) translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(1.1) translateY(-30px);
+    }
+}
+
+/* Shop Panel - Roguelike Card Game Style */
+#shopPanel {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 50;
+}
+
+#shopPanel.hidden {
+    display: none;
+}
+
+.shop-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(30, 20, 10, 0.95) 0%, rgba(15, 10, 5, 0.98) 100%);
+    backdrop-filter: blur(8px);
+}
+
+.shop-content {
+    position: relative;
+    background:
+        linear-gradient(180deg, #3d2817 0%, #2a1a0f 50%, #1f1409 100%);
+    border: 4px solid #8b5a2b;
+    border-radius: 16px;
+    padding: 20px 24px;
+    max-width: 1100px;
+    width: 96%;
+    max-height: 96vh;
+    overflow: hidden;
+    box-shadow:
+        0 0 0 2px #5a3a1a,
+        0 0 60px rgba(139, 90, 43, 0.4),
+        0 20px 60px rgba(0, 0, 0, 0.8),
+        inset 0 1px 0 rgba(255, 200, 100, 0.1),
+        inset 0 -20px 40px rgba(0, 0, 0, 0.3);
+    animation: shopAppear 0.4s ease-out;
+}
+
+/* Wood texture overlay */
+.shop-content::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        repeating-linear-gradient(
+            90deg,
+            transparent 0px,
+            rgba(0, 0, 0, 0.03) 1px,
+            transparent 2px,
+            transparent 20px
+        );
+    pointer-events: none;
+    border-radius: 12px;
+}
+
+@keyframes shopAppear {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* Shop Header */
+.shop-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 3px solid #5a3a1a;
+    position: relative;
+}
+
+.shop-header h2 {
+    margin: 0;
+    font-size: 2rem;
+    color: #ffd700;
+    text-shadow:
+        2px 2px 0 #5a3a1a,
+        0 0 20px rgba(255, 215, 0, 0.5);
+    letter-spacing: 1px;
+}
+
+.shop-gold {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(180deg, #4a3520 0%, #2a1a10 100%);
+    padding: 10px 20px;
+    border-radius: 25px;
+    border: 3px solid #d4af37;
+    box-shadow:
+        inset 0 2px 4px rgba(0, 0, 0, 0.5),
+        0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.shop-gold .gold-icon {
+    font-size: 1.4rem;
+    filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.6));
+}
+
+.shop-gold #shopGoldAmount {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #ffd700;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+/* Shop Sections - Two Row Layout */
+.shop-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Shop Rows */
+.shop-row {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+}
+
+.shop-row-top {
+    /* Stats row spans full width */
+}
+
+.shop-row-bottom {
+    /* Weapons and Passives side by side */
+}
+
+.shop-section {
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.4) 100%);
+    border-radius: 12px;
+    padding: 12px;
+    border: 2px solid rgba(139, 90, 43, 0.5);
+    position: relative;
+}
+
+/* Stats section spans full width at top */
+.shop-row-top .stats-section {
+    flex: 1;
+    max-width: 100%;
+}
+
+.shop-row-top .shop-cards {
+    justify-content: center;
+}
+
+/* Bottom sections are equal width */
+.shop-row-bottom .shop-section {
+    flex: 1;
+    max-width: 50%;
+}
+
+.section-title {
+    margin: 0 0 10px 0;
+    font-size: 1.1rem;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.weapons-section .section-title { color: #a0a0ff; }
+.passives-section .section-title { color: #80ff80; }
+.stats-section .section-title { color: #ffb060; }
+
+.weapons-section { border-top: 3px solid #6060c0; }
+.passives-section { border-top: 3px solid #40a040; }
+.stats-section { border-top: 3px solid #c08040; }
+
+/* Shop Cards Grid */
+.shop-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+}
+
+/* Individual Shop Card - Roguelike Style */
+.shop-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100px;
+    height: 140px;
+    padding: 0;
+    background: linear-gradient(180deg, #c44 0%, #a33 40%, #822 100%);
+    border: 3px solid #4a2a1a;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+    color: #fff;
+    font-family: inherit;
+    position: relative;
+    overflow: hidden;
+    box-shadow:
+        0 4px 8px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Card inner frame */
+.shop-card::before {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    border: 2px solid rgba(255, 200, 100, 0.3);
+    border-radius: 6px;
+    pointer-events: none;
+}
+
+.shop-card:hover {
+    transform: translateY(-8px) scale(1.05);
+    box-shadow:
+        0 12px 24px rgba(0, 0, 0, 0.6),
+        0 0 20px rgba(255, 200, 100, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    z-index: 10;
+}
+
+.shop-card.cannot-afford {
+    filter: brightness(0.5) saturate(0.5);
+}
+
+.shop-card.cannot-afford:hover {
+    transform: none;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+}
+
+/* Card Type Colors */
+.shop-card.card-weapon {
+    background: linear-gradient(180deg, #5566cc 0%, #4455aa 40%, #334488 100%);
+}
+.shop-card.card-weapon-upgrade {
+    background: linear-gradient(180deg, #cc9933 0%, #aa7722 40%, #886611 100%);
+}
+.shop-card.card-passive {
+    background: linear-gradient(180deg, #44aa44 0%, #338833 40%, #226622 100%);
+}
+.shop-card.card-stat {
+    background: linear-gradient(180deg, #cc7744 0%, #aa5533 40%, #884422 100%);
+}
+
+/* Rarity Glow Effects */
+.shop-card.rarity-uncommon {
+    box-shadow:
+        0 4px 8px rgba(0, 0, 0, 0.5),
+        0 0 15px rgba(100, 200, 100, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+.shop-card.rarity-rare {
+    box-shadow:
+        0 4px 8px rgba(0, 0, 0, 0.5),
+        0 0 20px rgba(100, 150, 255, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Card Icon Area */
+.card-icon {
+    font-size: 2rem;
+    width: 100%;
+    height: 55px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.1) 100%);
+    border-bottom: 2px solid rgba(0, 0, 0, 0.3);
+    margin-bottom: 0;
+    border-radius: 7px 7px 0 0;
+}
+
+/* Card Name Banner */
+.card-info {
+    flex-grow: 1;
+    width: 100%;
+    padding: 4px 6px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+
+.card-name {
+    font-size: 0.7rem;
+    font-weight: bold;
+    color: #fff;
+    margin-bottom: 2px;
+    line-height: 1.1;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stack-count {
+    font-size: 0.6rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin-left: 2px;
+}
+
+.card-desc {
+    font-size: 0.55rem;
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.15;
+    max-height: 2.3em;
+    overflow: hidden;
+}
+
+/* Card Cost Banner - Bottom of card */
+.card-cost {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    width: 100%;
+    background: linear-gradient(180deg, #3a2a1a 0%, #2a1a0a 100%);
+    padding: 6px 8px;
+    border-top: 2px solid rgba(139, 90, 43, 0.6);
+    margin-top: auto;
+}
+
+.card-cost .gold-icon {
+    font-size: 0.9rem;
+    filter: drop-shadow(0 0 3px rgba(255, 215, 0, 0.5));
+}
+
+.card-cost .cost-amount {
+    font-weight: bold;
+    font-size: 0.9rem;
+    color: #ffd700;
+    text-shadow: 0 0 6px rgba(255, 215, 0, 0.4);
+}
+
+.card-cost.too-expensive .cost-amount {
+    color: #ff6666;
+    text-shadow: 0 0 6px rgba(255, 100, 100, 0.4);
+}
+
+/* Shake Animation */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+.shop-card.shake {
+    animation: shake 0.3s ease;
+}
+
+/* Shop Footer */
+.shop-footer {
+    margin-top: 16px;
+    text-align: center;
+}
+
+.shop-done-btn {
+    padding: 12px 40px;
+    font-size: 1.1rem;
+    background: linear-gradient(180deg, #4a7a4a 0%, #2a5a2a 50%, #1a4a1a 100%);
+    border: 3px solid #6abe6a;
+    border-radius: 25px;
+    box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.shop-done-btn:hover {
+    background: linear-gradient(180deg, #5a9a5a 0%, #3a7a3a 50%, #2a6a2a 100%);
+    border-color: #ffd700;
+    box-shadow:
+        0 6px 16px rgba(0, 0, 0, 0.5),
+        0 0 20px rgba(255, 215, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+/* Game Over Screen */
+#gameOverScreen {
+    position: absolute;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.85);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 60;
+    animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+#gameOverScreen.hidden {
+    display: none;
+}
+
+#gameOverScreen h2 {
+    margin: 0;
+    font-size: 4rem;
+    color: #ef4444;
+    text-shadow: 0 0 30px rgba(239, 68, 68, 0.5);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+#gameOverScreen p {
+    margin-top: 16px;
+    font-size: 1.25rem;
+    color: #9ca3af;
+}
+
+#gameOverScreen button {
+    margin-top: 32px;
+}
+
+/* Victory Screen */
+#victoryScreen {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(0, 50, 0, 0.9) 0%, rgba(0, 0, 0, 0.95) 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 60;
+    animation: victoryFadeIn 0.8s ease-out;
+}
+
+@keyframes victoryFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(1.1);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+#victoryScreen.hidden {
+    display: none;
+}
+
+#victoryScreen h2.victory-title {
+    margin: 0;
+    font-size: 5rem;
+    color: #ffd700;
+    text-shadow: 0 0 40px rgba(255, 215, 0, 0.8),
+                 0 0 80px rgba(255, 215, 0, 0.4);
+    animation: victoryPulse 1.5s infinite, victoryFloat 2s ease-in-out infinite;
+}
+
+@keyframes victoryPulse {
+    0%, 100% {
+        opacity: 1;
+        text-shadow: 0 0 40px rgba(255, 215, 0, 0.8),
+                     0 0 80px rgba(255, 215, 0, 0.4);
+    }
+    50% {
+        opacity: 0.9;
+        text-shadow: 0 0 60px rgba(255, 215, 0, 1),
+                     0 0 120px rgba(255, 215, 0, 0.6);
+    }
+}
+
+@keyframes victoryFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+#victoryScreen p {
+    margin-top: 20px;
+    font-size: 1.5rem;
+    color: #4ade80;
+    text-shadow: 0 0 20px rgba(74, 222, 128, 0.5);
+}
+
+#victoryScreen .victory-button {
+    margin-top: 40px;
+    background: linear-gradient(180deg, #2a5a2a 0%, #1a3a1a 100%);
+    border: 3px solid #4ade80;
+    font-size: 1.5rem;
+    padding: 16px 48px;
+}
+
+#victoryScreen .victory-button:hover {
+    background: linear-gradient(180deg, #3a7a3a 0%, #2a5a2a 100%);
+    border-color: #ffd700;
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.4);
+}
+
+/* Controls Hint */
+#controlsHint {
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    color: #9ca3af;
+    z-index: 10;
+}
+
+#controlsHint span {
+    opacity: 0.7;
+}
+
+/* Show/hide hints based on device */
+.mobile-hint {
+    display: none;
+}
+
+.desktop-hint {
+    display: inline;
+}
+
+/* Utility Classes */
+.hidden {
+    display: none !important;
+}
+
+.text-green {
+    color: #4ade80;
+}
+
+.text-yellow {
+    color: #facc15;
+}
+
+.text-red {
+    color: #ef4444;
+}
+
+.text-purple {
+    color: #c4b5fd;
+}
+
+/* ========== MOBILE RESPONSIVE STYLES ========== */
+
+/* Tablet and smaller */
+@media (max-width: 900px) {
+    /* Shop adjustments for tablet */
+    .shop-content {
+        padding: 14px 16px;
+        max-width: 98%;
+    }
+
+    .shop-card {
+        width: 90px;
+        height: 125px;
+    }
+
+    .card-icon {
+        height: 48px;
+        font-size: 1.6rem;
+    }
+
+    .card-name {
+        font-size: 0.6rem;
+    }
+
+    .card-desc {
+        font-size: 0.5rem;
+    }
+}
+
+/* Mobile landscape and portrait */
+@media (max-width: 768px) {
+    /* Show mobile hints */
+    .mobile-hint {
+        display: inline;
+    }
+    .desktop-hint {
+        display: none;
+    }
+
+    /* Hero panel adjustments */
+    .hero-stats {
+        width: 220px;
+        padding: 8px;
+    }
+
+    .stat-label {
+        font-size: 0.75rem;
+        min-width: 45px;
+    }
+
+    .stat-value {
+        font-size: 0.75rem;
+    }
+
+    #heroHealthText {
+        font-size: 0.65rem;
+        width: 55px;
+    }
+
+    /* Level up animation smaller */
+    .level-up-text {
+        font-size: 4rem;
+    }
+
+    /* Shop header */
+    .shop-header h2 {
+        font-size: 1.5rem;
+    }
+
+    .shop-gold {
+        padding: 6px 14px;
+    }
+
+    .shop-gold .gold-icon {
+        font-size: 1.1rem;
+    }
+
+    .shop-gold #shopGoldAmount {
+        font-size: 1.2rem;
+    }
+
+    /* Shop sections */
+    .shop-section {
+        padding: 8px;
+    }
+
+    .section-title {
+        font-size: 0.8rem;
+        margin-bottom: 6px;
+        letter-spacing: 1px;
+    }
+
+    /* Shop cards smaller */
+    .shop-card {
+        width: 80px;
+        height: 115px;
+    }
+
+    .card-icon {
+        height: 42px;
+        font-size: 1.4rem;
+    }
+
+    .card-name {
+        font-size: 0.55rem;
+    }
+
+    .card-desc {
+        font-size: 0.45rem;
+        max-height: 2em;
+    }
+
+    .card-cost {
+        padding: 4px 6px;
+    }
+
+    .card-cost .gold-icon {
+        font-size: 0.75rem;
+    }
+
+    .card-cost .cost-amount {
+        font-size: 0.75rem;
+    }
+
+    /* Game over screens */
+    #gameOverScreen h2 {
+        font-size: 3rem;
+    }
+
+    #gameOverScreen p {
+        font-size: 1rem;
+        padding: 0 20px;
+    }
+
+    #victoryScreen h2.victory-title {
+        font-size: 3.5rem;
+    }
+
+    #victoryScreen p {
+        font-size: 1.1rem;
+        padding: 0 20px;
+    }
+
+    /* Controls hint */
+    #controlsHint {
+        bottom: 8px;
+        right: 8px;
+        padding: 6px 10px;
+        font-size: 0.65rem;
+    }
+}
+
+/* Mobile portrait - stack shop sections vertically */
+@media (max-width: 600px) {
+    /* Shop rows stack vertically */
+    .shop-row {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .shop-row-bottom {
+        flex-direction: column;
+    }
+
+    .shop-row-bottom .shop-section {
+        max-width: 100%;
+    }
+
+    .shop-section {
+        max-width: 100%;
+    }
+
+    .shop-cards {
+        gap: 8px;
+    }
+
+    /* Cards stay card-like but smaller */
+    .shop-card {
+        width: 72px;
+        height: 105px;
+    }
+
+    .card-icon {
+        height: 38px;
+        font-size: 1.2rem;
+    }
+
+    .card-name {
+        font-size: 0.5rem;
+    }
+
+    .card-desc {
+        display: none; /* Hide descriptions on small screens */
+    }
+
+    .card-cost {
+        padding: 3px 5px;
+    }
+
+    .card-cost .gold-icon,
+    .card-cost .cost-amount {
+        font-size: 0.7rem;
+    }
+
+    /* Shop content scrollable in portrait */
+    .shop-content {
+        max-height: 95vh;
+        overflow-y: auto;
+        padding: 12px;
+    }
+
+    .shop-header {
+        margin-bottom: 10px;
+        padding-bottom: 8px;
+    }
+
+    .shop-header h2 {
+        font-size: 1.3rem;
+    }
+
+    .shop-footer {
+        margin-top: 10px;
+    }
+
+    .shop-done-btn {
+        padding: 10px 28px;
+        font-size: 0.9rem;
+    }
+
+    /* Hero panel smaller */
+    #heroPanel {
+        top: 52px;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+
+    .hero-stats {
+        width: 200px;
+        padding: 6px;
+    }
+
+    .stat-row {
+        margin-bottom: 4px;
+        gap: 4px;
+    }
+
+    .stat-label {
+        font-size: 0.65rem;
+        min-width: 35px;
+    }
+
+    .stat-value {
+        font-size: 0.65rem;
+    }
+
+    #heroHealthText {
+        font-size: 0.55rem;
+        width: 45px;
+    }
+
+    .health-bar-container {
+        height: 10px;
+    }
+
+    /* Level up text smaller */
+    .level-up-text {
+        font-size: 3rem;
+    }
+
+    /* Game over screens */
+    #gameOverScreen h2 {
+        font-size: 2.5rem;
+    }
+
+    #victoryScreen h2.victory-title {
+        font-size: 3rem;
+    }
+
+    .game-button {
+        padding: 10px 24px;
+        font-size: 1rem;
+    }
+
+    /* Hide controls hint on small mobile */
+    #controlsHint {
+        display: none;
+    }
+}
+
+/* Very small screens (small phones) */
+@media (max-width: 400px) {
+    .shop-card {
+        width: 62px;
+        height: 95px;
+    }
+
+    .card-icon {
+        height: 34px;
+        font-size: 1rem;
+    }
+
+    .card-name {
+        font-size: 0.45rem;
+    }
+
+    .hero-stats {
+        width: 180px;
+    }
+
+    .level-up-text {
+        font-size: 2.5rem;
+    }
+}
+
+/* Landscape orientation specific */
+@media (max-height: 500px) and (orientation: landscape) {
+    /* Compact shop for landscape */
+    .shop-content {
+        padding: 8px 12px;
+        max-height: 98vh;
+    }
+
+    .shop-header {
+        margin-bottom: 6px;
+        padding-bottom: 4px;
+    }
+
+    .shop-header h2 {
+        font-size: 1.2rem;
+    }
+
+    .shop-sections {
+        gap: 6px;
+    }
+
+    .shop-row {
+        gap: 8px;
+    }
+
+    .shop-row-top .stats-section {
+        padding: 4px 8px;
+    }
+
+    .shop-row-top .section-title {
+        margin-bottom: 4px;
+    }
+
+    .shop-section {
+        padding: 6px;
+    }
+
+    .section-title {
+        font-size: 0.7rem;
+        margin-bottom: 4px;
+    }
+
+    .shop-card {
+        width: 62px;
+        height: 88px;
+    }
+
+    .card-icon {
+        height: 28px;
+        font-size: 0.9rem;
+    }
+
+    .card-name {
+        font-size: 0.45rem;
+    }
+
+    .card-desc {
+        display: none;
+    }
+
+    .card-cost {
+        padding: 2px 4px;
+    }
+
+    .card-cost .gold-icon,
+    .card-cost .cost-amount {
+        font-size: 0.65rem;
+    }
+
+    .shop-footer {
+        margin-top: 8px;
+    }
+
+    .shop-done-btn {
+        padding: 8px 24px;
+        font-size: 0.85rem;
+    }
+
+    /* Level up text */
+    .level-up-text {
+        font-size: 3rem;
+    }
+
+    /* Hero panel compact */
+    .hero-stats {
+        width: 150px;
+        padding: 6px;
+    }
+}

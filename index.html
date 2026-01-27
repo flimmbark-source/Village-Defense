@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Grimm Dominion</title>
+    <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        /* Inline critical styles for layout */
+        * {
+            box-sizing: border-box;
+        }
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background-color: #1a1a2e;
+            color: #e5e7eb;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            padding: 8px;
+            padding: env(safe-area-inset-top, 8px) env(safe-area-inset-right, 8px) env(safe-area-inset-bottom, 8px) env(safe-area-inset-left, 8px);
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            touch-action: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        #gameContainer {
+            flex-grow: 1;
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        #gameCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <!-- Game Container -->
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- Hero UI (Bottom Left) -->
+        <div id="heroPanel">
+            <div class="hero-stats ui-panel">
+                <!-- Gold -->
+                <div class="stat-row">
+                    <span class="stat-label gold font-medieval">Gold</span>
+                    <span id="heroGoldText" class="stat-value gold">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Level Up Animation Overlay -->
+        <div id="levelUpAnimation" class="hidden">
+            <div class="level-up-text font-medieval">LEVEL UP!</div>
+        </div>
+
+        <!-- Shop Panel -->
+        <div id="shopPanel" class="hidden">
+            <div class="shop-overlay"></div>
+            <div class="shop-content">
+                <!-- Header -->
+                <div class="shop-header">
+                    <h2 class="font-medieval" id="shopLevelText">Level 2</h2>
+                    <div class="shop-gold">
+                        <span class="gold-icon">🪙</span>
+                        <span id="shopGoldAmount">0</span>
+                    </div>
+                </div>
+
+                <!-- Shop Sections -->
+                <div class="shop-sections">
+                    <!-- Stats Section - Top Row -->
+                    <div class="shop-row shop-row-top">
+                        <div class="shop-section stats-section">
+                            <h3 class="section-title font-medieval">Stats</h3>
+                            <div id="shopStats" class="shop-cards">
+                                <!-- Stat cards populated by JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bottom Row - Weapons Left, Passives Right -->
+                    <div class="shop-row shop-row-bottom">
+                        <!-- Weapons Section -->
+                        <div class="shop-section weapons-section">
+                            <h3 class="section-title font-medieval">Weapons</h3>
+                            <div id="shopWeapons" class="shop-cards">
+                                <!-- Weapon cards populated by JS -->
+                            </div>
+                        </div>
+
+                        <!-- Passives Section -->
+                        <div class="shop-section passives-section">
+                            <h3 class="section-title font-medieval">Passives</h3>
+                            <div id="shopPassives" class="shop-cards">
+                                <!-- Passive cards populated by JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Done Button -->
+                <div class="shop-footer">
+                    <button id="shopDoneButton" class="game-button shop-done-btn">Done Shopping</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="gameOverScreen" class="hidden">
+            <h2 class="font-medieval">Defeat</h2>
+            <p>All villages have been destroyed. The realm has fallen to darkness.</p>
+            <button id="restartButton" class="game-button">Try Again</button>
+        </div>
+
+        <!-- Victory Screen -->
+        <div id="victoryScreen" class="hidden">
+            <h2 class="font-medieval victory-title">Victory!</h2>
+            <p>You have destroyed the Dark Castle and saved the realm!</p>
+            <button id="victoryRestartButton" class="game-button victory-button">Play Again</button>
+        </div>
+
+        <!-- Controls hint -->
+        <div id="controlsHint" class="ui-panel">
+            <span class="desktop-hint">Click to move | Scroll to zoom</span>
+            <span class="mobile-hint">Tap to move | Pinch to zoom</span>
+        </div>
+    </div>
+
+    <!-- Game Script -->
+    <script type="module">
+        import { Game } from './src/Game.js';
+
+        // Wait for DOM to be ready
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('gameCanvas');
+            const game = new Game(canvas);
+
+            // Handle window resize
+            window.addEventListener('resize', () => game.resize());
+        });
+    </script>
+</body>
+</html>
