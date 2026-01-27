@@ -348,6 +348,20 @@ export class Renderer {
                 this.ctx.stroke();
             }
 
+            if (scout.attackPhase === 'ACTIVE') {
+                const swipeProgress = scout.attackProgress;
+                const swipeRadius = scout.radius + 6;
+                const swipeArc = Math.PI / 2;
+                const swipeStart = scout.attackAngle - swipeArc / 2;
+                const swipeEnd = swipeStart + swipeArc * swipeProgress;
+
+                this.ctx.beginPath();
+                this.ctx.arc(scout.x, scout.y, swipeRadius, swipeStart, swipeEnd);
+                this.ctx.strokeStyle = `rgba(255, 180, 180, ${0.7 * (1 - swipeProgress)})`;
+                this.ctx.lineWidth = 3;
+                this.ctx.stroke();
+            }
+
             // Body
             this.ctx.beginPath();
             this.ctx.arc(scout.x, scout.y, scout.radius, 0, Math.PI * 2);

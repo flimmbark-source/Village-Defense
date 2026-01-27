@@ -95,6 +95,7 @@ export class Scout {
         this.attackCooldownTimer = 0;
         this.attackAngle = 0;
         this.attackProgress = 0;
+        this.attackHasFired = false;
 
         // Attack timing
         this.attackWindup = baseStats.ATTACK_WINDUP || 0.3;
@@ -170,9 +171,9 @@ export class Scout {
         this.attackCooldownTimer -= deltaTime;
         this.updateHeroTracking(hero, deltaTime);
 
-        // Update attack animation if in progress
+        let attackEvent = null;
         if (this.isAttacking()) {
-            return this.updateAttack(deltaTime);
+            attackEvent = this.updateAttack(deltaTime);
         }
 
         // State machine
@@ -188,11 +189,15 @@ export class Scout {
             this.updatePatrolMovement();
         }
 
-        // Movement (don't move while attacking)
+        // Movement
         this.moveTowardsTarget();
 
         // Check if can start an attack
-        return this.checkForAttack(hero);
+        if (!this.isAttacking()) {
+            return this.checkForAttack(hero);
+        }
+
+        return attackEvent;
     }
 
     /**
@@ -271,11 +276,6 @@ export class Scout {
         const dy = this.targetY - this.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
-        // Don't move if in attack range and waiting for cooldown, or if attacking
-        if ((dist < this.attackRange && this.state !== ScoutState.CHASING) || this.isAttacking()) {
-            return;
-        }
-
         if (dist > this.speed) {
             this.x += (dx / dist) * this.speed;
             this.y += (dy / dist) * this.speed;
@@ -329,6 +329,7 @@ export class Scout {
         this.attackAngle = Math.atan2(targetY - this.y, targetX - this.x);
         this.attackTargetType = targetType;
         this.attackProgress = 0;
+        this.attackHasFired = false;
     }
 
     /**
@@ -345,8 +346,11 @@ export class Scout {
                 this.attackPhase = AttackPhase.ACTIVE;
                 this.attackTimer = 0;
                 this.attackProgress = 0;
-
-                // Return projectile creation data instead of instant damage
+            }
+        } else if (this.attackPhase === AttackPhase.ACTIVE) {
+            this.attackProgress = this.attackTimer / this.attackDuration;
+            if (!this.attackHasFired && this.attackTimer >= this.attackDuration * 0.5) {
+                this.attackHasFired = true;
                 const speed = this.projectileSpeed;
                 return {
                     isProjectile: true,
@@ -362,8 +366,6 @@ export class Scout {
                     enemyType: this.type
                 };
             }
-        } else if (this.attackPhase === AttackPhase.ACTIVE) {
-            this.attackProgress = this.attackTimer / this.attackDuration;
             if (this.attackTimer >= this.attackDuration) {
                 this.attackPhase = AttackPhase.RECOVERY;
                 this.attackTimer = 0;
