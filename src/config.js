@@ -55,6 +55,8 @@ export const CONFIG = {
         ATTACK_RANGE: 135,
         ATTACK_WINDUP: 0.3,
         ATTACK_DURATION: 0.2,
+        DASH_DISTANCE: 18,
+        DASH_DURATION: 0.12,
         PROJECTILE_SPEED: 5,
         PROJECTILE_RADIUS: 6,
         PROJECTILE_COLOR: '#ff6666',

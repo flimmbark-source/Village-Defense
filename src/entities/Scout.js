@@ -63,6 +63,8 @@ export class Scout {
         this.villageAttackCooldown = stats.VILLAGE_ATTACK_COOLDOWN;
         this.heroAttackCooldown = stats.HERO_ATTACK_COOLDOWN;
         this.attackRange = stats.ATTACK_RANGE || baseStats.ATTACK_RANGE;
+        this.dashDistance = stats.DASH_DISTANCE || baseStats.DASH_DISTANCE;
+        this.dashDuration = stats.DASH_DURATION || baseStats.DASH_DURATION;
 
         // Projectile properties
         this.projectileSpeed = stats.PROJECTILE_SPEED || baseStats.PROJECTILE_SPEED;
@@ -96,6 +98,13 @@ export class Scout {
         this.attackAngle = 0;
         this.attackProgress = 0;
         this.attackHasFired = false;
+        this.attackHasDashed = false;
+        this.dashTimer = 0;
+        this.dashStartX = 0;
+        this.dashStartY = 0;
+        this.dashTargetX = 0;
+        this.dashTargetY = 0;
+        this.dashDirection = 1;
 
         // Attack timing
         this.attackWindup = baseStats.ATTACK_WINDUP || 0.3;
@@ -190,7 +199,9 @@ export class Scout {
         }
 
         // Movement
-        this.moveTowardsTarget();
+        if (!this.updateDash(deltaTime)) {
+            this.moveTowardsTarget();
+        }
 
         // Check if can start an attack
         if (!this.isAttacking()) {
@@ -330,6 +341,9 @@ export class Scout {
         this.attackTargetType = targetType;
         this.attackProgress = 0;
         this.attackHasFired = false;
+        this.attackHasDashed = false;
+        this.dashTimer = 0;
+        this.dashDirection = Math.random() < 0.5 ? -1 : 1;
     }
 
     /**
@@ -350,6 +364,10 @@ export class Scout {
         } else if (this.attackPhase === AttackPhase.ACTIVE) {
             this.attackProgress = this.attackTimer / this.attackDuration;
             if (!this.attackHasFired && this.attackTimer >= this.attackDuration * 0.5) {
+                if (!this.attackHasDashed) {
+                    this.startAttackDash();
+                    this.attackHasDashed = true;
+                }
                 this.attackHasFired = true;
                 const speed = this.projectileSpeed;
                 return {
@@ -382,6 +400,43 @@ export class Scout {
         }
 
         return null;
+    }
+
+    /**
+     * Start a quick sideways dash right before firing.
+     */
+    startAttackDash() {
+        const perpX = -Math.sin(this.attackAngle);
+        const perpY = Math.cos(this.attackAngle);
+        const dashX = perpX * this.dashDistance * this.dashDirection;
+        const dashY = perpY * this.dashDistance * this.dashDirection;
+        const nextX = this.x + dashX;
+        const nextY = this.y + dashY;
+        const minX = this.radius;
+        const minY = this.radius;
+        const maxX = CONFIG.WORLD.WIDTH - this.radius;
+        const maxY = CONFIG.WORLD.HEIGHT - this.radius;
+        this.dashStartX = this.x;
+        this.dashStartY = this.y;
+        this.dashTargetX = Math.min(maxX, Math.max(minX, nextX));
+        this.dashTargetY = Math.min(maxY, Math.max(minY, nextY));
+        this.dashTimer = 0;
+    }
+
+    /**
+     * Slide the scout during a dash.
+     * @param {number} deltaTime - Frame delta
+     * @returns {boolean} True if dash movement handled
+     */
+    updateDash(deltaTime) {
+        if (!this.attackHasDashed || this.dashTimer >= this.dashDuration) {
+            return false;
+        }
+        this.dashTimer = Math.min(this.dashDuration, this.dashTimer + deltaTime);
+        const t = this.dashDuration > 0 ? this.dashTimer / this.dashDuration : 1;
+        this.x = this.dashStartX + (this.dashTargetX - this.dashStartX) * t;
+        this.y = this.dashStartY + (this.dashTargetY - this.dashStartY) * t;
+        return true;
     }
 
     /**
