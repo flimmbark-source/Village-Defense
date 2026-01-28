@@ -17,7 +17,7 @@ export const SKILL_TREE = {
             extraMilitiaPerVillage: 1
         },
         requires: [],
-        position: { x: 350, y: 150 }
+        position: { x: 0, y: 0 }
     },
     extra_militia_2: {
         id: 'extra_militia_2',
@@ -29,7 +29,7 @@ export const SKILL_TREE = {
             extraMilitiaPerVillage: 1
         },
         requires: ['extra_militia_1'],
-        position: { x: 280, y: 220 }
+        position: { x: 0, y: 140 }
     },
     arrow_tower: {
         id: 'arrow_tower',
@@ -41,7 +41,7 @@ export const SKILL_TREE = {
             arrowTowerPerVillage: 1
         },
         requires: ['extra_militia_1'],
-        position: { x: 420, y: 220 }
+        position: { x: 99, y: 99 }
     },
     militia_power: {
         id: 'militia_power',
@@ -54,7 +54,7 @@ export const SKILL_TREE = {
             militiaHpBonus: 20
         },
         requires: ['extra_militia_1'],
-        position: { x: 350, y: 280 }
+        position: { x: -99, y: 99 }
     },
     barracks: {
         id: 'barracks',
@@ -67,7 +67,7 @@ export const SKILL_TREE = {
             barracksSpawnInterval: 30
         },
         requires: ['extra_militia_2', 'arrow_tower'],
-        position: { x: 350, y: 350 }
+        position: { x: -92, y: 222 }
     },
 
     // Economic Branch (Top-Right)
@@ -80,8 +80,8 @@ export const SKILL_TREE = {
         effects: {
             goldMultiplier: 0.20
         },
-        requires: [],
-        position: { x: 650, y: 150 }
+        requires: ['extra_militia_1'],
+        position: { x: 140, y: 0 }
     },
     faster_shops: {
         id: 'faster_shops',
@@ -92,8 +92,8 @@ export const SKILL_TREE = {
         effects: {
             shopTimeReduction: 5
         },
-        requires: [],
-        position: { x: 720, y: 220 }
+        requires: ['extra_militia_1'],
+        position: { x: 99, y: -99 }
     },
     faster_shops_2: {
         id: 'faster_shops_2',
@@ -105,7 +105,7 @@ export const SKILL_TREE = {
             shopTimeReduction: 10
         },
         requires: ['faster_shops'],
-        position: { x: 780, y: 280 }
+        position: { x: 222, y: -92 }
     },
     xp_boost: {
         id: 'xp_boost',
@@ -117,7 +117,7 @@ export const SKILL_TREE = {
             xpMultiplier: 0.15
         },
         requires: ['gold_boost'],
-        position: { x: 580, y: 220 }
+        position: { x: 92, y: 222 }
     },
 
     // Castle Assault Branch (Right)
@@ -130,8 +130,8 @@ export const SKILL_TREE = {
         effects: {
             castleHpReduction: 500
         },
-        requires: [],
-        position: { x: 800, y: 150 }
+        requires: ['extra_militia_1'],
+        position: { x: 0, y: -140 }
     },
     weaken_castle_2: {
         id: 'weaken_castle_2',
@@ -143,7 +143,7 @@ export const SKILL_TREE = {
             castleHpReduction: 750
         },
         requires: ['weaken_castle'],
-        position: { x: 850, y: 220 }
+        position: { x: -92, y: -222 }
     },
     slow_spawns: {
         id: 'slow_spawns',
@@ -155,7 +155,7 @@ export const SKILL_TREE = {
             castleSpawnDelay: 0.5
         },
         requires: ['weaken_castle'],
-        position: { x: 900, y: 280 }
+        position: { x: 92, y: -222 }
     },
     reduce_wave_size: {
         id: 'reduce_wave_size',
@@ -167,7 +167,7 @@ export const SKILL_TREE = {
             waveReduction: 1
         },
         requires: ['weaken_castle_2', 'slow_spawns'],
-        position: { x: 875, y: 350 }
+        position: { x: 0, y: -320 }
     },
 
     // Hero Combat Branch (Bottom)
@@ -180,8 +180,8 @@ export const SKILL_TREE = {
         effects: {
             damageMultiplier: 0.10
         },
-        requires: [],
-        position: { x: 350, y: 450 }
+        requires: ['extra_militia_1'],
+        position: { x: -140, y: 0 }
     },
     hero_hp: {
         id: 'hero_hp',
@@ -192,8 +192,8 @@ export const SKILL_TREE = {
         effects: {
             maxHp: 30
         },
-        requires: [],
-        position: { x: 450, y: 450 }
+        requires: ['extra_militia_1'],
+        position: { x: -99, y: -99 }
     },
     hero_speed: {
         id: 'hero_speed',
@@ -204,8 +204,8 @@ export const SKILL_TREE = {
         effects: {
             speed: 0.3
         },
-        requires: [],
-        position: { x: 550, y: 450 }
+        requires: ['extra_militia_1'],
+        position: { x: -222, y: 92 }
     },
     hero_cooldown: {
         id: 'hero_cooldown',
@@ -216,8 +216,8 @@ export const SKILL_TREE = {
         effects: {
             cooldownMultiplier: -0.10
         },
-        requires: [],
-        position: { x: 650, y: 450 }
+        requires: ['extra_militia_1'],
+        position: { x: -222, y: -92 }
     },
     hero_range: {
         id: 'hero_range',
@@ -228,8 +228,8 @@ export const SKILL_TREE = {
         effects: {
             attackRange: 0.15
         },
-        requires: [],
-        position: { x: 750, y: 450 }
+        requires: ['extra_militia_1'],
+        position: { x: 222, y: 92 }
     },
     lifesteal: {
         id: 'lifesteal',
@@ -241,7 +241,7 @@ export const SKILL_TREE = {
             lifesteal: 0.05
         },
         requires: ['hero_damage', 'hero_hp'],
-        position: { x: 400, y: 520 }
+        position: { x: -277, y: -160 }
     },
     crit_chance: {
         id: 'crit_chance',
@@ -253,7 +253,7 @@ export const SKILL_TREE = {
             critChance: 0.10
         },
         requires: ['hero_damage'],
-        position: { x: 300, y: 520 }
+        position: { x: -277, y: 160 }
     }
 };
 
