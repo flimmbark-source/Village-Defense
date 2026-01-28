@@ -87,6 +87,9 @@ export class Scout {
         this.disengageVillageTarget = null; // Village being moved towards during disengage
         this.enrageStacks = 0; // Bonus attacks from enrage debuff (from hero weapons)
 
+        // Village attack tracking - reference to village for militia targeting
+        this.attackingVillage = null;
+
         this.isBuffed = false;
 
         this.state = ScoutState.PATROLLING;
@@ -239,7 +242,11 @@ export class Scout {
 
         // Look for village targets
         for (const village of villages) {
-            const allTargets = [...village.huts.filter(h => !h.isDead())];
+            // Include militia as potential targets (they're a threat!)
+            const allTargets = [
+                ...village.militia.filter(m => !m.isDead()),
+                ...village.huts.filter(h => !h.isDead())
+            ];
 
             for (const target of allTargets) {
                 const distToTargetSq = distanceSquared(this.x, this.y, target.x, target.y);
@@ -247,6 +254,7 @@ export class Scout {
                     this.state = ScoutState.ATTACKING_VILLAGE;
                     this.villageAttackTarget = target;
                     this.currentTarget = target;
+                    this.attackingVillage = village; // Store village reference
                     village.isUnderAttack = true;
                     village.attackers.add(this.id);
                     this.applyBuff();
@@ -299,14 +307,22 @@ export class Scout {
             if (this.disengageVillageTarget && !this.disengageVillageTarget.isDestroyed()) {
                 // Switch to attacking the village
                 this.state = ScoutState.ATTACKING_VILLAGE;
-                // Find a valid hut target
+                this.attackingVillage = this.disengageVillageTarget;
+
+                // Prioritize militia targets first, then huts
+                const validMilitia = this.disengageVillageTarget.militia.filter(m => !m.isDead());
                 const validHuts = this.disengageVillageTarget.huts.filter(h => !h.isDead());
-                if (validHuts.length > 0) {
+
+                if (validMilitia.length > 0) {
+                    this.villageAttackTarget = validMilitia[0];
+                    this.currentTarget = validMilitia[0];
+                } else if (validHuts.length > 0) {
                     this.villageAttackTarget = validHuts[0];
                     this.currentTarget = validHuts[0];
-                    this.disengageVillageTarget.isUnderAttack = true;
-                    this.disengageVillageTarget.attackers.add(this.id);
                 }
+
+                this.disengageVillageTarget.isUnderAttack = true;
+                this.disengageVillageTarget.attackers.add(this.id);
             } else {
                 // No valid village, go back to patrolling
                 this.state = ScoutState.PATROLLING;
@@ -361,17 +377,77 @@ export class Scout {
 
     /**
      * Update village attack behavior
+     * Prioritizes militia (threats) over huts
      */
     updateVillageAttack() {
+        // If current target is dead, find a new one
         if (!this.villageAttackTarget || this.villageAttackTarget.isDead()) {
+            // Try to find a new target in the same village
+            if (this.attackingVillage && !this.attackingVillage.isDestroyed()) {
+                // Prioritize militia (they're shooting at us!)
+                const nearestMilitia = this.findNearestTarget(this.attackingVillage.militia.filter(m => !m.isDead()));
+                if (nearestMilitia) {
+                    this.villageAttackTarget = nearestMilitia;
+                    this.currentTarget = nearestMilitia;
+                    return;
+                }
+
+                // Fall back to huts
+                const nearestHut = this.findNearestTarget(this.attackingVillage.huts.filter(h => !h.isDead()));
+                if (nearestHut) {
+                    this.villageAttackTarget = nearestHut;
+                    this.currentTarget = nearestHut;
+                    return;
+                }
+            }
+
+            // No valid targets, go back to patrolling
             this.state = ScoutState.PATROLLING;
             this.villageAttackTarget = null;
             this.currentTarget = null;
+            this.attackingVillage = null;
             return;
+        }
+
+        // Check if there's nearby militia we should prioritize over current target (if current is a hut)
+        if (this.attackingVillage && this.villageAttackTarget.width === CONFIG.VILLAGE.HUT_WIDTH) {
+            const aliveMilitia = this.attackingVillage.militia.filter(m => !m.isDead());
+            if (aliveMilitia.length > 0) {
+                // Check if any militia is close and threatening
+                const nearestMilitia = this.findNearestTarget(aliveMilitia);
+                if (nearestMilitia) {
+                    const distToMilitia = distanceSquared(this.x, this.y, nearestMilitia.x, nearestMilitia.y);
+                    // Switch target if militia is within attack range
+                    if (distToMilitia < (this.attackRange + 50) * (this.attackRange + 50)) {
+                        this.villageAttackTarget = nearestMilitia;
+                        this.currentTarget = nearestMilitia;
+                    }
+                }
+            }
         }
 
         this.targetX = this.villageAttackTarget.x + (this.villageAttackTarget.width || 0) / 2;
         this.targetY = this.villageAttackTarget.y + (this.villageAttackTarget.height || 0) / 2;
+    }
+
+    /**
+     * Find the nearest target from a list
+     * @param {Array} targets - Array of potential targets
+     * @returns {Object|null} Nearest target or null
+     */
+    findNearestTarget(targets) {
+        let nearest = null;
+        let nearestDistSq = Infinity;
+
+        for (const target of targets) {
+            const distSq = distanceSquared(this.x, this.y, target.x, target.y);
+            if (distSq < nearestDistSq) {
+                nearestDistSq = distSq;
+                nearest = target;
+            }
+        }
+
+        return nearest;
     }
 
     /**

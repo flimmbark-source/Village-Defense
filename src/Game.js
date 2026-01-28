@@ -647,7 +647,7 @@ export class Game {
                 const collisionDist = proj.radius + targetRadius;
 
                 if (distSq < collisionDist * collisionDist) {
-                    // Hit village structure
+                    // Hit village structure or militia
                     const destroyed = target.takeDamage(proj.damage);
                     this.effects.spawnDamageNumber(
                         targetCenterX,
@@ -655,10 +655,12 @@ export class Game {
                         proj.damage
                     );
                     if (destroyed) {
+                        // Check if target is militia (has attackTimer property) or building
+                        const isMilitia = target.attackTimer !== undefined;
                         this.effects.addFloatingText(
                             targetCenterX,
                             target.y - 20,
-                            'Building Destroyed!',
+                            isMilitia ? 'Guard Slain!' : 'Building Destroyed!',
                             { color: '#ff4444', font: 'bold 16px MedievalSharp', lifetime: 1.5 }
                         );
                     }
