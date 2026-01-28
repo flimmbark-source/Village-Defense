@@ -107,8 +107,17 @@ export class SkillTreeUI {
         const wrapperWidth = this.canvasWrapper.clientWidth || requiredWidth;
         const wrapperHeight = this.canvasWrapper.clientHeight || requiredHeight;
 
-        this.canvas.width = Math.max(wrapperWidth, requiredWidth);
-        this.canvas.height = Math.max(wrapperHeight, requiredHeight);
+        // On mobile, ensure canvas fits within wrapper
+        const isMobile = window.innerWidth <= 768;
+        if (isMobile) {
+            // Use wrapper dimensions to constrain canvas on mobile
+            this.canvas.width = Math.min(wrapperWidth, requiredWidth);
+            this.canvas.height = Math.min(wrapperHeight, requiredHeight);
+        } else {
+            // On desktop, use full required size
+            this.canvas.width = Math.max(wrapperWidth, requiredWidth);
+            this.canvas.height = Math.max(wrapperHeight, requiredHeight);
+        }
     }
 
     /**
