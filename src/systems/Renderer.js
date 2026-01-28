@@ -374,6 +374,40 @@ export class Renderer {
                     }
                 }
             });
+
+            // Save nodes (displayed above village)
+            if (v.maxSaveNodes > 0) {
+                const nodeSize = 12;
+                const nodeSpacing = 18;
+                const totalWidth = (v.maxSaveNodes * nodeSpacing) - 6;
+                const startX = v.x - totalWidth / 2;
+                const nodeY = v.y - 130;
+
+                for (let i = 0; i < v.maxSaveNodes; i++) {
+                    const nodeX = startX + (i * nodeSpacing);
+                    const filled = i < v.filledSaveNodes;
+
+                    // Draw node circle
+                    this.ctx.beginPath();
+                    this.ctx.arc(nodeX, nodeY, nodeSize / 2, 0, Math.PI * 2);
+
+                    if (filled) {
+                        // Filled node (gold)
+                        this.ctx.fillStyle = '#ffd700';
+                        this.ctx.fill();
+                        this.ctx.strokeStyle = '#cc9900';
+                        this.ctx.lineWidth = 2;
+                        this.ctx.stroke();
+                    } else {
+                        // Empty node (dark outline)
+                        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+                        this.ctx.fill();
+                        this.ctx.strokeStyle = '#666';
+                        this.ctx.lineWidth = 2;
+                        this.ctx.stroke();
+                    }
+                }
+            }
         });
     }
 

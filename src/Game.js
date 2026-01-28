@@ -267,6 +267,11 @@ export class Game {
         this.waveTimer = 40 + (this.waveNumber - 1) * 20;
         this.waveSpawningActive = true;
 
+        // Reset village save nodes for new wave
+        for (const village of this.villages) {
+            village.resetSaveNodes();
+        }
+
         // Show wave announcement
         this.showingWaveAnnouncement = true;
         this.waveAnnouncementTimer = this.waveAnnouncementDuration;
@@ -761,13 +766,12 @@ export class Game {
         const heroCenter = this.hero.getCenter();
         const heroRadiusSq = (this.hero.width / 2) * (this.hero.width / 2);
 
-        const moveScale = deltaTime * 60;
         for (let i = this.enemyProjectiles.length - 1; i >= 0; i--) {
             const proj = this.enemyProjectiles[i];
 
-            // Move projectile
-            proj.x += proj.vx * moveScale;
-            proj.y += proj.vy * moveScale;
+            // Move projectile (velocities are in pixels per second)
+            proj.x += proj.vx * deltaTime;
+            proj.y += proj.vy * deltaTime;
             proj.age += deltaTime;
 
             // Check if expired
@@ -1016,9 +1020,15 @@ export class Game {
                     const result = village.removeAttacker(deadScout.id);
                     if (result && result.attackEnded) {
                         if (result.heroHelped) {
-                            // Bonus gold for saving village
-                            const bonusGold = 50;
-                            this.spawnPickup(village.x, village.y, 'gold', bonusGold);
+                            if (result.goldAwarded > 0) {
+                                // Award gold for saving village
+                                this.hero.addGold(result.goldAwarded);
+                                this.effects.addFloatingText(village.x, village.y - 40, `+${result.goldAwarded} 🪙`, {
+                                    color: '#ffd700',
+                                    font: 'bold 24px MedievalSharp',
+                                    lifetime: 1.5
+                                });
+                            }
                             this.effects.addFloatingText(village.x, village.y - 30, 'Village Saved!', {
                                 color: '#4cd44c',
                                 font: 'bold 20px MedievalSharp',
