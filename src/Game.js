@@ -264,7 +264,7 @@ export class Game {
         this.waveLevelUps = 0; // Reset level-up counter for new wave
 
         // Add 20 seconds to timer for each wave
-        this.waveTimer = 40 + (this.waveNumber - 1) * 20;
+        this.waveTimer = 40 + (this.waveNumber - 1) * 5;
         this.waveSpawningActive = true;
 
         // Show wave announcement
