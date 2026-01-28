@@ -619,19 +619,6 @@ export class Renderer {
                 continue;
             }
 
-            // Simple trail using velocity (no gradients)
-            const trailX = proj.x - proj.vx * 2;
-            const trailY = proj.y - proj.vy * 2;
-
-            ctx.beginPath();
-            ctx.moveTo(trailX, trailY);
-            ctx.lineTo(proj.x, proj.y);
-            ctx.strokeStyle = proj.color;
-            ctx.lineWidth = proj.radius;
-            ctx.globalAlpha = 0.4;
-            ctx.stroke();
-            ctx.globalAlpha = 1;
-
             // Outer glow (simple circle, no gradient)
             ctx.beginPath();
             ctx.arc(proj.x, proj.y, proj.radius * 1.3, 0, Math.PI * 2);
