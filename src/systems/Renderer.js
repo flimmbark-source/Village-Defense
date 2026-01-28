@@ -540,6 +540,62 @@ export class Renderer {
     }
 
     /**
+     * Draw militia sword swipe attacks
+     * @param {Array} militiaAttacks - Militia attack events
+     * @param {Object} viewBounds - View bounds for culling
+     */
+    drawMilitiaAttacks(militiaAttacks, viewBounds = null) {
+        const ctx = this.ctx;
+
+        for (const attack of militiaAttacks) {
+            if (!this.isCircleVisible(viewBounds, attack.x, attack.y, 40)) {
+                continue;
+            }
+
+            const progress = attack.timer / attack.duration;
+            const swipeArc = (CONFIG.MILITIA.SWIPE_ARC * Math.PI) / 180;
+            const startAngle = attack.angle - swipeArc / 2;
+            const currentAngle = startAngle + swipeArc * progress;
+
+            // Sword swipe arc
+            ctx.save();
+            ctx.translate(attack.x, attack.y);
+
+            // Draw arc trail
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.arc(0, 0, 30, startAngle, currentAngle);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(192, 192, 192, 0.4)';
+            ctx.fill();
+
+            // Draw sword line at current angle
+            const swordLength = 25;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(
+                Math.cos(currentAngle) * swordLength,
+                Math.sin(currentAngle) * swordLength
+            );
+            ctx.strokeStyle = '#c0c0c0';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Sword tip
+            ctx.beginPath();
+            ctx.arc(
+                Math.cos(currentAngle) * swordLength,
+                Math.sin(currentAngle) * swordLength,
+                3, 0, Math.PI * 2
+            );
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
+
+            ctx.restore();
+        }
+    }
+
+    /**
      * Draw attacks
      * @param {Array} attacks - Attack instances
      */
