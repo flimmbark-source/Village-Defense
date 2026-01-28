@@ -127,12 +127,13 @@ export class Militia {
     update(deltaTime, village, scouts, onMeleeHit) {
         if (this.isDead()) return null;
 
-        this.attackTimer -= deltaTime;
+        const speedMult = CONFIG.SPEED_MULTIPLIER;
+        this.attackTimer -= deltaTime * speedMult;
         let attackEvent = null;
 
         // Update swipe animation
         if (this.isAttacking) {
-            this.swipeTimer += deltaTime;
+            this.swipeTimer += deltaTime * speedMult;
             this.swipeProgress = this.swipeTimer / CONFIG.MILITIA.SWIPE_DURATION;
             if (this.swipeTimer >= CONFIG.MILITIA.SWIPE_DURATION) {
                 this.isAttacking = false;
@@ -192,7 +193,7 @@ export class Militia {
         const dist = Math.sqrt(dx * dx + dy * dy);
 
         if (dist > CONFIG.MILITIA.ATTACK_RANGE) {
-            const step = CONFIG.MILITIA.SPEED * deltaTime * 60;
+            const step = CONFIG.MILITIA.SPEED * deltaTime * 60 * CONFIG.SPEED_MULTIPLIER;
             this.x += (dx / dist) * step;
             this.y += (dy / dist) * step;
         }
@@ -235,7 +236,7 @@ export class Militia {
 
         // Move back to home position with speed boost
         const speed = CONFIG.MILITIA.SPEED * CONFIG.MILITIA.DISENGAGE_SPEED_MULTIPLIER;
-        const step = speed * deltaTime * 60;
+        const step = speed * deltaTime * 60 * CONFIG.SPEED_MULTIPLIER;
 
         if (dist > step) {
             this.x += (dx / dist) * step;

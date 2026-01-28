@@ -192,7 +192,8 @@ export class Scout {
      * @returns {Object|null} Attack event if attack connects
      */
     update(deltaTime, hero, forests, villages, castle = null) {
-        this.attackCooldownTimer -= deltaTime;
+        const speedMult = CONFIG.SPEED_MULTIPLIER;
+        this.attackCooldownTimer -= deltaTime * speedMult;
         this.updateHeroTracking(hero, deltaTime);
 
         let attackEvent = null;
@@ -471,7 +472,7 @@ export class Scout {
         const dy = this.targetY - this.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         const speedMult = isDisengaging ? this.disengageSpeedMultiplier : 1.0;
-        const step = this.speed * speedMult * deltaTime * 60;
+        const step = this.speed * speedMult * deltaTime * 60 * CONFIG.SPEED_MULTIPLIER;
 
         if (dist > step) {
             this.x += (dx / dist) * step;
@@ -545,7 +546,8 @@ export class Scout {
      * @returns {Object|null} Projectile data when attack fires
      */
     updateAttack(deltaTime) {
-        this.attackTimer += deltaTime;
+        const scaledDelta = deltaTime * CONFIG.SPEED_MULTIPLIER;
+        this.attackTimer += scaledDelta;
 
         if (this.attackPhase === AttackPhase.WINDUP) {
             this.attackProgress = this.attackTimer / this.attackWindup;
@@ -575,7 +577,7 @@ export class Scout {
                 }
                 this.attackAngle = Math.atan2(aimTargetY - this.y, aimTargetX - this.x);
                 this.attackHasFired = true;
-                const speed = this.projectileSpeed * 60;
+                const speed = this.projectileSpeed * 60 * CONFIG.SPEED_MULTIPLIER;
                 return {
                     isProjectile: true,
                     x: this.x,
@@ -638,7 +640,8 @@ export class Scout {
         if (!this.attackHasDashed || this.dashTimer >= this.dashDuration) {
             return false;
         }
-        this.dashTimer = Math.min(this.dashDuration, this.dashTimer + deltaTime);
+        const scaledDelta = deltaTime * CONFIG.SPEED_MULTIPLIER;
+        this.dashTimer = Math.min(this.dashDuration, this.dashTimer + scaledDelta);
         const t = this.dashDuration > 0 ? this.dashTimer / this.dashDuration : 1;
         this.x = this.dashStartX + (this.dashTargetX - this.dashStartX) * t;
         this.y = this.dashStartY + (this.dashTargetY - this.dashStartY) * t;
@@ -724,7 +727,7 @@ export class Scout {
             this.replanTimer -= deltaTime;
         }
 
-        const leadTime = Math.min(0.8, Math.max(0.15, (dist / this.projectileSpeed) * profile.leadFactor));
+        const leadTime = Math.min(0.8, Math.max(0.15, (dist / (this.projectileSpeed * CONFIG.SPEED_MULTIPLIER)) * profile.leadFactor));
         const predictedX = heroCenter.x + this.heroVelocityX * leadTime;
         const predictedY = heroCenter.y + this.heroVelocityY * leadTime;
 

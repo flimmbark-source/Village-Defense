@@ -4,6 +4,7 @@
  * Building that periodically spawns militia guards for the village
  */
 
+import { CONFIG } from '../config.js';
 import { generateId } from '../utils.js';
 import { Militia } from './Village.js';
 
@@ -48,7 +49,7 @@ export class Barracks {
     update(deltaTime) {
         if (this.isDead()) return null;
 
-        this.spawnTimer -= deltaTime;
+        this.spawnTimer -= deltaTime * CONFIG.SPEED_MULTIPLIER;
 
         if (this.spawnTimer <= 0) {
             this.spawnTimer = this.spawnInterval;

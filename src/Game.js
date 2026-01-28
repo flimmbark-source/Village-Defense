@@ -747,9 +747,10 @@ export class Game {
      * @param {number} deltaTime - Time since last frame
      */
     updateEnemyAttacks(deltaTime) {
+        const speedMult = CONFIG.SPEED_MULTIPLIER;
         for (let i = this.enemyAttacks.length - 1; i >= 0; i--) {
             const attack = this.enemyAttacks[i];
-            attack.timer += deltaTime;
+            attack.timer += deltaTime * speedMult;
 
             if (attack.timer >= attack.duration) {
                 this.enemyAttacks.splice(i, 1);
@@ -763,6 +764,7 @@ export class Game {
      * @param {number} deltaTime - Time since last frame
      */
     updateEnemyProjectiles(deltaTime) {
+        const speedMult = CONFIG.SPEED_MULTIPLIER;
         const heroCenter = this.hero.getCenter();
         const heroRadiusSq = (this.hero.width / 2) * (this.hero.width / 2);
 
@@ -770,8 +772,8 @@ export class Game {
             const proj = this.enemyProjectiles[i];
 
             // Move projectile (velocities are in pixels per second)
-            proj.x += proj.vx * deltaTime;
-            proj.y += proj.vy * deltaTime;
+            proj.x += proj.vx * deltaTime * speedMult;
+            proj.y += proj.vy * deltaTime * speedMult;
             proj.age += deltaTime;
 
             // Check if expired
@@ -958,9 +960,10 @@ export class Game {
      * @param {number} deltaTime - Time since last frame
      */
     updateMilitiaAttacks(deltaTime) {
+        const speedMult = CONFIG.SPEED_MULTIPLIER;
         for (let i = this.militiaAttacks.length - 1; i >= 0; i--) {
             const attack = this.militiaAttacks[i];
-            attack.timer += deltaTime;
+            attack.timer += deltaTime * speedMult;
 
             if (attack.timer >= attack.duration) {
                 this.militiaAttacks.splice(i, 1);

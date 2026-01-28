@@ -24,6 +24,7 @@ export const CONFIG = {
     // Game Settings
     DARK_LORD_SPAWN_COOLDOWN: 5.0,
     INVENTORY_SIZE: 6,
+    SPEED_MULTIPLIER: 1, // Global multiplier for unit movement, projectile speed, spawn rate, and attack speed
 
     // Hero Stats
     HERO: {

@@ -118,42 +118,44 @@ export class Attack {
      * @returns {Array} Array of damage events { enemy, damage }
      */
     update(deltaTime, hero, enemies) {
-        this.time += deltaTime;
+        const speedMult = CONFIG.SPEED_MULTIPLIER;
+        const scaledDelta = deltaTime * speedMult;
+        this.time += scaledDelta;
         const damageEvents = [];
         const pattern = this.weapon.attackPattern;
         const effects = this.weapon.effects;
 
         switch (pattern) {
             case 'slash':
-                this.updateSlash(deltaTime, hero, enemies, damageEvents);
+                this.updateSlash(scaledDelta, hero, enemies, damageEvents);
                 break;
 
             case 'projectile':
-                this.updateProjectile(deltaTime, enemies, damageEvents, false);
+                this.updateProjectile(scaledDelta, enemies, damageEvents, false);
                 break;
 
             case 'pierce':
-                this.updateProjectile(deltaTime, enemies, damageEvents, true);
+                this.updateProjectile(scaledDelta, enemies, damageEvents, true);
                 break;
 
             case 'homing':
-                this.updateHoming(deltaTime, enemies, damageEvents);
+                this.updateHoming(scaledDelta, enemies, damageEvents);
                 break;
 
             case 'nova':
-                this.updateNova(deltaTime, hero, enemies, damageEvents);
+                this.updateNova(scaledDelta, hero, enemies, damageEvents);
                 break;
 
             case 'whip':
-                this.updateWhip(deltaTime, hero, enemies, damageEvents);
+                this.updateWhip(scaledDelta, hero, enemies, damageEvents);
                 break;
 
             case 'lightning':
-                this.updateLightning(deltaTime, hero, enemies, damageEvents);
+                this.updateLightning(scaledDelta, hero, enemies, damageEvents);
                 break;
 
             case 'boomerang':
-                this.updateBoomerang(deltaTime, hero, enemies, damageEvents);
+                this.updateBoomerang(scaledDelta, hero, enemies, damageEvents);
                 break;
         }
 
