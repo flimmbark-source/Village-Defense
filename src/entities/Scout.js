@@ -575,7 +575,7 @@ export class Scout {
                 }
                 this.attackAngle = Math.atan2(aimTargetY - this.y, aimTargetX - this.x);
                 this.attackHasFired = true;
-                const speed = this.projectileSpeed;
+                const speed = this.projectileSpeed * 60;
                 return {
                     isProjectile: true,
                     x: this.x,
