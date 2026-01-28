@@ -134,6 +134,8 @@ export class Game {
         // Setup skill tree close callback - open shop after skill tree
         this.skillTreeUI.setCloseCallback(() => {
             this.applySkillTreeEffects();
+            // Ensure skill tree is fully closed before opening shop
+            this.skillTreeUI.panel.classList.add('hidden');
             // Open shop after skill tree
             this.levelUpSystem.generateShopInventory();
             this.levelUpSystem.showShopUI();
@@ -243,16 +245,13 @@ export class Game {
     endWave() {
         this.state = GameState.PAUSED;
 
-        // Show tavern animation, then open skill tree with accumulated points
-        this.showTavernAnimation(() => {
-            // Award skill points equal to level-ups during wave
-            if (this.waveLevelUps > 0) {
-                this.skillTreeManager.addSkillPoints(this.waveLevelUps);
-            }
+        // Award skill points for level-ups during wave
+        if (this.waveLevelUps > 0) {
+            this.skillTreeManager.addSkillPoints(this.waveLevelUps);
+        }
 
-            // Open skill tree (will open shop when closed)
-            this.openSkillTree();
-        });
+        // Open skill tree directly (no animation)
+        this.openSkillTree();
     }
 
     /**
