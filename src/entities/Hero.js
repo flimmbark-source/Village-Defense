@@ -39,6 +39,7 @@ export class Hero {
         this.xpMultiplier = 0;
         this.thorns = 0;
         this.attackRangeMultiplier = 1;
+        this.taunt = 0; // Increases enemy disengage attack count
 
         // Weapons (inventory of WeaponInstances)
         this.weapons = [];
@@ -253,6 +254,9 @@ export class Hero {
             case 'attackRange':
                 this.attackRangeMultiplier += effect.value;
                 break;
+            case 'taunt':
+                this.taunt += effect.value;
+                break;
         }
     }
 
@@ -301,6 +305,9 @@ export class Hero {
                 break;
             case 'attackRange':
                 this.attackRangeMultiplier -= effect.value;
+                break;
+            case 'taunt':
+                this.taunt = Math.max(0, this.taunt - effect.value);
                 break;
         }
     }

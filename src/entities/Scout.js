@@ -12,7 +12,8 @@ export const ScoutState = {
     CHASING: 'CHASING',
     ATTACKING_VILLAGE: 'ATTACKING_VILLAGE',
     ATTACKING_HERO: 'ATTACKING_HERO',
-    ATTACKING_CASTLE: 'ATTACKING_CASTLE'
+    ATTACKING_CASTLE: 'ATTACKING_CASTLE',
+    DISENGAGING: 'DISENGAGING' // Moving towards village, can fire at hero but won't chase
 };
 
 export const AttackPhase = {
@@ -76,6 +77,15 @@ export class Scout {
         this.goldDropMin = stats.GOLD_DROP_MIN;
         this.goldDropMax = stats.GOLD_DROP_MAX;
         this.goldDropChance = stats.GOLD_DROP_CHANCE;
+
+        // Village priority / disengage system
+        this.disengageAttackCount = stats.DISENGAGE_ATTACK_COUNT || baseStats.DISENGAGE_ATTACK_COUNT || 3;
+        this.disengageDuration = stats.DISENGAGE_DURATION || baseStats.DISENGAGE_DURATION || 3.0;
+        this.disengageSpeedMultiplier = stats.DISENGAGE_SPEED_MULTIPLIER || baseStats.DISENGAGE_SPEED_MULTIPLIER || 1.2;
+        this.heroAttackCount = 0; // Tracks attacks against hero
+        this.disengageTimer = 0; // Timer during disengage phase
+        this.disengageVillageTarget = null; // Village being moved towards during disengage
+        this.enrageStacks = 0; // Bonus attacks from enrage debuff (from hero weapons)
 
         this.isBuffed = false;
 
@@ -193,7 +203,9 @@ export class Scout {
         }
 
         if (this.state === ScoutState.CHASING) {
-            this.updateChasing(hero, deltaTime);
+            this.updateChasing(hero, deltaTime, villages);
+        } else if (this.state === ScoutState.DISENGAGING) {
+            this.updateDisengaging(hero, deltaTime, villages);
         } else if (this.state === ScoutState.ATTACKING_VILLAGE) {
             this.updateVillageAttack();
         } else if (this.state === ScoutState.PATROLLING) {
@@ -202,7 +214,7 @@ export class Scout {
 
         // Movement
         if (!this.updateDash(deltaTime)) {
-            this.moveTowardsTarget(deltaTime);
+            this.moveTowardsTarget(deltaTime, this.state === ScoutState.DISENGAGING);
         }
 
         // Check if can start an attack
@@ -246,13 +258,105 @@ export class Scout {
 
     /**
      * Update chasing state
+     * @param {Object} hero - Hero entity
+     * @param {number} deltaTime - Time delta
+     * @param {Array} villages - Village entities for disengage targeting
      */
-    updateChasing(hero, deltaTime) {
+    updateChasing(hero, deltaTime, villages) {
         const heroCenter = hero.getCenter();
+
+        // Check if we should disengage based on hero attack count
+        const effectiveDisengageCount = this.disengageAttackCount + this.enrageStacks + (hero.taunt || 0);
+        if (this.heroAttackCount >= effectiveDisengageCount) {
+            // Find nearest non-destroyed village to disengage towards
+            const targetVillage = this.findNearestVillage(villages);
+            if (targetVillage) {
+                this.state = ScoutState.DISENGAGING;
+                this.disengageVillageTarget = targetVillage;
+                this.disengageTimer = this.disengageDuration;
+                this.heroAttackCount = 0; // Reset counter
+                return;
+            }
+        }
+
         const combatTarget = this.getCombatTarget(heroCenter, deltaTime);
         this.targetX = combatTarget.x;
         this.targetY = combatTarget.y;
         this.currentTarget = hero;
+    }
+
+    /**
+     * Update disengaging state - moving towards village while firing at hero
+     * @param {Object} hero - Hero entity (can still fire at)
+     * @param {number} deltaTime - Time delta
+     * @param {Array} villages - Village entities
+     */
+    updateDisengaging(hero, deltaTime, villages) {
+        this.disengageTimer -= deltaTime;
+
+        // If timer expired, transition to village attack or resume chase
+        if (this.disengageTimer <= 0) {
+            if (this.disengageVillageTarget && !this.disengageVillageTarget.isDestroyed()) {
+                // Switch to attacking the village
+                this.state = ScoutState.ATTACKING_VILLAGE;
+                // Find a valid hut target
+                const validHuts = this.disengageVillageTarget.huts.filter(h => !h.isDead());
+                if (validHuts.length > 0) {
+                    this.villageAttackTarget = validHuts[0];
+                    this.currentTarget = validHuts[0];
+                    this.disengageVillageTarget.isUnderAttack = true;
+                    this.disengageVillageTarget.attackers.add(this.id);
+                }
+            } else {
+                // No valid village, go back to patrolling
+                this.state = ScoutState.PATROLLING;
+            }
+            this.disengageVillageTarget = null;
+            this.enrageStacks = 0; // Clear enrage when disengage ends
+            return;
+        }
+
+        // Move towards village center
+        if (this.disengageVillageTarget && !this.disengageVillageTarget.isDestroyed()) {
+            this.targetX = this.disengageVillageTarget.x;
+            this.targetY = this.disengageVillageTarget.y;
+        } else {
+            // Village was destroyed, find another or return to patrol
+            const newTarget = this.findNearestVillage(villages);
+            if (newTarget) {
+                this.disengageVillageTarget = newTarget;
+                this.targetX = newTarget.x;
+                this.targetY = newTarget.y;
+            } else {
+                this.state = ScoutState.PATROLLING;
+                this.disengageVillageTarget = null;
+            }
+        }
+
+        // Keep tracking hero for opportunistic attacks (handled in checkForAttack)
+        this.currentTarget = hero;
+    }
+
+    /**
+     * Find the nearest non-destroyed village
+     * @param {Array} villages - Village entities
+     * @returns {Object|null} Nearest village or null
+     */
+    findNearestVillage(villages) {
+        let nearest = null;
+        let nearestDistSq = Infinity;
+
+        for (const village of villages) {
+            if (village.isDestroyed()) continue;
+
+            const distSq = distanceSquared(this.x, this.y, village.x, village.y);
+            if (distSq < nearestDistSq) {
+                nearestDistSq = distSq;
+                nearest = village;
+            }
+        }
+
+        return nearest;
     }
 
     /**
@@ -283,12 +387,15 @@ export class Scout {
 
     /**
      * Move towards current target
+     * @param {number} deltaTime - Time delta
+     * @param {boolean} isDisengaging - Whether in disengage state (use speed multiplier)
      */
-    moveTowardsTarget(deltaTime) {
+    moveTowardsTarget(deltaTime, isDisengaging = false) {
         const dx = this.targetX - this.x;
         const dy = this.targetY - this.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        const step = this.speed * deltaTime * 60;
+        const speedMult = isDisengaging ? this.disengageSpeedMultiplier : 1.0;
+        const step = this.speed * speedMult * deltaTime * 60;
 
         if (dist > step) {
             this.x += (dx / dist) * step;
@@ -306,14 +413,19 @@ export class Scout {
             return null;
         }
 
-        // Check hero distance
+        // Check hero distance - can attack hero while CHASING or DISENGAGING
         const heroCenter = hero.getCenter();
         const distToHeroSq = distanceSquared(this.x, this.y, heroCenter.x, heroCenter.y);
         const heroAttackRange = this.attackRange + hero.width / 2;
 
-        if (this.state === ScoutState.CHASING && distToHeroSq < heroAttackRange * heroAttackRange) {
+        if ((this.state === ScoutState.CHASING || this.state === ScoutState.DISENGAGING) &&
+            distToHeroSq < heroAttackRange * heroAttackRange) {
             const aimTarget = this.getAttackTarget(heroCenter);
             this.startAttack(aimTarget.x, aimTarget.y, 'hero');
+            // Increment hero attack counter (only while chasing, disengaging doesn't count)
+            if (this.state === ScoutState.CHASING) {
+                this.heroAttackCount++;
+            }
             return null; // Attack will resolve when animation completes
         }
 
@@ -564,6 +676,14 @@ export class Scout {
             x: heroCenter.x ,
             y: heroCenter.y
         };
+    }
+
+    /**
+     * Apply enrage debuff - increases disengage attack count
+     * @param {number} stacks - Number of enrage stacks to add
+     */
+    applyEnrage(stacks) {
+        this.enrageStacks += stacks;
     }
 
     /**

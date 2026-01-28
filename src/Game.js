@@ -534,6 +534,11 @@ export class Game {
                 event.enemy.takeDamage(event.damage);
                 this.effects.spawnDamageNumber(event.enemy.x, event.enemy.y, event.damage);
 
+                // Apply enrage debuff if weapon has it
+                if (attack.weapon.enrage && event.enemy.applyEnrage) {
+                    event.enemy.applyEnrage(attack.weapon.enrage);
+                }
+
                 // Check if enemy died
                 if (event.enemy.isDead()) {
                     // Mark hero helped for village defense
