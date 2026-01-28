@@ -1265,19 +1265,10 @@ export class LevelUpSystem {
         // Update gold display
         this.updateGoldDisplay();
 
-        // Remove the purchased item from shop
-        if (sectionType === 'weapon') {
-            this.shopWeapons.splice(index, 1);
-            this.renderSection(this.weaponsContainer, this.shopWeapons, 'weapon');
-        } else if (sectionType === 'passive') {
-            this.shopPassives.splice(index, 1);
-            this.renderSection(this.passivesContainer, this.shopPassives, 'passive');
-        } else if (sectionType === 'stat') {
-            this.shopStats.splice(index, 1);
-            this.renderSection(this.statsContainer, this.shopStats, 'stat');
-        }
+        // Increase cost for next purchase (1.5x multiplier, rounded up)
+        item.cost = Math.ceil(item.cost * 1.5);
 
-        // Re-render all sections to update affordability
+        // Re-render all sections to show updated cost and affordability
         this.renderSection(this.weaponsContainer, this.shopWeapons, 'weapon');
         this.renderSection(this.passivesContainer, this.shopPassives, 'passive');
         this.renderSection(this.statsContainer, this.shopStats, 'stat');

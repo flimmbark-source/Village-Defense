@@ -250,8 +250,10 @@ export class Game {
             this.skillTreeManager.addSkillPoints(this.waveLevelUps);
         }
 
-        // Open skill tree directly (no animation)
-        this.openSkillTree();
+        // Show tavern animation, then open skill tree
+        this.showTavernAnimation(() => {
+            this.openSkillTree();
+        });
     }
 
     /**
