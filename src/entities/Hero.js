@@ -109,7 +109,8 @@ export class Hero {
      * @param {Function} createAttack - Callback to create an attack
      */
     update(deltaTime, enemies, createAttack, movementInput = null) {
-        const moveStep = this.speed * deltaTime * 60;
+        const speedMult = CONFIG.SPEED_MULTIPLIER;
+        const moveStep = this.speed * deltaTime * 60 * speedMult;
 
         // Movement
         if (movementInput && movementInput.active) {
@@ -155,7 +156,7 @@ export class Hero {
 
         // Update weapons and auto-attack
         for (const weapon of this.weapons) {
-            weapon.update(deltaTime);
+            weapon.update(deltaTime * speedMult);
 
             if (weapon.canAttack() && enemies.length > 0) {
                 // Find nearest enemy in range

@@ -4,6 +4,7 @@
  * Defensive structure that shoots arrows at nearby enemies
  */
 
+import { CONFIG } from '../config.js';
 import { generateId } from '../utils.js';
 
 export class ArrowTower {
@@ -52,7 +53,8 @@ export class ArrowTower {
     update(deltaTime, scouts) {
         if (this.isDead()) return null;
 
-        this.attackTimer -= deltaTime;
+        const speedMult = CONFIG.SPEED_MULTIPLIER;
+        this.attackTimer -= deltaTime * speedMult;
 
         // Find target in range
         if (!this.target || this.target.hp <= 0 || this.getDistanceToTarget(this.target) > this.range) {
@@ -69,7 +71,7 @@ export class ArrowTower {
             const dx = this.target.x - centerX;
             const dy = this.target.y - centerY;
             const dist = Math.sqrt(dx * dx + dy * dy);
-            const speed = 400; // Arrow speed (pixels per second)
+            const speed = 400 * speedMult; // Arrow speed (pixels per second)
 
             // Return projectile creation event
             return {

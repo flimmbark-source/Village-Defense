@@ -49,7 +49,7 @@ export class Projectile {
         const dy = target.y - this.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
-        const step = this.speed * deltaTime * 60;
+        const step = this.speed * deltaTime * 60 * CONFIG.SPEED_MULTIPLIER;
         if (dist > step) {
             // Move towards target
             this.x += (dx / dist) * step;
