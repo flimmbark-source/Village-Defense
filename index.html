@@ -79,11 +79,27 @@
         <div id="levelUpChoicePanel" class="hidden">
             <div class="shop-overlay"></div>
             <div class="levelup-choice-content">
-                <h2 class="font-medieval levelup-choice-title">Choose a Reward</h2>
-                <div id="levelUpChoiceCards" class="levelup-choice-cards">
-                    <!-- 3 random cards populated by JS -->
+                <!-- Normal Reward View -->
+                <div id="normalRewardView">
+                    <button class="reward-info-btn" id="rewardInfoBtn" title="View Details">Info</button>
+                    <h2 class="font-medieval levelup-choice-title">Choose a Reward</h2>
+                    <div id="levelUpChoiceCards" class="levelup-choice-cards">
+                        <!-- 3 random cards populated by JS -->
+                    </div>
+                    <button id="levelUpSkipBtn" class="game-button levelup-skip-btn">Skip (+30 🪙)</button>
                 </div>
-                <button id="levelUpSkipBtn" class="game-button levelup-skip-btn">Skip (+30 🪙)</button>
+
+                <!-- Expanded Reward View (hidden by default) -->
+                <div id="expandedRewardView" class="expanded-reward-view hidden">
+                    <div class="expanded-reward-header">
+                        <button class="reward-collapse-btn" id="collapseRewardBtn" title="Back">Back</button>
+                        <h3 class="expanded-reward-title font-medieval">Choose a Reward</h3>
+                    </div>
+                    <div id="expandedRewardCards" class="expanded-reward-cards">
+                        <!-- Extended cards populated by JS -->
+                    </div>
+                    <button id="levelUpSkipBtnExpanded" class="game-button levelup-skip-btn-expanded">Skip (+30 🪙)</button>
+                </div>
             </div>
         </div>
 
