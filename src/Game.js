@@ -46,11 +46,14 @@ export class Game {
         this.gameTime = 0;
         this.difficulty = 0; // Increases by 1 each level up
 
-        // Shop timing (opens at time thresholds, not level up)
-        this.nextShopTime = 40; // First shop at 40 seconds
-        this.shopOpenCount = 0;
-        this.shopTimeIncrement = 20; // Add 20 seconds each time
-        this.maxShopInterval = 120; // Cap at 2 minutes
+        // Wave-based gameplay
+        this.waveNumber = 1;
+        this.waveTimer = 40; // Countdown timer (starts at 40s for wave 1)
+        this.waveSpawningActive = true; // Whether enemies can spawn
+        this.waveLevelUps = 0; // Track level-ups during current wave
+        this.waveAnnouncementTimer = 0; // For displaying "Wave X" announcement
+        this.waveAnnouncementDuration = 2; // Show announcement for 2 seconds
+        this.showingWaveAnnouncement = false;
 
         // Entities
         this.hero = null;
@@ -116,23 +119,25 @@ export class Game {
         this.levelUpSystem.setHeroRef(this.hero);
         this.levelUpSystem.setLevelUpRewardsEnabled(false);
 
-        // Level up now opens skill tree instead of 3-choice panel
+        // Level up during wave - just track it, don't open skill tree yet
         this.levelUpSystem.setLevelUpHandler((level) => {
-            this.state = GameState.PAUSED;
             this.difficulty++;
+            this.waveLevelUps++; // Track level-ups during this wave
             this.showLevelUpAnimation();
             const heroCenter = this.hero.getCenter();
             this.effects.spawnLevelUp(heroCenter.x, heroCenter.y);
 
-            // Award skill point and open skill tree
-            this.skillTreeManager.addSkillPoints(1);
-            this.openSkillTree();
+            // Don't open skill tree yet - wait for wave end
+            // Skill points will be awarded at wave end
         });
 
-        // Setup skill tree close callback
+        // Setup skill tree close callback - open shop after skill tree
         this.skillTreeUI.setCloseCallback(() => {
-            this.state = GameState.PLAYING;
             this.applySkillTreeEffects();
+            // Open shop after skill tree
+            this.levelUpSystem.generateShopInventory();
+            this.levelUpSystem.showShopUI();
+            // State stays PAUSED for shop
         });
 
         // Handler for shop purchases
@@ -147,11 +152,11 @@ export class Game {
             this.effects.spawnGoldPickup(this.hero.x, this.hero.y, goldValue);
         });
 
-        // Setup shop done button
+        // Setup shop done button - start next wave
         if (this.shopDoneButton) {
             this.shopDoneButton.onclick = () => {
                 this.levelUpSystem.closeShop();
-                this.state = GameState.PLAYING;
+                this.startNextWave();
             };
         }
 
@@ -165,6 +170,10 @@ export class Game {
 
         // Initial resize
         this.resize();
+
+        // Show Wave 1 announcement at game start
+        this.showingWaveAnnouncement = true;
+        this.waveAnnouncementTimer = this.waveAnnouncementDuration;
 
         // Start game loop
         requestAnimationFrame((t) => this.gameLoop(t));
@@ -229,25 +238,40 @@ export class Game {
     }
 
     /**
-     * Open shop based on time threshold
+     * End the current wave and open skill tree + shop
      */
-    openTimedShop() {
+    endWave() {
         this.state = GameState.PAUSED;
-        this.shopOpenCount++;
 
-        // Calculate next shop time
-        // Start at 40s, add 20s each time, cap at 2 minutes between openings
-        const interval = Math.min(
-            40 + this.shopOpenCount * this.shopTimeIncrement,
-            this.maxShopInterval
-        );
-        this.nextShopTime = this.gameTime + interval;
-
-        // Open the shop (after tavern animation)
+        // Show tavern animation, then open skill tree with accumulated points
         this.showTavernAnimation(() => {
-            this.levelUpSystem.generateShopInventory();
-            this.levelUpSystem.showShopUI();
+            // Award skill points equal to level-ups during wave
+            if (this.waveLevelUps > 0) {
+                this.skillTreeManager.addSkillPoints(this.waveLevelUps);
+            }
+
+            // Open skill tree (will open shop when closed)
+            this.openSkillTree();
         });
+    }
+
+    /**
+     * Start the next wave
+     */
+    startNextWave() {
+        this.waveNumber++;
+        this.waveLevelUps = 0; // Reset level-up counter for new wave
+
+        // Add 20 seconds to timer for each wave
+        this.waveTimer = 40 + (this.waveNumber - 1) * 20;
+        this.waveSpawningActive = true;
+
+        // Show wave announcement
+        this.showingWaveAnnouncement = true;
+        this.waveAnnouncementTimer = this.waveAnnouncementDuration;
+
+        // Resume game
+        this.state = GameState.PLAYING;
     }
 
     /**
@@ -493,9 +517,29 @@ export class Game {
 
         this.gameTime += deltaTime;
 
-        // Check if it's time to open the shop
-        if (this.gameTime >= this.nextShopTime) {
-            this.openTimedShop();
+        // Update wave timer (countdown)
+        if (this.waveSpawningActive) {
+            this.waveTimer -= deltaTime;
+
+            // When timer reaches 0, stop spawning
+            if (this.waveTimer <= 0) {
+                this.waveTimer = 0;
+                this.waveSpawningActive = false;
+            }
+        }
+
+        // Check if wave is complete (timer at 0 and all enemies dead)
+        if (!this.waveSpawningActive && this.scouts.length === 0) {
+            this.endWave();
+            return; // Don't process rest of update during wave end
+        }
+
+        // Update wave announcement timer
+        if (this.showingWaveAnnouncement) {
+            this.waveAnnouncementTimer -= deltaTime;
+            if (this.waveAnnouncementTimer <= 0) {
+                this.showingWaveAnnouncement = false;
+            }
         }
 
         // Update camera zoom
@@ -515,8 +559,8 @@ export class Game {
             movementInput
         );
 
-        // Update castle and spawn waves
-        if (this.castle && !this.castle.isDestroyed()) {
+        // Update castle and spawn waves (only if spawning is active)
+        if (this.castle && !this.castle.isDestroyed() && this.waveSpawningActive) {
             const wave = this.castle.update(deltaTime);
             if (wave) {
                 this.spawnWave(wave);
@@ -972,7 +1016,19 @@ export class Game {
 
         // Screen-space UI
         this.renderer.drawAttackIndicators(this.villages);
-        this.renderer.drawHUD(this.hero, this.levelUpSystem, this.castle, this.villages, this.gameTime);
+        this.renderer.drawHUD(
+            this.hero,
+            this.levelUpSystem,
+            this.castle,
+            this.villages,
+            this.gameTime,
+            { waveNumber: this.waveNumber, waveTimer: this.waveTimer }
+        );
+
+        // Draw wave announcement if active
+        if (this.showingWaveAnnouncement) {
+            this.renderer.drawWaveAnnouncement(this.waveNumber);
+        }
     }
 
     /**
@@ -1047,9 +1103,13 @@ export class Game {
         this.gameTime = 0;
         this.difficulty = 0;
 
-        // Reset shop timing
-        this.nextShopTime = 40;
-        this.shopOpenCount = 0;
+        // Reset wave state
+        this.waveNumber = 1;
+        this.waveTimer = 40;
+        this.waveSpawningActive = true;
+        this.waveLevelUps = 0;
+        this.waveAnnouncementTimer = this.waveAnnouncementDuration;
+        this.showingWaveAnnouncement = true; // Show Wave 1 announcement
 
         // Clear entities
         this.scouts = [];

@@ -1013,14 +1013,47 @@ export class Renderer {
     }
 
     /**
+     * Draw wave announcement in center of screen
+     * @param {number} waveNumber - Current wave number
+     */
+    drawWaveAnnouncement(waveNumber) {
+        const ctx = this.ctx;
+        const centerX = this.canvas.width / 2;
+        const centerY = this.canvas.height / 2;
+
+        // Draw big "Wave X" text
+        ctx.font = 'bold 72px Inter';
+        ctx.fillStyle = '#ffd700';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        // Add text shadow for better visibility
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetX = 3;
+        ctx.shadowOffsetY = 3;
+
+        ctx.fillText(`Wave ${waveNumber}`, centerX, centerY);
+
+        // Reset shadow
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+
+        ctx.textBaseline = 'alphabetic';
+    }
+
+    /**
      * Draw HUD elements (screen space)
      * @param {Object} hero - Hero entity
      * @param {Object} levelUpSystem - Level up system
      * @param {Object} castle - Castle entity
      * @param {Array} villages - Village entities
      * @param {number} gameTime - Current game time
+     * @param {Object} waveInfo - Wave info {waveNumber, waveTimer}
      */
-    drawHUD(hero, levelUpSystem, castle, villages, gameTime) {
+    drawHUD(hero, levelUpSystem, castle, villages, gameTime, waveInfo) {
         const ctx = this.ctx;
         const padding = 20;
 
@@ -1080,16 +1113,22 @@ export class Renderer {
             ctx.fillText(`Buildings: ${totalHuts}`, statusX, statusY + lineHeight);
         }
 
-        // Game time (top right)
-        if (gameTime !== undefined) {
-            const minutes = Math.floor(gameTime / 60);
-            const seconds = Math.floor(gameTime % 60);
+        // Wave info (top right)
+        if (waveInfo) {
+            // Wave number
+            ctx.font = 'bold 18px Inter';
+            ctx.fillStyle = '#ffd700';
+            ctx.textAlign = 'right';
+            ctx.fillText(`Wave ${waveInfo.waveNumber}`, this.canvas.width - padding, padding + 16);
+
+            // Wave timer (countdown)
+            const minutes = Math.floor(waveInfo.waveTimer / 60);
+            const seconds = Math.floor(waveInfo.waveTimer % 60);
             const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
 
             ctx.font = 'bold 16px Inter';
-            ctx.fillStyle = '#fff';
-            ctx.textAlign = 'right';
-            ctx.fillText(timeStr, this.canvas.width - padding, padding + 16);
+            ctx.fillStyle = waveInfo.waveTimer <= 10 ? '#ff4444' : '#fff';
+            ctx.fillText(timeStr, this.canvas.width - padding, padding + 38);
         }
 
         // Weapon inventory (bottom center)
