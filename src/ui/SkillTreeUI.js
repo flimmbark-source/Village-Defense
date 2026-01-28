@@ -23,6 +23,7 @@ export class SkillTreeUI {
         this.isOpen = false;
         this.hoveredSkill = null;
         this.selectedSkill = null;
+        this.positionOffset = { x: 0, y: 0 };
 
         // Visual constants
         this.NODE_RADIUS = 22;
@@ -93,16 +94,22 @@ export class SkillTreeUI {
     updateCanvasSize() {
         if (!this.canvasWrapper) return;
 
-        let maxX = 0;
-        let maxY = 0;
+        let minX = Infinity;
+        let minY = Infinity;
+        let maxX = -Infinity;
+        let maxY = -Infinity;
         for (const skillId in SKILL_TREE) {
             const { x, y } = SKILL_TREE[skillId].position;
+            minX = Math.min(minX, x);
+            minY = Math.min(minY, y);
             maxX = Math.max(maxX, x);
             maxY = Math.max(maxY, y);
         }
 
-        const requiredWidth = maxX + this.CANVAS_PADDING;
-        const requiredHeight = maxY + this.CANVAS_PADDING;
+        const boundsWidth = maxX - minX;
+        const boundsHeight = maxY - minY;
+        const requiredWidth = boundsWidth + this.CANVAS_PADDING * 2;
+        const requiredHeight = boundsHeight + this.CANVAS_PADDING * 2;
 
         const wrapperWidth = this.canvasWrapper.clientWidth || requiredWidth;
         const wrapperHeight = this.canvasWrapper.clientHeight || requiredHeight;
@@ -118,6 +125,11 @@ export class SkillTreeUI {
             this.canvas.width = Math.max(wrapperWidth, requiredWidth);
             this.canvas.height = Math.max(wrapperHeight, requiredHeight);
         }
+
+        this.positionOffset = {
+            x: (this.canvas.width - boundsWidth) / 2 - minX,
+            y: (this.canvas.height - boundsHeight) / 2 - minY
+        };
     }
 
     /**
@@ -129,8 +141,8 @@ export class SkillTreeUI {
     getSkillAtPosition(x, y) {
         for (const skillId in SKILL_TREE) {
             const skill = SKILL_TREE[skillId];
-            const dx = x - skill.position.x;
-            const dy = y - skill.position.y;
+            const dx = x - (skill.position.x + this.positionOffset.x);
+            const dy = y - (skill.position.y + this.positionOffset.y);
             const dist = Math.sqrt(dx * dx + dy * dy);
 
             if (dist <= this.NODE_RADIUS) {
@@ -251,8 +263,14 @@ export class SkillTreeUI {
                 ctx.lineWidth = reqRank > 0 ? 3 : 2;
 
                 ctx.beginPath();
-                ctx.moveTo(reqSkill.position.x, reqSkill.position.y);
-                ctx.lineTo(skill.position.x, skill.position.y);
+                ctx.moveTo(
+                    reqSkill.position.x + this.positionOffset.x,
+                    reqSkill.position.y + this.positionOffset.y
+                );
+                ctx.lineTo(
+                    skill.position.x + this.positionOffset.x,
+                    skill.position.y + this.positionOffset.y
+                );
                 ctx.stroke();
             }
         }
@@ -270,8 +288,8 @@ export class SkillTreeUI {
         const isHovered = this.hoveredSkill && this.hoveredSkill.id === skillId;
         const isMaxed = rank >= skill.maxRank;
 
-        const x = skill.position.x;
-        const y = skill.position.y;
+        const x = skill.position.x + this.positionOffset.x;
+        const y = skill.position.y + this.positionOffset.y;
 
         // Determine node color
         let nodeColor;
