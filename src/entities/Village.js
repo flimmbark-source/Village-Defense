@@ -362,10 +362,9 @@ export class Village {
      * @param {number} deltaTime - Time since last frame
      * @param {Array} scouts - All scouts
      * @param {Function} onMeleeHit - Callback when militia melee attack hits (scout, damage, militia)
-     * @param {Function} onArrowShot - Callback when arrow tower shoots (target)
-     * @returns {Array} Array of attack events for rendering
+     * @returns {Array} Array of attack events (including arrow projectiles)
      */
-    update(deltaTime, scouts, onMeleeHit, onArrowShot) {
+    update(deltaTime, scouts, onMeleeHit) {
         const attackEvents = [];
 
         // Update militia
@@ -378,8 +377,9 @@ export class Village {
 
         // Update arrow towers
         for (const tower of this.arrowTowers) {
-            const event = tower.update(deltaTime, scouts, onArrowShot);
+            const event = tower.update(deltaTime, scouts);
             if (event) {
+                // Arrow projectile creation event
                 attackEvents.push(event);
             }
         }

@@ -827,4 +827,33 @@ export class Scout {
 
         return drops;
     }
+
+    /**
+     * Set initial village target when spawning
+     * @param {Object} village - Village to target
+     */
+    setInitialVillageTarget(village) {
+        if (!village || village.isDestroyed()) return;
+
+        // Change state to move towards village
+        this.state = ScoutState.ATTACKING_VILLAGE;
+        this.attackingVillage = village;
+
+        // Find a target within the village (militia first, then huts)
+        const validMilitia = village.militia.filter(m => !m.isDead());
+        const validHuts = village.huts.filter(h => !h.isDead());
+
+        if (validMilitia.length > 0) {
+            this.villageAttackTarget = validMilitia[0];
+            this.currentTarget = validMilitia[0];
+        } else if (validHuts.length > 0) {
+            this.villageAttackTarget = validHuts[0];
+            this.currentTarget = validHuts[0];
+        }
+
+        // Mark village as under attack
+        village.isUnderAttack = true;
+        village.attackers.add(this.id);
+        this.applyBuff();
+    }
 }

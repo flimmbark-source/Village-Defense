@@ -47,10 +47,9 @@ export class ArrowTower {
      * Update arrow tower
      * @param {number} deltaTime - Time since last frame
      * @param {Array} scouts - All enemy scouts
-     * @param {Function} onArrowShot - Callback when arrow is shot (target)
-     * @returns {Object|null} Attack event for rendering
+     * @returns {Object|null} Projectile creation event or null
      */
-    update(deltaTime, scouts, onArrowShot) {
+    update(deltaTime, scouts) {
         if (this.isDead()) return null;
 
         this.attackTimer -= deltaTime;
@@ -64,17 +63,25 @@ export class ArrowTower {
         if (this.target && this.attackTimer <= 0) {
             this.attackTimer = this.attackCooldown;
 
-            // Trigger arrow shot callback
-            if (onArrowShot) {
-                onArrowShot(this.target);
-            }
+            // Calculate projectile velocity
+            const centerX = this.x + this.width / 2;
+            const centerY = this.y + this.height / 2;
+            const dx = this.target.x - centerX;
+            const dy = this.target.y - centerY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const speed = 400; // Arrow speed (pixels per second)
 
+            // Return projectile creation event
             return {
-                type: 'arrow_tower_shot',
-                x: this.x + this.width / 2,
-                y: this.y + this.height / 2,
-                targetX: this.target.x,
-                targetY: this.target.y
+                type: 'arrow_projectile',
+                x: centerX,
+                y: centerY,
+                vx: (dx / dist) * speed,
+                vy: (dy / dist) * speed,
+                damage: this.damage,
+                targetRef: this.target,
+                radius: 5,
+                color: '#8b7355'
             };
         }
 

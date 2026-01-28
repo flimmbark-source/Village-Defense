@@ -437,6 +437,9 @@ export class Game {
         // Calculate bonus scouts from difficulty (every 3 difficulty = +1 scout)
         const bonusScouts = Math.floor(this.difficulty / 3);
 
+        // Get list of alive villages to target
+        const aliveVillages = this.villages.filter(v => !v.isDestroyed());
+
         // Spawn base wave enemies
         for (const enemyType of wave) {
             // Spawn at random position around castle
@@ -445,7 +448,15 @@ export class Game {
             const x = center.x + Math.cos(angle) * dist;
             const y = center.y + Math.sin(angle) * dist;
 
-            this.scouts.push(new Scout(x, y, enemyType));
+            const scout = new Scout(x, y, enemyType);
+
+            // Assign a random village as initial target
+            if (aliveVillages.length > 0) {
+                const targetVillage = aliveVillages[Math.floor(Math.random() * aliveVillages.length)];
+                scout.setInitialVillageTarget(targetVillage);
+            }
+
+            this.scouts.push(scout);
         }
 
         // Spawn bonus scouts from difficulty
@@ -456,7 +467,15 @@ export class Game {
             const y = center.y + Math.sin(angle) * dist;
 
             // Bonus scouts are always basic scouts
-            this.scouts.push(new Scout(x, y, EnemyType.SCOUT));
+            const scout = new Scout(x, y, EnemyType.SCOUT);
+
+            // Assign a random village as initial target
+            if (aliveVillages.length > 0) {
+                const targetVillage = aliveVillages[Math.floor(Math.random() * aliveVillages.length)];
+                scout.setInitialVillageTarget(targetVillage);
+            }
+
+            this.scouts.push(scout);
         }
     }
 
@@ -576,10 +595,9 @@ export class Game {
             const attacks = village.update(
                 deltaTime,
                 this.scouts,
-                (scout, damage, militia) => this.handleMilitiaMeleeHit(scout, damage, militia),
-                (target) => this.handleArrowTowerShot(target)
+                (scout, damage, militia) => this.handleMilitiaMeleeHit(scout, damage, militia)
             );
-            // Store attack visuals
+            // Store attack visuals and create projectiles
             for (const attack of attacks) {
                 if (attack.type === 'militia_swipe') {
                     this.militiaAttacks.push({
@@ -587,9 +605,21 @@ export class Game {
                         timer: 0,
                         duration: CONFIG.MILITIA.SWIPE_DURATION
                     });
-                } else if (attack.type === 'arrow_tower_shot') {
-                    // Arrow tower shots could be rendered as projectiles or instant damage
-                    // For simplicity, we'll handle damage instantly
+                } else if (attack.type === 'arrow_projectile') {
+                    // Create arrow tower projectile
+                    this.enemyProjectiles.push({
+                        x: attack.x,
+                        y: attack.y,
+                        vx: attack.vx,
+                        vy: attack.vy,
+                        damage: attack.damage,
+                        targetRef: attack.targetRef,
+                        radius: attack.radius,
+                        color: attack.color,
+                        isArrow: true, // Flag to identify arrow projectiles
+                        lifetime: 5.0,
+                        age: 0
+                    });
                 }
             }
         }
@@ -746,6 +776,57 @@ export class Game {
                 continue;
             }
 
+            // Arrow projectiles hit scouts (enemies)
+            if (proj.isArrow) {
+                let hit = false;
+
+                // Check collision with target scout
+                if (proj.targetRef && !proj.targetRef.isDead()) {
+                    const dx = proj.x - proj.targetRef.x;
+                    const dy = proj.y - proj.targetRef.y;
+                    const distSq = dx * dx + dy * dy;
+                    const collisionDist = proj.radius + proj.targetRef.radius;
+
+                    if (distSq < collisionDist * collisionDist) {
+                        // Hit target
+                        proj.targetRef.takeDamage(proj.damage);
+                        this.effects.spawnDamageNumber(proj.targetRef.x, proj.targetRef.y, proj.damage);
+                        hit = true;
+                    }
+                }
+
+                // Check collision with any scout if target is dead or missed
+                if (!hit) {
+                    for (const scout of this.scouts) {
+                        if (scout.isDead()) continue;
+
+                        const dx = proj.x - scout.x;
+                        const dy = proj.y - scout.y;
+                        const distSq = dx * dx + dy * dy;
+                        const collisionDist = proj.radius + scout.radius;
+
+                        if (distSq < collisionDist * collisionDist) {
+                            scout.takeDamage(proj.damage);
+                            this.effects.spawnDamageNumber(scout.x, scout.y, proj.damage);
+                            hit = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (hit) {
+                    this.enemyProjectiles.splice(i, 1);
+                    continue;
+                }
+
+                // Check if out of bounds
+                if (proj.x < -100 || proj.x > CONFIG.WORLD.WIDTH + 100 ||
+                    proj.y < -100 || proj.y > CONFIG.WORLD.HEIGHT + 100) {
+                    this.enemyProjectiles.splice(i, 1);
+                }
+                continue;
+            }
+
             // Check for collision with hero (squared distance)
             if (proj.targetType === 'hero') {
                 const dx = proj.x - heroCenter.x;
@@ -866,19 +947,6 @@ export class Game {
         if (scout.isDead()) {
             // Will be cleaned up in handleCollisions
         }
-    }
-
-    /**
-     * Handle arrow tower shooting at an enemy
-     * @param {Object} target - The target scout
-     */
-    handleArrowTowerShot(target) {
-        if (!target || target.isDead()) return;
-
-        // Arrow towers deal fixed damage (defined in ArrowTower.js)
-        const damage = 15;
-        target.takeDamage(damage);
-        this.effects.spawnDamageNumber(target.x, target.y, damage);
     }
 
     /**
