@@ -947,6 +947,7 @@ export class Renderer {
         const xpBarX = (this.canvas.width - xpBarWidth) / 2;
         const xpBarY = padding;
 
+
         // Background
         ctx.fillStyle = COLORS.XP_BAR_BG;
         ctx.fillRect(xpBarX, xpBarY, xpBarWidth, xpBarHeight);
@@ -967,6 +968,12 @@ export class Renderer {
         const healthBarY = xpBarY + xpBarHeight + 10;
         const healthProgress = hero.maxHp > 0 ? hero.hp / hero.maxHp : 0;
 
+        // Level text
+        ctx.font = 'bold 14px Inter';
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'center';
+        ctx.fillText(`Level ${levelUpSystem.level}`, this.canvas.width / 2, healthBarY + healthBarHeight - 32);
+
         ctx.fillStyle = COLORS.XP_BAR_BG;
         ctx.fillRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
         ctx.fillStyle = COLORS.HEALTH_BAR_HERO;
@@ -974,12 +981,6 @@ export class Renderer {
         ctx.strokeStyle = '#555';
         ctx.lineWidth = 2;
         ctx.strokeRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
-
-        // Level text
-        ctx.font = 'bold 14px Inter';
-        ctx.fillStyle = '#fff';
-        ctx.textAlign = 'center';
-        ctx.fillText(`Level ${levelUpSystem.level}`, this.canvas.width / 2, healthBarY + healthBarHeight + 16);
 
         // Villagers status (top left, below castle)
         if (villages) {
@@ -992,7 +993,7 @@ export class Renderer {
             const statusX = padding;
             const statusY = padding + 22;
             const lineHeight = 16;
-            ctx.fillText(`Villagers: ${villagesAlive}/${villages.length}`, statusX, statusY);
+            ctx.fillText(`Villages: ${villagesAlive}/${villages.length}`, statusX, statusY);
             ctx.fillText(`Buildings: ${totalHuts}`, statusX, statusY + lineHeight);
         }
 
@@ -1052,11 +1053,5 @@ export class Renderer {
                 }
             }
         }
-
-        // Controls hint (bottom left)
-        ctx.font = '12px Inter';
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-        ctx.textAlign = 'left';
-        ctx.fillText('Click to move | WASD to move | Scroll to zoom | Destroy the castle to win!', padding, this.canvas.height - padding);
     }
 }
