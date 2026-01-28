@@ -363,16 +363,29 @@ export class Scout {
             this.attackProgress = this.attackTimer / this.attackWindup;
             if (this.attackTimer >= this.attackWindup) {
                 this.attackPhase = AttackPhase.ACTIVE;
-                this.attackTimer = 0;
+                this.attackTimer = 1;
                 this.attackProgress = 0;
             }
         } else if (this.attackPhase === AttackPhase.ACTIVE) {
             this.attackProgress = this.attackTimer / this.attackDuration;
-            if (!this.attackHasFired && this.attackTimer >= this.attackDuration * 0.5) {
-                if (!this.attackHasDashed) {
-                    this.startAttackDash();
-                    this.attackHasDashed = true;
+            if (!this.attackHasDashed && this.attackTimer >= this.attackDuration * 0.5) {
+                this.startAttackDash();
+                this.attackHasDashed = true;
+            }
+            if (this.attackHasDashed && !this.attackHasFired
+                && (this.dashDuration === 0 || this.dashTimer >= this.dashDuration)) {
+                let aimTargetX = this.x + Math.cos(this.attackAngle);
+                let aimTargetY = this.y + Math.sin(this.attackAngle);
+                if (this.attackTargetType === 'hero' && this.currentTarget?.getCenter) {
+                    const heroCenter = this.currentTarget.getCenter();
+                    const aimTarget = this.getAttackTarget(heroCenter);
+                    aimTargetX = aimTarget.x;
+                    aimTargetY = aimTarget.y;
+                } else if (this.attackTargetType === 'village' && this.villageAttackTarget) {
+                    aimTargetX = this.villageAttackTarget.x + (this.villageAttackTarget.width || 0) / 2;
+                    aimTargetY = this.villageAttackTarget.y + (this.villageAttackTarget.height || 0) / 2;
                 }
+                this.attackAngle = Math.atan2(aimTargetY - this.y, aimTargetX - this.x);
                 this.attackHasFired = true;
                 const speed = this.projectileSpeed;
                 return {
@@ -389,7 +402,7 @@ export class Scout {
                     enemyType: this.type
                 };
             }
-            if (this.attackTimer >= this.attackDuration) {
+            if (this.attackHasFired && this.attackTimer >= this.attackDuration) {
                 this.attackPhase = AttackPhase.RECOVERY;
                 this.attackTimer = 0;
                 this.attackProgress = 0;

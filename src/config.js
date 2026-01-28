@@ -58,14 +58,14 @@ export const CONFIG = {
         ATTACK_RANGE: 135,
         ATTACK_WINDUP: 0.3,
         ATTACK_DURATION: 0.2,
-        DASH_DISTANCE: 18,
+        DASH_DISTANCE: 80,
         DASH_DURATION: 0.12,
         PROJECTILE_SPEED: 5,
         PROJECTILE_RADIUS: 6,
         PROJECTILE_COLOR: '#ff6666',
-        XP_DROP: 10,
-        GOLD_DROP_MIN: 5,
-        GOLD_DROP_MAX: 15,
+        XP_DROP: 6,
+        GOLD_DROP_MIN: 6,
+        GOLD_DROP_MAX: 9,
         GOLD_DROP_CHANCE: 0.4
     },
 
