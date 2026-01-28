@@ -63,6 +63,10 @@ export const CONFIG = {
         PROJECTILE_SPEED: 5,
         PROJECTILE_RADIUS: 6,
         PROJECTILE_COLOR: '#ff6666',
+        // Village priority - disengage from hero after X attacks
+        DISENGAGE_ATTACK_COUNT: 3,
+        DISENGAGE_DURATION: 3.0, // Seconds to move towards village before re-engaging
+        DISENGAGE_SPEED_MULTIPLIER: 1.2 // Move faster when disengaging
         XP_DROP: 6,
         GOLD_DROP_MIN: 6,
         GOLD_DROP_MAX: 9,
@@ -86,7 +90,11 @@ export const CONFIG = {
         XP_DROP: 25,
         GOLD_DROP_MIN: 10,
         GOLD_DROP_MAX: 25,
-        GOLD_DROP_CHANCE: 0.6
+        GOLD_DROP_CHANCE: 0.6,
+        // Elites are more focused on the player
+        DISENGAGE_ATTACK_COUNT: 5,
+        DISENGAGE_DURATION: 2.5,
+        DISENGAGE_SPEED_MULTIPLIER: 1.3
     },
 
     // Brute - slow but tanky and hard-hitting
@@ -106,7 +114,11 @@ export const CONFIG = {
         XP_DROP: 50,
         GOLD_DROP_MIN: 20,
         GOLD_DROP_MAX: 40,
-        GOLD_DROP_CHANCE: 0.8
+        GOLD_DROP_CHANCE: 0.8,
+        // Brutes are very village-focused
+        DISENGAGE_ATTACK_COUNT: 2,
+        DISENGAGE_DURATION: 4.0,
+        DISENGAGE_SPEED_MULTIPLIER: 1.1
     },
 
     // Swarm - weak but fast and numerous
@@ -126,7 +138,11 @@ export const CONFIG = {
         XP_DROP: 5,
         GOLD_DROP_MIN: 1,
         GOLD_DROP_MAX: 5,
-        GOLD_DROP_CHANCE: 0.2
+        GOLD_DROP_CHANCE: 0.2,
+        // Swarm units are easily distracted but quick to refocus
+        DISENGAGE_ATTACK_COUNT: 4,
+        DISENGAGE_DURATION: 2.0,
+        DISENGAGE_SPEED_MULTIPLIER: 1.4
     },
 
     // Militia Stats
@@ -310,7 +326,7 @@ export const WEAPONS = {
     whip: {
         id: 'whip',
         name: 'Chain Whip',
-        description: 'Sweeps in front of you',
+        description: 'Sweeps in front of you. Enrages enemies (+1 attack before disengage)',
         icon: '⛓️',
         type: 'melee',
         damage: 12,
@@ -319,6 +335,7 @@ export const WEAPONS = {
         attackPattern: 'whip',
         cost: 60,
         upgradeCost: 35,
+        enrage: 1, // Adds +1 to enemy disengage attack count when hit
         effects: {
             segments: 8,
             color: '#8b4513',
@@ -448,6 +465,16 @@ export const PASSIVE_UPGRADES = [
         effect: { stat: 'thorns', value: 10 },
         cost: 70,
         maxStacks: 4,
+        rarity: 'uncommon'
+    },
+    {
+        id: 'taunt',
+        name: 'Taunt',
+        description: 'Enemies attack you +2 times before refocusing on villages',
+        icon: '🎭',
+        effect: { stat: 'taunt', value: 2 },
+        cost: 55,
+        maxStacks: 5,
         rarity: 'uncommon'
     }
 ];

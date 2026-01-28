@@ -72,6 +72,24 @@ export class Militia {
     }
 
     /**
+     * Take damage
+     * @param {number} amount - Damage amount
+     * @returns {boolean} True if killed
+     */
+    takeDamage(amount) {
+        this.hp = Math.max(0, this.hp - amount);
+        return this.hp <= 0;
+    }
+
+    /**
+     * Check if militia is dead
+     * @returns {boolean} True if dead
+     */
+    isDead() {
+        return this.hp <= 0;
+    }
+
+    /**
      * Update militia AI
      * @param {number} deltaTime - Time since last frame
      * @param {Object} village - Parent village
@@ -79,6 +97,8 @@ export class Militia {
      * @param {Function} createProjectile - Callback to create projectile
      */
     update(deltaTime, village, scouts, createProjectile) {
+        if (this.isDead()) return;
+
         this.attackTimer -= deltaTime;
 
         if (!village.isUnderAttack) {
@@ -171,6 +191,9 @@ export class Village {
 
         // Clean up dead villagers
         this.villagers = this.villagers.filter(v => !v.isDead());
+
+        // Clean up dead militia
+        this.militia = this.militia.filter(m => !m.isDead());
 
         // If all huts are destroyed, stop being under attack
         if (this.isDestroyed() && this.isUnderAttack) {
