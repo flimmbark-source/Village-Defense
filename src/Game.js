@@ -54,7 +54,8 @@ export class Game {
         this.scouts = [];
         this.attacks = [];
         this.pickups = [];
-        this.projectiles = []; // For militia
+        this.projectiles = []; // For militia (legacy)
+        this.militiaAttacks = []; // Militia sword swipe visuals
         this.forests = [];
         this.villages = [];
 
@@ -440,11 +441,19 @@ export class Game {
 
         // Update villages and militia
         for (const village of this.villages) {
-            village.update(
+            const militiaAttacks = village.update(
                 deltaTime,
                 this.scouts,
-                (x, y, targetId, owner) => this.createProjectile(x, y, targetId, owner)
+                (scout, damage, militia) => this.handleMilitiaMeleeHit(scout, damage, militia)
             );
+            // Store militia attack visuals
+            for (const attack of militiaAttacks) {
+                this.militiaAttacks.push({
+                    ...attack,
+                    timer: 0,
+                    duration: CONFIG.MILITIA.SWIPE_DURATION
+                });
+            }
         }
 
         // Update attacks (hero weapons)
@@ -456,8 +465,11 @@ export class Game {
         // Update enemy projectiles
         this.updateEnemyProjectiles(deltaTime);
 
-        // Update militia projectiles
+        // Update militia projectiles (legacy)
         this.updateProjectiles(deltaTime);
+
+        // Update militia attack visuals
+        this.updateMilitiaAttacks(deltaTime);
 
         // Update pickups
         this.updatePickups(deltaTime);
@@ -701,6 +713,39 @@ export class Game {
     }
 
     /**
+     * Handle militia melee attack hitting an enemy
+     * @param {Object} scout - The scout that was hit
+     * @param {number} damage - Damage amount
+     * @param {Object} militia - The militia that attacked
+     */
+    handleMilitiaMeleeHit(scout, damage, militia) {
+        if (!scout || scout.isDead()) return;
+
+        scout.takeDamage(damage);
+        this.effects.spawnDamageNumber(scout.x, scout.y, damage);
+
+        // Check if scout died
+        if (scout.isDead()) {
+            // Will be cleaned up in handleCollisions
+        }
+    }
+
+    /**
+     * Update militia attack visuals
+     * @param {number} deltaTime - Time since last frame
+     */
+    updateMilitiaAttacks(deltaTime) {
+        for (let i = this.militiaAttacks.length - 1; i >= 0; i--) {
+            const attack = this.militiaAttacks[i];
+            attack.timer += deltaTime;
+
+            if (attack.timer >= attack.duration) {
+                this.militiaAttacks.splice(i, 1);
+            }
+        }
+    }
+
+    /**
      * Update pickups
      * @param {number} deltaTime - Time since last frame
      */
@@ -811,6 +856,7 @@ export class Game {
         this.renderer.drawAttacks(this.attacks, viewBounds);
         this.renderer.drawEnemyAttacks(this.enemyAttacks, viewBounds);
         this.renderer.drawEnemyProjectiles(this.enemyProjectiles, viewBounds);
+        this.renderer.drawMilitiaAttacks(this.militiaAttacks, viewBounds);
 
         // Effects (world space)
         this.renderer.drawParticles(this.effects.particles, viewBounds);
@@ -904,6 +950,7 @@ export class Game {
         this.attacks = [];
         this.pickups = [];
         this.projectiles = [];
+        this.militiaAttacks = [];
         this.villages = [];
         this.forests = [];
         this.enemyAttacks = [];

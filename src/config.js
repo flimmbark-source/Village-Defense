@@ -151,11 +151,16 @@ export const CONFIG = {
         HEIGHT: 20,
         COLOR: '#228B22',
         MAX_HP: 60,
-        DAMAGE: 8,
-        ATTACK_RANGE: 250,
-        ATTACK_COOLDOWN: 2.0,
+        DAMAGE: 12,
+        ATTACK_RANGE: 35, // Melee range for sword swipe
+        ATTACK_COOLDOWN: 1.0,
         SPEED: 2.0,
-        PROJECTILE_SPEED: 5
+        // Disengage system - return to village after attacking
+        DISENGAGE_ATTACK_COUNT: 2, // Attacks before disengaging
+        DISENGAGE_SPEED_MULTIPLIER: 1.2, // Speed boost when returning
+        // Sword swipe attack visuals
+        SWIPE_ARC: 90, // Degrees of sword arc
+        SWIPE_DURATION: 0.2 // Duration of swipe animation
     },
 
     // Village Settings

@@ -56,11 +56,20 @@ export class Hut {
     }
 }
 
+// Militia states
+const MilitiaState = {
+    IDLE: 'IDLE',
+    ENGAGING: 'ENGAGING',
+    DISENGAGING: 'DISENGAGING'
+};
+
 export class Militia {
     constructor(x, y) {
         this.id = generateId();
         this.x = x;
         this.y = y;
+        this.homeX = x; // Remember spawn position for returning
+        this.homeY = y;
         this.width = CONFIG.MILITIA.WIDTH;
         this.height = CONFIG.MILITIA.HEIGHT;
         this.color = CONFIG.MILITIA.COLOR;
@@ -69,6 +78,19 @@ export class Militia {
         this.maxHp = CONFIG.MILITIA.MAX_HP;
         this.attackTimer = 0;
         this.targetScout = null;
+
+        // State machine
+        this.state = MilitiaState.IDLE;
+
+        // Disengage system
+        this.attackCount = 0;
+        this.disengageAttackThreshold = CONFIG.MILITIA.DISENGAGE_ATTACK_COUNT;
+
+        // Sword swipe attack
+        this.isAttacking = false;
+        this.swipeTimer = 0;
+        this.swipeAngle = 0;
+        this.swipeProgress = 0;
     }
 
     /**
@@ -94,39 +116,135 @@ export class Militia {
      * @param {number} deltaTime - Time since last frame
      * @param {Object} village - Parent village
      * @param {Array} scouts - All scouts
-     * @param {Function} createProjectile - Callback to create projectile
+     * @param {Function} onMeleeHit - Callback when melee attack hits (scoutId, damage)
+     * @returns {Object|null} Attack event for rendering
      */
-    update(deltaTime, village, scouts, createProjectile) {
-        if (this.isDead()) return;
+    update(deltaTime, village, scouts, onMeleeHit) {
+        if (this.isDead()) return null;
 
         this.attackTimer -= deltaTime;
+        let attackEvent = null;
 
-        if (!village.isUnderAttack) {
+        // Update swipe animation
+        if (this.isAttacking) {
+            this.swipeTimer += deltaTime;
+            this.swipeProgress = this.swipeTimer / CONFIG.MILITIA.SWIPE_DURATION;
+            if (this.swipeTimer >= CONFIG.MILITIA.SWIPE_DURATION) {
+                this.isAttacking = false;
+                this.swipeTimer = 0;
+                this.swipeProgress = 0;
+            }
+        }
+
+        // State machine
+        switch (this.state) {
+            case MilitiaState.IDLE:
+                if (village.isUnderAttack) {
+                    this.state = MilitiaState.ENGAGING;
+                    this.attackCount = 0;
+                }
+                break;
+
+            case MilitiaState.ENGAGING:
+                attackEvent = this.updateEngaging(deltaTime, village, scouts, onMeleeHit);
+                break;
+
+            case MilitiaState.DISENGAGING:
+                this.updateDisengaging(deltaTime, village);
+                break;
+        }
+
+        return attackEvent;
+    }
+
+    /**
+     * Update engaging state - chase and attack enemies
+     */
+    updateEngaging(deltaTime, village, scouts, onMeleeHit) {
+        // Check if we should disengage
+        if (this.attackCount >= this.disengageAttackThreshold) {
+            this.state = MilitiaState.DISENGAGING;
             this.targetScout = null;
-            return;
+            return null;
         }
 
         // Find or validate target
         if (!this.targetScout || this.targetScout.hp <= 0 || !village.attackers.has(this.targetScout.id)) {
-            this.targetScout = scouts.find(s => village.attackers.has(s.id)) || null;
+            this.targetScout = scouts.find(s => village.attackers.has(s.id) && s.hp > 0) || null;
         }
 
-        if (!this.targetScout) return;
+        if (!this.targetScout) {
+            // No targets, return to idle
+            if (!village.isUnderAttack) {
+                this.state = MilitiaState.IDLE;
+            }
+            return null;
+        }
 
         // Move towards target
         const dx = this.targetScout.x - this.x;
         const dy = this.targetScout.y - this.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
-        if (dist > CONFIG.MILITIA.SPEED) {
-            this.x += (dx / dist) * CONFIG.MILITIA.SPEED;
-            this.y += (dy / dist) * CONFIG.MILITIA.SPEED;
+        if (dist > CONFIG.MILITIA.ATTACK_RANGE) {
+            const step = CONFIG.MILITIA.SPEED * deltaTime * 60;
+            this.x += (dx / dist) * step;
+            this.y += (dy / dist) * step;
         }
 
-        // Attack if in range
-        if (dist < CONFIG.MILITIA.ATTACK_RANGE && this.attackTimer <= 0) {
-            createProjectile(this.x, this.y, this.targetScout.id, 'militia');
+        // Melee attack if in range and cooldown ready
+        if (dist <= CONFIG.MILITIA.ATTACK_RANGE && this.attackTimer <= 0 && !this.isAttacking) {
+            // Start sword swipe
+            this.isAttacking = true;
+            this.swipeTimer = 0;
+            this.swipeAngle = Math.atan2(dy, dx);
             this.attackTimer = CONFIG.MILITIA.ATTACK_COOLDOWN;
+            this.attackCount++;
+
+            // Deal damage immediately (melee hit)
+            if (onMeleeHit && this.targetScout && !this.targetScout.isDead()) {
+                onMeleeHit(this.targetScout, CONFIG.MILITIA.DAMAGE, this);
+            }
+
+            // Return attack event for visual
+            return {
+                type: 'militia_swipe',
+                x: this.x,
+                y: this.y,
+                angle: this.swipeAngle,
+                militia: this
+            };
+        }
+
+        return null;
+    }
+
+    /**
+     * Update disengaging state - return to village
+     */
+    updateDisengaging(deltaTime, village) {
+        const dx = this.homeX - this.x;
+        const dy = this.homeY - this.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        // Move back to home position with speed boost
+        const speed = CONFIG.MILITIA.SPEED * CONFIG.MILITIA.DISENGAGE_SPEED_MULTIPLIER;
+        const step = speed * deltaTime * 60;
+
+        if (dist > step) {
+            this.x += (dx / dist) * step;
+            this.y += (dy / dist) * step;
+        } else {
+            // Reached home, reset and check if still under attack
+            this.x = this.homeX;
+            this.y = this.homeY;
+            this.attackCount = 0;
+
+            if (village.isUnderAttack) {
+                this.state = MilitiaState.ENGAGING;
+            } else {
+                this.state = MilitiaState.IDLE;
+            }
         }
     }
 }
@@ -181,12 +299,18 @@ export class Village {
      * Update village and militia
      * @param {number} deltaTime - Time since last frame
      * @param {Array} scouts - All scouts
-     * @param {Function} createProjectile - Callback to create projectile
+     * @param {Function} onMeleeHit - Callback when militia melee attack hits (scout, damage, militia)
+     * @returns {Array} Array of militia attack events for rendering
      */
-    update(deltaTime, scouts, createProjectile) {
+    update(deltaTime, scouts, onMeleeHit) {
+        const attackEvents = [];
+
         // Update militia
         for (const m of this.militia) {
-            m.update(deltaTime, this, scouts, createProjectile);
+            const event = m.update(deltaTime, this, scouts, onMeleeHit);
+            if (event) {
+                attackEvents.push(event);
+            }
         }
 
         // Clean up dead villagers
@@ -200,6 +324,8 @@ export class Village {
             this.isUnderAttack = false;
             this.attackers.clear();
         }
+
+        return attackEvents;
     }
 
     /**
