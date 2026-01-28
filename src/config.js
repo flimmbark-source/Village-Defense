@@ -63,14 +63,14 @@ export const CONFIG = {
         PROJECTILE_SPEED: 5,
         PROJECTILE_RADIUS: 6,
         PROJECTILE_COLOR: '#ff6666',
-        // Village priority - disengage from hero after X attacks
-        DISENGAGE_ATTACK_COUNT: 3,
-        DISENGAGE_DURATION: 3.0, // Seconds to move towards village before re-engaging
-        DISENGAGE_SPEED_MULTIPLIER: 1.2 // Move faster when disengaging
         XP_DROP: 6,
         GOLD_DROP_MIN: 6,
         GOLD_DROP_MAX: 9,
-        GOLD_DROP_CHANCE: 0.4
+        GOLD_DROP_CHANCE: 0.4,
+        // Village priority - disengage from hero after X attacks
+        DISENGAGE_ATTACK_COUNT: 3,
+        DISENGAGE_DURATION: 3.0, // Seconds to move towards village before re-engaging
+        DISENGAGE_SPEED_MULTIPLIER: 1.05 // Move faster when disengaging
     },
 
     // Elite Scout - faster, more HP
