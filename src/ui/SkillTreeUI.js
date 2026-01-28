@@ -14,6 +14,7 @@ export class SkillTreeUI {
         this.panel = document.getElementById('skillTreePanel');
         this.canvas = document.getElementById('skillTreeCanvas');
         this.ctx = this.canvas.getContext('2d');
+        this.canvasWrapper = this.panel.querySelector('.skill-tree-canvas-wrapper');
         this.skillPointsDisplay = document.getElementById('skillPointsAmount');
         this.closeButton = document.getElementById('skillTreeCloseBtn');
         this.tooltip = document.getElementById('skillTooltip');
@@ -26,6 +27,7 @@ export class SkillTreeUI {
         // Visual constants
         this.NODE_RADIUS = 35;
         this.NODE_SPACING = 80;
+        this.CANVAS_PADDING = 80;
 
         // Setup event listeners
         this.setupEventListeners();
@@ -76,6 +78,37 @@ export class SkillTreeUI {
         this.closeButton.addEventListener('click', () => {
             this.close();
         });
+
+        window.addEventListener('resize', () => {
+            if (this.isOpen) {
+                this.updateCanvasSize();
+                this.render();
+            }
+        });
+    }
+
+    /**
+     * Resize canvas to fit the skill tree bounds and available space.
+     */
+    updateCanvasSize() {
+        if (!this.canvasWrapper) return;
+
+        let maxX = 0;
+        let maxY = 0;
+        for (const skillId in SKILL_TREE) {
+            const { x, y } = SKILL_TREE[skillId].position;
+            maxX = Math.max(maxX, x);
+            maxY = Math.max(maxY, y);
+        }
+
+        const requiredWidth = maxX + this.CANVAS_PADDING;
+        const requiredHeight = maxY + this.CANVAS_PADDING;
+
+        const wrapperWidth = this.canvasWrapper.clientWidth || requiredWidth;
+        const wrapperHeight = this.canvasWrapper.clientHeight || requiredHeight;
+
+        this.canvas.width = Math.max(wrapperWidth, requiredWidth);
+        this.canvas.height = Math.max(wrapperHeight, requiredHeight);
     }
 
     /**
@@ -294,6 +327,7 @@ export class SkillTreeUI {
     open() {
         this.isOpen = true;
         this.panel.classList.remove('hidden');
+        this.updateCanvasSize();
         this.updateSkillPoints();
         this.render();
     }

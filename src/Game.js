@@ -114,6 +114,7 @@ export class Game {
         // Setup level up system
         this.levelUpSystem.initialize();
         this.levelUpSystem.setHeroRef(this.hero);
+        this.levelUpSystem.setLevelUpRewardsEnabled(false);
 
         // Level up now opens skill tree instead of 3-choice panel
         this.levelUpSystem.setLevelUpHandler((level) => {
@@ -274,6 +275,7 @@ export class Game {
      * Open skill tree panel
      */
     openSkillTree() {
+        this.state = GameState.PAUSED;
         this.skillTreeUI.open();
     }
 
