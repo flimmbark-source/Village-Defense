@@ -55,6 +55,13 @@ export class Game {
         this.waveAnnouncementDuration = 2; // Show announcement for 2 seconds
         this.showingWaveAnnouncement = false;
 
+        // Speed controls
+        this.speedOptions = [1, 1.5, 2];
+        const initialSpeedIndex = this.speedOptions.indexOf(CONFIG.SPEED_MULTIPLIER);
+        this.speedIndex = initialSpeedIndex >= 0 ? initialSpeedIndex : 0;
+        CONFIG.SPEED_MULTIPLIER = this.speedOptions[this.speedIndex];
+        this.fastForwardButtonBounds = null;
+
         // Entities
         this.hero = null;
         this.castle = null;
@@ -191,6 +198,8 @@ export class Game {
                 this.hero.setTarget(x, y);
             }
         });
+
+        this.input.setUIClickHandler((x, y) => this.handleUIClick(x, y));
 
         // Mouse wheel to zoom
         this.canvas.addEventListener('wheel', (e) => {
@@ -540,11 +549,13 @@ export class Game {
             return;
         }
 
-        this.gameTime += deltaTime;
+        const speedMult = CONFIG.SPEED_MULTIPLIER;
+        const scaledDelta = deltaTime * speedMult;
+        this.gameTime += scaledDelta;
 
         // Update wave timer (countdown)
         if (this.waveSpawningActive) {
-            this.waveTimer -= deltaTime;
+            this.waveTimer -= scaledDelta;
 
             // When timer reaches 0, stop spawning
             if (this.waveTimer <= 0) {
@@ -561,17 +572,17 @@ export class Game {
 
         // Update wave announcement timer
         if (this.showingWaveAnnouncement) {
-            this.waveAnnouncementTimer -= deltaTime;
+            this.waveAnnouncementTimer -= scaledDelta;
             if (this.waveAnnouncementTimer <= 0) {
                 this.showingWaveAnnouncement = false;
             }
         }
 
         // Update camera zoom
-        this.camera.update(deltaTime);
+        this.camera.update(scaledDelta);
 
         // Update renderer time
-        this.renderer.update(deltaTime);
+        this.renderer.update(scaledDelta);
 
         // Update hero
         const movementInput = this.input.getMovementVector();
@@ -645,13 +656,13 @@ export class Game {
         this.updateMilitiaAttacks(deltaTime);
 
         // Update pickups
-        this.updatePickups(deltaTime);
+        this.updatePickups(scaledDelta);
 
         // Handle collisions
         this.handleCollisions();
 
         // Update effects
-        this.effects.update(deltaTime);
+        this.effects.update(scaledDelta);
 
         // Update camera
         this.camera.follow(this.hero);
@@ -774,7 +785,7 @@ export class Game {
             // Move projectile (velocities are in pixels per second)
             proj.x += proj.vx * deltaTime * speedMult;
             proj.y += proj.vy * deltaTime * speedMult;
-            proj.age += deltaTime;
+            proj.age += deltaTime * speedMult;
 
             // Check if expired
             if (proj.age >= proj.lifetime) {
@@ -1104,13 +1115,41 @@ export class Game {
             this.castle,
             this.villages,
             this.gameTime,
-            { waveNumber: this.waveNumber, waveTimer: this.waveTimer }
+            { waveNumber: this.waveNumber, waveTimer: this.waveTimer },
+            CONFIG.SPEED_MULTIPLIER
         );
+        this.fastForwardButtonBounds = this.renderer.fastForwardButtonBounds;
 
         // Draw wave announcement if active
         if (this.showingWaveAnnouncement) {
             this.renderer.drawWaveAnnouncement(this.waveNumber);
         }
+    }
+
+    /**
+     * Handle UI clicks
+     * @param {number} x - Canvas X
+     * @param {number} y - Canvas Y
+     * @returns {boolean} True if handled
+     */
+    handleUIClick(x, y) {
+        const bounds = this.fastForwardButtonBounds;
+        if (!bounds) {
+            return false;
+        }
+
+        const isInside = x >= bounds.x &&
+            x <= bounds.x + bounds.width &&
+            y >= bounds.y &&
+            y <= bounds.y + bounds.height;
+
+        if (isInside) {
+            this.speedIndex = (this.speedIndex + 1) % this.speedOptions.length;
+            CONFIG.SPEED_MULTIPLIER = this.speedOptions[this.speedIndex];
+            return true;
+        }
+
+        return false;
     }
 
     /**

@@ -12,6 +12,7 @@ export class Renderer {
         this.camera = camera;
         this.time = 0;
         this.pickupSpriteCache = new Map();
+        this.fastForwardButtonBounds = null;
     }
 
     isRectVisible(bounds, x, y, width, height) {
@@ -1073,10 +1074,12 @@ export class Renderer {
      * @param {Array} villages - Village entities
      * @param {number} gameTime - Current game time
      * @param {Object} waveInfo - Wave info {waveNumber, waveTimer}
+     * @param {number} speedMultiplier - Current speed multiplier
      */
-    drawHUD(hero, levelUpSystem, castle, villages, gameTime, waveInfo) {
+    drawHUD(hero, levelUpSystem, castle, villages, gameTime, waveInfo, speedMultiplier) {
         const ctx = this.ctx;
         const padding = 20;
+        this.fastForwardButtonBounds = null;
 
         // XP Bar at top
         const xpBarWidth = 400;
@@ -1150,6 +1153,44 @@ export class Renderer {
             ctx.font = 'bold 16px Inter';
             ctx.fillStyle = waveInfo.waveTimer <= 10 ? '#ff4444' : '#fff';
             ctx.fillText(timeStr, this.canvas.width - padding, padding + 38);
+
+            const buttonWidth = 96;
+            const buttonHeight = 22;
+            const buttonX = this.canvas.width - padding - buttonWidth;
+            const buttonY = padding + 46;
+            const buttonRadius = 4;
+            const speedLabel = `Speed x${speedMultiplier}`;
+
+            ctx.fillStyle = '#2d2d44';
+            ctx.strokeStyle = '#555';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(buttonX + buttonRadius, buttonY);
+            ctx.lineTo(buttonX + buttonWidth - buttonRadius, buttonY);
+            ctx.quadraticCurveTo(buttonX + buttonWidth, buttonY, buttonX + buttonWidth, buttonY + buttonRadius);
+            ctx.lineTo(buttonX + buttonWidth, buttonY + buttonHeight - buttonRadius);
+            ctx.quadraticCurveTo(buttonX + buttonWidth, buttonY + buttonHeight, buttonX + buttonWidth - buttonRadius, buttonY + buttonHeight);
+            ctx.lineTo(buttonX + buttonRadius, buttonY + buttonHeight);
+            ctx.quadraticCurveTo(buttonX, buttonY + buttonHeight, buttonX, buttonY + buttonHeight - buttonRadius);
+            ctx.lineTo(buttonX, buttonY + buttonRadius);
+            ctx.quadraticCurveTo(buttonX, buttonY, buttonX + buttonRadius, buttonY);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.font = 'bold 12px Inter';
+            ctx.fillStyle = '#fff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(speedLabel, buttonX + buttonWidth / 2, buttonY + buttonHeight / 2);
+            ctx.textBaseline = 'alphabetic';
+
+            this.fastForwardButtonBounds = {
+                x: buttonX,
+                y: buttonY,
+                width: buttonWidth,
+                height: buttonHeight
+            };
         }
 
         // Weapon inventory (bottom center)
