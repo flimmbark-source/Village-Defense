@@ -3,7 +3,7 @@
  */
 
 import { CONFIG } from '../config.js';
-import { distance, generateId } from '../utils.js';
+import { distanceSquared, generateId } from '../utils.js';
 
 export const PickupType = {
     XP: 'xp',
@@ -63,16 +63,19 @@ export class Pickup {
         // Floating animation
         this.y = this.baseY + Math.sin(this.time * CONFIG.PICKUP.FLOAT_SPEED) * CONFIG.PICKUP.FLOAT_AMPLITUDE;
 
-        // Calculate distance to hero
-        const heroCenter = hero.getCenter();
-        const dist = distance(this.x, this.y, heroCenter.x, heroCenter.y);
-
         // Calculate effective pickup range (with upgrades)
         const magnetRange = hero.getPickupMagnetRange();
         const pickupRange = hero.getPickupRange();
+        const magnetRangeSq = magnetRange * magnetRange;
+        const pickupRangeSq = pickupRange * pickupRange;
+
+        // Calculate distance to hero only if close enough to matter
+        const heroCenter = hero.getCenter();
+        const distSq = distanceSquared(this.x, this.y, heroCenter.x, heroCenter.y);
+        const dist = distSq <= magnetRangeSq ? Math.sqrt(distSq) : null;
 
         // Magnet effect - pull towards hero
-        if (dist < magnetRange) {
+        if (dist !== null && dist < magnetRange) {
             this.magnetized = true;
             const dx = heroCenter.x - this.x;
             const dy = heroCenter.y - this.y;
@@ -82,7 +85,7 @@ export class Pickup {
         }
 
         // Collection
-        if (dist < pickupRange) {
+        if (distSq < pickupRangeSq) {
             this.collected = true;
             return {
                 type: this.type,

@@ -37,7 +37,7 @@ export class Projectile {
      * @param {Array} scouts - Array of scouts to find target
      * @returns {Object|null} Hit result { target, damage } or null if should remove
      */
-    update(scouts, heroDamage) {
+    update(deltaTime, scouts, heroDamage) {
         const target = scouts.find(s => s.id === this.targetId);
 
         // Remove if target doesn't exist
@@ -49,10 +49,11 @@ export class Projectile {
         const dy = target.y - this.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
-        if (dist > this.speed) {
+        const step = this.speed * deltaTime * 60;
+        if (dist > step) {
             // Move towards target
-            this.x += (dx / dist) * this.speed;
-            this.y += (dy / dist) * this.speed;
+            this.x += (dx / dist) * step;
+            this.y += (dy / dist) * step;
             return null;
         } else {
             // Hit target

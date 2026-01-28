@@ -17,6 +17,20 @@ export function distance(x1, y1, x2, y2) {
 }
 
 /**
+ * Calculate squared distance between two points (avoids sqrt)
+ * @param {number} x1 - First point X
+ * @param {number} y1 - First point Y
+ * @param {number} x2 - Second point X
+ * @param {number} y2 - Second point Y
+ * @returns {number} Squared distance between the points
+ */
+export function distanceSquared(x1, y1, x2, y2) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    return dx * dx + dy * dy;
+}
+
+/**
  * Check if a point/entity is within a rectangle
  * @param {Object} point - Point with x, y (and optional width, height)
  * @param {Object} rect - Rectangle with x, y, width, height

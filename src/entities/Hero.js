@@ -4,7 +4,7 @@
  */
 
 import { CONFIG } from '../config.js';
-import { distance, clamp } from '../utils.js';
+import { distanceSquared, clamp } from '../utils.js';
 import { WeaponInstance } from './Weapon.js';
 
 export class Hero {
@@ -39,6 +39,7 @@ export class Hero {
         this.xpMultiplier = 0;
         this.thorns = 0;
         this.attackRangeMultiplier = 1;
+        this.taunt = 0; // Increases enemy disengage attack count
 
         // Weapons (inventory of WeaponInstances)
         this.weapons = [];
@@ -107,21 +108,36 @@ export class Hero {
      * @param {Array} enemies - Array of enemies for targeting
      * @param {Function} createAttack - Callback to create an attack
      */
-    update(deltaTime, enemies, createAttack) {
-        // Movement
-        const dx = this.targetX - this.x;
-        const dy = this.targetY - this.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
+    update(deltaTime, enemies, createAttack, movementInput = null) {
+        const moveStep = this.speed * deltaTime * 60;
 
-        if (dist > this.speed) {
-            const moveX = (dx / dist) * this.speed;
-            const moveY = (dy / dist) * this.speed;
+        // Movement
+        if (movementInput && movementInput.active) {
+            const moveX = movementInput.x * moveStep;
+            const moveY = movementInput.y * moveStep;
             this.x += moveX;
             this.y += moveY;
+            this.targetX = this.x;
+            this.targetY = this.y;
 
             // Update facing direction
-            this.facingX = dx / dist;
-            this.facingY = dy / dist;
+            this.facingX = movementInput.x;
+            this.facingY = movementInput.y;
+        } else {
+            const dx = this.targetX - this.x;
+            const dy = this.targetY - this.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist > moveStep) {
+                const moveX = (dx / dist) * moveStep;
+                const moveY = (dy / dist) * moveStep;
+                this.x += moveX;
+                this.y += moveY;
+
+                // Update facing direction
+                this.facingX = dx / dist;
+                this.facingY = dy / dist;
+            }
         }
 
         // Clamp to world bounds
@@ -145,12 +161,12 @@ export class Hero {
                 // Find nearest enemy in range
                 const center = this.getCenter();
                 let nearest = null;
-                let nearestDist = weapon.definition.range;
+                let nearestDistSq = weapon.definition.range * weapon.definition.range;
 
                 for (const enemy of enemies) {
-                    const d = distance(center.x, center.y, enemy.x, enemy.y);
-                    if (d < nearestDist) {
-                        nearestDist = d;
+                    const distSq = distanceSquared(center.x, center.y, enemy.x, enemy.y);
+                    if (distSq < nearestDistSq) {
+                        nearestDistSq = distSq;
                         nearest = enemy;
                     }
                 }
@@ -237,6 +253,61 @@ export class Hero {
                 break;
             case 'attackRange':
                 this.attackRangeMultiplier += effect.value;
+                break;
+            case 'taunt':
+                this.taunt += effect.value;
+                break;
+        }
+    }
+
+    /**
+     * Remove a stat upgrade (for selling)
+     * @param {Object} effect - Effect with stat and value
+     */
+    removeUpgrade(effect) {
+        switch (effect.stat) {
+            case 'maxHp':
+                this.maxHp -= effect.value;
+                this.hp = Math.min(this.hp, this.maxHp);
+                break;
+            case 'speed':
+                this.speed -= effect.value;
+                break;
+            case 'damageMultiplier':
+                this.damageMultiplier -= effect.value;
+                break;
+            case 'cooldownMultiplier':
+                this.cooldownMultiplier -= effect.value;
+                break;
+            case 'pickupRange':
+                this.pickupRangeMultiplier -= effect.value;
+                break;
+            case 'hpRegen':
+                this.hpRegen -= effect.value;
+                break;
+            case 'damageReduction':
+                this.damageReduction = Math.max(0, this.damageReduction - effect.value);
+                break;
+            case 'critChance':
+                this.critChance = Math.max(0, this.critChance - effect.value);
+                break;
+            case 'lifesteal':
+                this.lifesteal -= effect.value;
+                break;
+            case 'goldMultiplier':
+                this.goldMultiplier -= effect.value;
+                break;
+            case 'xpMultiplier':
+                this.xpMultiplier -= effect.value;
+                break;
+            case 'thorns':
+                this.thorns -= effect.value;
+                break;
+            case 'attackRange':
+                this.attackRangeMultiplier -= effect.value;
+                break;
+            case 'taunt':
+                this.taunt = Math.max(0, this.taunt - effect.value);
                 break;
         }
     }

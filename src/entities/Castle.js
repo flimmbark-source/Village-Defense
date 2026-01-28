@@ -20,6 +20,7 @@ export class Castle {
         this.y = y;
         this.width = CONFIG.CASTLE.WIDTH;
         this.height = CONFIG.CASTLE.HEIGHT;
+        this.radius = Math.max(this.width, this.height) / 2;
 
         // HP
         this.hp = CONFIG.CASTLE.MAX_HP;

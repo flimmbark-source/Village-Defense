@@ -99,6 +99,17 @@ export class Attack {
         }
     }
 
+    createLightningJitter(segments, magnitude) {
+        const jitter = [];
+        for (let i = 1; i < segments; i++) {
+            jitter.push({
+                x: (Math.random() - 0.5) * magnitude,
+                y: (Math.random() - 0.5) * magnitude
+            });
+        }
+        return jitter;
+    }
+
     /**
      * Update attack
      * @param {number} deltaTime - Time since last frame
@@ -185,8 +196,9 @@ export class Attack {
 
     updateProjectile(deltaTime, enemies, damageEvents, pierce) {
         const speed = this.weapon.projectileSpeed;
-        this.x += this.dirX * speed;
-        this.y += this.dirY * speed;
+        const step = speed * deltaTime * 60;
+        this.x += this.dirX * step;
+        this.y += this.dirY * step;
 
         if (this.weapon.effects.rotation) {
             this.rotation += 15 * deltaTime;
@@ -268,8 +280,9 @@ export class Attack {
             }
         }
 
-        this.x += this.dirX * speed;
-        this.y += this.dirY * speed;
+        const step = speed * deltaTime * 60;
+        this.x += this.dirX * step;
+        this.y += this.dirY * step;
 
         // Add to trail
         this.trail.push({ x: this.x, y: this.y });
@@ -382,7 +395,8 @@ export class Attack {
                     startX: heroCenter.x,
                     startY: heroCenter.y,
                     endX: nearest.x,
-                    endY: nearest.y
+                    endY: nearest.y,
+                    jitter: this.createLightningJitter(5, 20)
                 });
                 this.hitEnemies.add(nearest.id);
                 damageEvents.push({ enemy: nearest, damage: this.damage });
@@ -411,7 +425,8 @@ export class Attack {
                     startX: this.lastHit.x,
                     startY: this.lastHit.y,
                     endX: nearest.x,
-                    endY: nearest.y
+                    endY: nearest.y,
+                    jitter: this.createLightningJitter(5, 20)
                 });
                 this.hitEnemies.add(nearest.id);
                 damageEvents.push({ enemy: nearest, damage: this.damage * 0.7 });
@@ -429,10 +444,12 @@ export class Attack {
 
         this.rotation += effects.rotationSpeed * deltaTime;
 
+        const step = speed * deltaTime * 60;
+
         if (!this.returning) {
-            this.x += this.dirX * speed;
-            this.y += this.dirY * speed;
-            this.distTraveled += speed;
+            this.x += this.dirX * step;
+            this.y += this.dirY * step;
+            this.distTraveled += step;
 
             if (this.distTraveled >= this.maxDist) {
                 this.returning = true;
@@ -444,9 +461,10 @@ export class Attack {
             const dy = heroCenter.y - this.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
 
-            if (dist > speed) {
-                this.x += (dx / dist) * speed * 1.2;
-                this.y += (dy / dist) * speed * 1.2;
+            if (dist > step) {
+                const returnStep = step * 1.2;
+                this.x += (dx / dist) * returnStep;
+                this.y += (dy / dist) * returnStep;
             } else {
                 this.finished = true;
                 return;

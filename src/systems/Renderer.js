@@ -11,6 +11,7 @@ export class Renderer {
         this.ctx = canvas.getContext('2d');
         this.camera = camera;
         this.time = 0;
+        this.pickupSpriteCache = new Map();
     }
 
     isRectVisible(bounds, x, y, width, height) {
@@ -76,7 +77,65 @@ export class Renderer {
      * Clear the canvas
      */
     clear() {
+        // Reset any context state that might persist
+        this.ctx.globalAlpha = 1;
+        this.ctx.filter = 'none';
+        this.ctx.globalCompositeOperation = 'source-over';
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+
+    toRGBA(color, alpha) {
+        if (color.startsWith('#')) {
+            const hex = color.replace('#', '');
+            const bigint = parseInt(hex, 16);
+            const r = (bigint >> 16) & 255;
+            const g = (bigint >> 8) & 255;
+            const b = bigint & 255;
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }
+        if (color.startsWith('rgb(')) {
+            return color.replace('rgb(', 'rgba(').replace(')', `, ${alpha})`);
+        }
+        if (color.startsWith('rgba(')) {
+            return color.replace(/rgba\(([^,]+),([^,]+),([^,]+),([^)]+)\)/, `rgba($1,$2,$3,${alpha})`);
+        }
+        return color;
+    }
+
+    getPickupSprite(pickup) {
+        const key = `${pickup.type}-${pickup.radius}-${pickup.color}-${pickup.glowColor}`;
+        if (this.pickupSpriteCache.has(key)) {
+            return this.pickupSpriteCache.get(key);
+        }
+
+        const size = Math.ceil(pickup.radius * 4);
+        const center = size / 2;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+
+        const glowRadius = pickup.radius * 1.5;
+        const gradient = ctx.createRadialGradient(center, center, 0, center, center, glowRadius);
+        gradient.addColorStop(0, this.toRGBA(pickup.glowColor, 0.5));
+        gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(center, center, glowRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = pickup.color;
+        ctx.beginPath();
+        ctx.arc(center, center, pickup.radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.beginPath();
+        ctx.arc(center - pickup.radius * 0.3, center - pickup.radius * 0.3, pickup.radius * 0.3, 0, Math.PI * 2);
+        ctx.fill();
+
+        this.pickupSpriteCache.set(key, canvas);
+        return canvas;
     }
 
     /**
@@ -154,6 +213,14 @@ export class Renderer {
         this.ctx.fillRect(castle.x, spawnBarY, barWidth, barHeight);
         this.ctx.fillStyle = COLORS.SPAWN_BAR;
         this.ctx.fillRect(castle.x, spawnBarY, barWidth * spawnProgress, barHeight);
+
+        // Castle HP bar (below castle)
+        const hpBarY = castle.y + castle.height + 12;
+        const hpPercent = castle.getHPPercent();
+        this.ctx.fillStyle = COLORS.HEALTH_BAR_BG;
+        this.ctx.fillRect(castle.x, hpBarY, barWidth, barHeight);
+        this.ctx.fillStyle = COLORS.HEALTH_BAR_HERO;
+        this.ctx.fillRect(castle.x, hpBarY, barWidth * hpPercent, barHeight);
     }
 
     /**
@@ -262,32 +329,11 @@ export class Renderer {
                 return;
             }
             const alpha = pickup.getAlpha();
-
-            // Glow
-            ctx.beginPath();
-            ctx.arc(pickup.x, pickup.y, pickup.radius * 1.5, 0, Math.PI * 2);
-            const gradient = ctx.createRadialGradient(
-                pickup.x, pickup.y, 0,
-                pickup.x, pickup.y, pickup.radius * 1.5
-            );
-            gradient.addColorStop(0, pickup.glowColor.replace(')', `, ${alpha * 0.5})`).replace('rgb', 'rgba'));
-            gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-            ctx.fillStyle = gradient;
-            ctx.fill();
-
-            // Body
-            ctx.beginPath();
-            ctx.arc(pickup.x, pickup.y, pickup.radius, 0, Math.PI * 2);
-            ctx.fillStyle = pickup.color;
+            const sprite = this.getPickupSprite(pickup);
+            ctx.save();
             ctx.globalAlpha = alpha;
-            ctx.fill();
-            ctx.globalAlpha = 1;
-
-            // Shine
-            ctx.beginPath();
-            ctx.arc(pickup.x - pickup.radius * 0.3, pickup.y - pickup.radius * 0.3, pickup.radius * 0.3, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.5})`;
-            ctx.fill();
+            ctx.drawImage(sprite, pickup.x - sprite.width / 2, pickup.y - sprite.height / 2);
+            ctx.restore();
         });
     }
 
@@ -301,7 +347,7 @@ export class Renderer {
                 return;
             }
             // Sight range (only when patrolling)
-            if (scout.state === 'PATROLLING') {
+            if (CONFIG.DEBUG.DRAW_SCOUT_SIGHT && scout.state === 'PATROLLING') {
                 this.ctx.beginPath();
                 this.ctx.arc(scout.x, scout.y, CONFIG.SCOUT.SIGHT_RANGE, 0, Math.PI * 2);
                 this.ctx.strokeStyle = 'rgba(255, 255, 0, 0.1)';
@@ -336,6 +382,20 @@ export class Renderer {
                 this.ctx.stroke();
             }
 
+            if (scout.attackPhase === 'ACTIVE') {
+                const swipeProgress = scout.attackProgress;
+                const swipeRadius = scout.radius + 6;
+                const swipeArc = Math.PI / 2;
+                const swipeStart = scout.attackAngle - swipeArc / 2;
+                const swipeEnd = swipeStart + swipeArc * swipeProgress;
+
+                this.ctx.beginPath();
+                this.ctx.arc(scout.x, scout.y, swipeRadius, swipeStart, swipeEnd);
+                this.ctx.strokeStyle = `rgba(255, 180, 180, ${0.7 * (1 - swipeProgress)})`;
+                this.ctx.lineWidth = 3;
+                this.ctx.stroke();
+            }
+
             // Body
             this.ctx.beginPath();
             this.ctx.arc(scout.x, scout.y, scout.radius, 0, Math.PI * 2);
@@ -365,21 +425,6 @@ export class Renderer {
             this.ctx.fillRect(scout.x - barWidth / 2, scout.y - scout.radius - 10, barWidth, 5);
             this.ctx.fillStyle = COLORS.HEALTH_BAR_ENEMY;
             this.ctx.fillRect(scout.x - barWidth / 2, scout.y - scout.radius - 10, barWidth * (scout.hp / scout.maxHp), 5);
-        });
-    }
-
-        /**
-     * Draw militia/hero projectiles
-     * @param {Array} projectiles - Projectile entities
-     */
-    drawProjectiles(projectiles) {
-        const ctx = this.ctx;
-
-        projectiles.forEach(projectile => {
-            ctx.beginPath();
-            ctx.arc(projectile.x, projectile.y, projectile.radius, 0, Math.PI * 2);
-            ctx.fillStyle = projectile.color;
-            ctx.fill();
         });
     }
 
@@ -444,26 +489,110 @@ export class Renderer {
     }
 
     /**
-     * Draw militia projectiles
-     * @param {Array} projectiles - Projectile entities
+     * Draw enemy projectiles (optimized - no gradients per frame)
+     * @param {Array} enemyProjectiles - Enemy projectile entities
      */
-    drawProjectiles(projectiles) {
+    drawEnemyProjectiles(enemyProjectiles, viewBounds = null) {
         const ctx = this.ctx;
 
-        projectiles.forEach(proj => {
+        for (let i = 0; i < enemyProjectiles.length; i++) {
+            const proj = enemyProjectiles[i];
+
+            if (!this.isCircleVisible(viewBounds, proj.x, proj.y, proj.radius * 2)) {
+                continue;
+            }
+
+            // Simple trail using velocity (no gradients)
+            const trailX = proj.x - proj.vx * 2;
+            const trailY = proj.y - proj.vy * 2;
+
             ctx.beginPath();
-            ctx.arc(proj.x, proj.y, 4, 0, Math.PI * 2);
-            ctx.fillStyle = '#90EE90';
+            ctx.moveTo(trailX, trailY);
+            ctx.lineTo(proj.x, proj.y);
+            ctx.strokeStyle = proj.color;
+            ctx.lineWidth = proj.radius;
+            ctx.globalAlpha = 0.4;
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+
+            // Outer glow (simple circle, no gradient)
+            ctx.beginPath();
+            ctx.arc(proj.x, proj.y, proj.radius * 1.3, 0, Math.PI * 2);
+            ctx.fillStyle = proj.color;
+            ctx.globalAlpha = 0.3;
+            ctx.fill();
+            ctx.globalAlpha = 1;
+
+            // Main projectile body
+            ctx.beginPath();
+            ctx.arc(proj.x, proj.y, proj.radius, 0, Math.PI * 2);
+            ctx.fillStyle = proj.color;
             ctx.fill();
 
-            // Trail
+            // Inner bright core
             ctx.beginPath();
-            ctx.moveTo(proj.x, proj.y);
-            ctx.lineTo(proj.x - proj.vx * 3, proj.y - proj.vy * 3);
-            ctx.strokeStyle = 'rgba(144, 238, 144, 0.5)';
+            ctx.arc(proj.x, proj.y, proj.radius * 0.4, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.globalAlpha = 0.7;
+            ctx.fill();
+            ctx.globalAlpha = 1;
+        }
+    }
+
+    /**
+     * Draw militia sword swipe attacks
+     * @param {Array} militiaAttacks - Militia attack events
+     * @param {Object} viewBounds - View bounds for culling
+     */
+    drawMilitiaAttacks(militiaAttacks, viewBounds = null) {
+        const ctx = this.ctx;
+
+        for (const attack of militiaAttacks) {
+            if (!this.isCircleVisible(viewBounds, attack.x, attack.y, 40)) {
+                continue;
+            }
+
+            const progress = attack.timer / attack.duration;
+            const swipeArc = (CONFIG.MILITIA.SWIPE_ARC * Math.PI) / 180;
+            const startAngle = attack.angle - swipeArc / 2;
+            const currentAngle = startAngle + swipeArc * progress;
+
+            // Sword swipe arc
+            ctx.save();
+            ctx.translate(attack.x, attack.y);
+
+            // Draw arc trail
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.arc(0, 0, 30, startAngle, currentAngle);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(192, 192, 192, 0.4)';
+            ctx.fill();
+
+            // Draw sword line at current angle
+            const swordLength = 25;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(
+                Math.cos(currentAngle) * swordLength,
+                Math.sin(currentAngle) * swordLength
+            );
+            ctx.strokeStyle = '#c0c0c0';
             ctx.lineWidth = 3;
             ctx.stroke();
-        });
+
+            // Sword tip
+            ctx.beginPath();
+            ctx.arc(
+                Math.cos(currentAngle) * swordLength,
+                Math.sin(currentAngle) * swordLength,
+                3, 0, Math.PI * 2
+            );
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
+
+            ctx.restore();
+        }
     }
 
     /**
@@ -661,14 +790,15 @@ export class Renderer {
             ctx.beginPath();
             ctx.moveTo(chain.startX, chain.startY);
 
-            // Add some randomness for lightning effect
             const segments = 5;
             const dx = (chain.endX - chain.startX) / segments;
             const dy = (chain.endY - chain.startY) / segments;
+            const jitter = chain.jitter || [];
 
             for (let i = 1; i < segments; i++) {
-                const x = chain.startX + dx * i + (Math.random() - 0.5) * 20;
-                const y = chain.startY + dy * i + (Math.random() - 0.5) * 20;
+                const offset = jitter[i - 1] || { x: 0, y: 0 };
+                const x = chain.startX + dx * i + offset.x;
+                const y = chain.startY + dy * i + offset.y;
                 ctx.lineTo(x, y);
             }
             ctx.lineTo(chain.endX, chain.endY);
@@ -927,6 +1057,6 @@ export class Renderer {
         ctx.font = '12px Inter';
         ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
         ctx.textAlign = 'left';
-        ctx.fillText('Click to move | Scroll to zoom | Destroy the castle to win!', padding, this.canvas.height - padding);
+        ctx.fillText('Click to move | WASD to move | Scroll to zoom | Destroy the castle to win!', padding, this.canvas.height - padding);
     }
 }

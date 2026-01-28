@@ -42,18 +42,28 @@ export class Game {
         this.gameTime = 0;
         this.difficulty = 0; // Increases by 1 each level up
 
+        // Shop timing (opens at time thresholds, not level up)
+        this.nextShopTime = 40; // First shop at 40 seconds
+        this.shopOpenCount = 0;
+        this.shopTimeIncrement = 20; // Add 20 seconds each time
+        this.maxShopInterval = 120; // Cap at 2 minutes
+
         // Entities
         this.hero = null;
         this.castle = null;
         this.scouts = [];
         this.attacks = [];
         this.pickups = [];
-        this.projectiles = []; // For militia
+        this.projectiles = []; // For militia (legacy)
+        this.militiaAttacks = []; // Militia sword swipe visuals
         this.forests = [];
         this.villages = [];
 
         // Enemy attack visuals
         this.enemyAttacks = [];
+
+        // Enemy projectiles (visible moving projectiles)
+        this.enemyProjectiles = [];
 
         // UI elements
         this.heroGoldText = document.getElementById('heroGoldText');
@@ -65,6 +75,8 @@ export class Game {
         this.gameOverText = document.querySelector('#gameOverScreen p');
         this.shopDoneButton = document.getElementById('shopDoneButton');
         this.levelUpAnimation = document.getElementById('levelUpAnimation');
+        this.tavernAnimation = document.getElementById('tavernAnimation');
+        this.lastGold = null;
 
         this.initialize();
     }
@@ -98,20 +110,39 @@ export class Game {
         // Setup level up system
         this.levelUpSystem.initialize();
         this.levelUpSystem.setHeroRef(this.hero);
+
+        // Level up now shows choice popup (3 cards or skip for gold)
         this.levelUpSystem.setLevelUpHandler((level) => {
             this.state = GameState.PAUSED;
-            // Increase difficulty
             this.difficulty++;
-            // Show level up animation
             this.showLevelUpAnimation();
-            // Spawn particle effect
             const heroCenter = this.hero.getCenter();
             this.effects.spawnLevelUp(heroCenter.x, heroCenter.y);
         });
 
+        // Handler for level up choice selection
+        this.levelUpSystem.setLevelUpChoiceHandler((choice) => {
+            this.handleLevelUpChoice(choice);
+            this.state = GameState.PLAYING;
+        });
+
+        // Handler for skipping level up choice (get gold instead)
+        this.levelUpSystem.setSkipChoiceHandler(() => {
+            this.hero.addGold(30);
+            this.effects.spawnGoldPickup(this.hero.x, this.hero.y, 30);
+            this.state = GameState.PLAYING;
+        });
+
+        // Handler for shop purchases
         this.levelUpSystem.setChoiceSelectedHandler((choice) => {
             this.handleLevelUpChoice(choice);
             // Don't change state - shop stays open until done
+        });
+
+        // Handler for selling items from inventory
+        this.levelUpSystem.setSellHandler((item, goldValue) => {
+            this.hero.addGold(goldValue);
+            this.effects.spawnGoldPickup(this.hero.x, this.hero.y, goldValue);
         });
 
         // Setup shop done button
@@ -193,6 +224,81 @@ export class Game {
                 this.levelUpAnimation.classList.add('hidden');
             }, 1500);
         }
+    }
+
+    /**
+     * Open shop based on time threshold
+     */
+    openTimedShop() {
+        this.state = GameState.PAUSED;
+        this.shopOpenCount++;
+
+        // Calculate next shop time
+        // Start at 40s, add 20s each time, cap at 2 minutes between openings
+        const interval = Math.min(
+            40 + this.shopOpenCount * this.shopTimeIncrement,
+            this.maxShopInterval
+        );
+        this.nextShopTime = this.gameTime + interval;
+
+        // Open the shop (after tavern animation)
+        this.showTavernAnimation(() => {
+            this.levelUpSystem.generateShopInventory();
+            this.levelUpSystem.showShopUI();
+        });
+    }
+
+    /**
+     * Show tavern shop animation before opening the shop
+     * @param {Function} onComplete - Callback after animation completes
+     */
+    showTavernAnimation(onComplete) {
+        const animationDuration = 1200;
+
+        if (this.tavernAnimation) {
+            this.tavernAnimation.classList.remove('hidden');
+            setTimeout(() => {
+                this.tavernAnimation.classList.add('hidden');
+            }, animationDuration);
+        }
+
+        setTimeout(() => {
+            if (onComplete) {
+                onComplete();
+            }
+        }, animationDuration);
+    }
+
+    /**
+     * Get castle target data for weapon targeting
+     * @returns {Object|null} Castle target data
+     */
+    getCastleTarget() {
+        if (!this.castle || this.castle.isDestroyed()) {
+            return null;
+        }
+
+        const center = this.castle.getCenter();
+        return {
+            id: this.castle.id,
+            x: center.x,
+            y: center.y,
+            radius: this.castle.radius,
+            isCastle: true
+        };
+    }
+
+    /**
+     * Get weapon targets (enemies + castle)
+     * @returns {Array} Targets array
+     */
+    getWeaponTargets() {
+        const targets = [...this.scouts];
+        const castleTarget = this.getCastleTarget();
+        if (castleTarget) {
+            targets.push(castleTarget);
+        }
+        return targets;
     }
 
     /**
@@ -300,6 +406,11 @@ export class Game {
 
         this.gameTime += deltaTime;
 
+        // Check if it's time to open the shop
+        if (this.gameTime >= this.nextShopTime) {
+            this.openTimedShop();
+        }
+
         // Update camera zoom
         this.camera.update(deltaTime);
 
@@ -307,10 +418,14 @@ export class Game {
         this.renderer.update(deltaTime);
 
         // Update hero
+        const movementInput = this.input.getMovementVector();
+        const weaponTargets = this.getWeaponTargets();
+
         this.hero.update(
             deltaTime,
-            this.scouts,
-            (attack) => this.createAttack(attack)
+            weaponTargets,
+            (attack) => this.createAttack(attack),
+            movementInput
         );
 
         // Update castle and spawn waves
@@ -326,21 +441,35 @@ export class Game {
 
         // Update villages and militia
         for (const village of this.villages) {
-            village.update(
+            const militiaAttacks = village.update(
                 deltaTime,
                 this.scouts,
-                (x, y, targetId, owner) => this.createProjectile(x, y, targetId, owner)
+                (scout, damage, militia) => this.handleMilitiaMeleeHit(scout, damage, militia)
             );
+            // Store militia attack visuals
+            for (const attack of militiaAttacks) {
+                this.militiaAttacks.push({
+                    ...attack,
+                    timer: 0,
+                    duration: CONFIG.MILITIA.SWIPE_DURATION
+                });
+            }
         }
 
         // Update attacks (hero weapons)
-        this.updateAttacks(deltaTime);
+        this.updateAttacks(deltaTime, weaponTargets);
 
         // Update enemy attack visuals
         this.updateEnemyAttacks(deltaTime);
 
-        // Update militia projectiles
-        this.updateProjectiles();
+        // Update enemy projectiles
+        this.updateEnemyProjectiles(deltaTime);
+
+        // Update militia projectiles (legacy)
+        this.updateProjectiles(deltaTime);
+
+        // Update militia attack visuals
+        this.updateMilitiaAttacks(deltaTime);
 
         // Update pickups
         this.updatePickups(deltaTime);
@@ -373,58 +502,24 @@ export class Game {
         for (const scout of this.scouts) {
             const attackEvent = scout.update(deltaTime, this.hero, this.forests, this.villages, this.castle);
 
-            // Handle attack event
-            if (attackEvent) {
-                // Create visual for the attack
-                this.enemyAttacks.push({
-                    x: scout.x,
-                    y: scout.y,
-                    targetX: attackEvent.x,
-                    targetY: attackEvent.y,
-                    angle: attackEvent.angle,
+            // Handle attack event - now creates projectiles
+            if (attackEvent && attackEvent.isProjectile) {
+                // Create a projectile that travels to target
+                this.enemyProjectiles.push({
+                    x: attackEvent.x,
+                    y: attackEvent.y,
+                    vx: attackEvent.vx,
+                    vy: attackEvent.vy,
+                    damage: attackEvent.damage,
+                    targetType: attackEvent.targetType,
+                    targetRef: attackEvent.targetRef,
                     radius: attackEvent.radius,
-                    color: scout.color,
-                    timer: 0,
-                    duration: 0.2,
-                    type: scout.type
+                    color: attackEvent.color,
+                    enemyType: attackEvent.enemyType,
+                    sourceScout: scout, // Reference for thorns damage
+                    lifetime: 3.0, // Max lifetime in seconds
+                    age: 0
                 });
-
-                // Apply damage based on target type
-                if (attackEvent.type === 'hero') {
-                    const result = this.hero.takeDamage(attackEvent.damage);
-                    this.effects.spawnDamageNumber(
-                        this.hero.x + this.hero.width / 2,
-                        this.hero.y,
-                        Math.round(result.actualDamage)
-                    );
-
-                    // Apply thorns damage back to attacker
-                    if (result.thornsReflect > 0) {
-                        scout.takeDamage(result.thornsReflect);
-                        this.effects.spawnDamageNumber(scout.x, scout.y - 10, result.thornsReflect, true);
-                    }
-
-                    if (result.died) {
-                        this.defeat();
-                        return;
-                    }
-                } else if (attackEvent.type === 'village' && scout.villageAttackTarget) {
-                    const target = scout.villageAttackTarget;
-                    const destroyed = target.takeDamage(attackEvent.damage);
-                    this.effects.spawnDamageNumber(
-                        target.x + (target.width || 0) / 2,
-                        target.y,
-                        attackEvent.damage
-                    );
-                    if (destroyed) {
-                        this.effects.addFloatingText(
-                            target.x + (target.width || 0) / 2,
-                            target.y - 20,
-                            'Building Destroyed!',
-                            { color: '#ff4444', font: 'bold 16px MedievalSharp', lifetime: 1.5 }
-                        );
-                    }
-                }
             }
         }
     }
@@ -433,19 +528,28 @@ export class Game {
      * Update hero weapon attacks
      * @param {number} deltaTime - Time since last frame
      */
-    updateAttacks(deltaTime) {
+    updateAttacks(deltaTime, weaponTargets) {
         for (let i = this.attacks.length - 1; i >= 0; i--) {
             const attack = this.attacks[i];
 
-            // Combine enemies and castle as potential targets
-            const targets = [...this.scouts];
-
-            const damageEvents = attack.update(deltaTime, this.hero, targets);
+            const damageEvents = attack.update(deltaTime, this.hero, weaponTargets);
 
             // Process damage events
             for (const event of damageEvents) {
+                if (event.enemy.isCastle && this.castle && !this.castle.isDestroyed()) {
+                    const castleCenter = this.castle.getCenter();
+                    this.castle.takeDamage(event.damage);
+                    this.effects.spawnDamageNumber(castleCenter.x, castleCenter.y - 50, event.damage);
+                    continue;
+                }
+
                 event.enemy.takeDamage(event.damage);
                 this.effects.spawnDamageNumber(event.enemy.x, event.enemy.y, event.damage);
+
+                // Apply enrage debuff if weapon has it
+                if (attack.weapon.enrage && event.enemy.applyEnrage) {
+                    event.enemy.applyEnrage(attack.weapon.enrage);
+                }
 
                 // Check if enemy died
                 if (event.enemy.isDead()) {
@@ -455,23 +559,6 @@ export class Game {
                             village.markHeroHelped();
                         }
                     }
-                }
-            }
-
-            // Check for castle damage (hero attacks can hit castle)
-            if (this.castle && !this.castle.isDestroyed()) {
-                const castleCenter = this.castle.getCenter();
-                const dist = Math.sqrt(
-                    Math.pow(attack.x - castleCenter.x, 2) +
-                    Math.pow(attack.y - castleCenter.y, 2)
-                );
-
-                // Simple collision with castle
-                if (dist < CONFIG.CASTLE.WIDTH / 2 + 20 && !attack.hitCastle) {
-                    const damage = attack.weapon.damage * (this.hero.damageMultiplier || 1);
-                    this.castle.takeDamage(damage);
-                    this.effects.spawnDamageNumber(castleCenter.x, castleCenter.y - 50, damage);
-                    attack.hitCastle = true; // Prevent multiple hits per attack
                 }
             }
 
@@ -498,12 +585,119 @@ export class Game {
     }
 
     /**
+     * Update enemy projectiles (movement and collision)
+     * Optimized: uses squared distance to avoid sqrt calls
+     * @param {number} deltaTime - Time since last frame
+     */
+    updateEnemyProjectiles(deltaTime) {
+        const heroCenter = this.hero.getCenter();
+        const heroRadiusSq = (this.hero.width / 2) * (this.hero.width / 2);
+
+        const moveScale = deltaTime * 60;
+        for (let i = this.enemyProjectiles.length - 1; i >= 0; i--) {
+            const proj = this.enemyProjectiles[i];
+
+            // Move projectile
+            proj.x += proj.vx * moveScale;
+            proj.y += proj.vy * moveScale;
+            proj.age += deltaTime;
+
+            // Check if expired
+            if (proj.age >= proj.lifetime) {
+                this.enemyProjectiles.splice(i, 1);
+                continue;
+            }
+
+            // Check for collision with hero (squared distance)
+            if (proj.targetType === 'hero') {
+                const dx = proj.x - heroCenter.x;
+                const dy = proj.y - heroCenter.y;
+                const distSq = dx * dx + dy * dy;
+                const collisionDist = proj.radius + this.hero.width / 2;
+
+                if (distSq < collisionDist * collisionDist) {
+                    // Hit hero
+                    const result = this.hero.takeDamage(proj.damage);
+                    this.effects.spawnDamageNumber(
+                        this.hero.x + this.hero.width / 2,
+                        this.hero.y,
+                        Math.round(result.actualDamage)
+                    );
+
+                    // Apply thorns damage back to source scout if still alive
+                    if (result.thornsReflect > 0 && proj.sourceScout && !proj.sourceScout.isDead()) {
+                        proj.sourceScout.takeDamage(result.thornsReflect);
+                        this.effects.spawnDamageNumber(proj.sourceScout.x, proj.sourceScout.y - 10, result.thornsReflect, true);
+                    }
+
+                    // Remove projectile
+                    this.enemyProjectiles.splice(i, 1);
+
+                    if (result.died) {
+                        this.defeat();
+                        return;
+                    }
+                    continue;
+                }
+            }
+
+            // Check for collision with village target (squared distance)
+            if (proj.targetType === 'village' && proj.targetRef) {
+                const target = proj.targetRef;
+                if (target.isDead && target.isDead()) {
+                    // Target already destroyed, remove projectile
+                    this.enemyProjectiles.splice(i, 1);
+                    continue;
+                }
+
+                const targetCenterX = target.x + (target.width || 0) / 2;
+                const targetCenterY = target.y + (target.height || 0) / 2;
+                const dx = proj.x - targetCenterX;
+                const dy = proj.y - targetCenterY;
+                const distSq = dx * dx + dy * dy;
+                const targetRadius = Math.max(target.width || 20, target.height || 20) / 2;
+                const collisionDist = proj.radius + targetRadius;
+
+                if (distSq < collisionDist * collisionDist) {
+                    // Hit village structure or militia
+                    const destroyed = target.takeDamage(proj.damage);
+                    this.effects.spawnDamageNumber(
+                        targetCenterX,
+                        target.y,
+                        proj.damage
+                    );
+                    if (destroyed) {
+                        // Check if target is militia (has attackTimer property) or building
+                        const isMilitia = target.attackTimer !== undefined;
+                        this.effects.addFloatingText(
+                            targetCenterX,
+                            target.y - 20,
+                            isMilitia ? 'Guard Slain!' : 'Building Destroyed!',
+                            { color: '#ff4444', font: 'bold 16px MedievalSharp', lifetime: 1.5 }
+                        );
+                    }
+
+                    // Remove projectile
+                    this.enemyProjectiles.splice(i, 1);
+                    continue;
+                }
+            }
+
+            // Check if projectile is out of bounds
+            if (proj.x < -100 || proj.x > CONFIG.WORLD.WIDTH + 100 ||
+                proj.y < -100 || proj.y > CONFIG.WORLD.HEIGHT + 100) {
+                this.enemyProjectiles.splice(i, 1);
+            }
+        }
+    }
+
+    /**
      * Update militia projectiles
      */
-    updateProjectiles() {
+    updateProjectiles(deltaTime) {
         for (let i = this.projectiles.length - 1; i >= 0; i--) {
             const proj = this.projectiles[i];
-            const result = proj.update(this.scouts, CONFIG.MILITIA.DAMAGE);
+            const result = proj.update(deltaTime, this.scouts, CONFIG.MILITIA.DAMAGE);
 
             if (result) {
                 if (result.remove) {
@@ -514,6 +708,39 @@ export class Game {
                     result.target.takeDamage(result.damage);
                     this.effects.spawnDamageNumber(result.target.x, result.target.y, result.damage);
                 }
+            }
+        }
+    }
+
+    /**
+     * Handle militia melee attack hitting an enemy
+     * @param {Object} scout - The scout that was hit
+     * @param {number} damage - Damage amount
+     * @param {Object} militia - The militia that attacked
+     */
+    handleMilitiaMeleeHit(scout, damage, militia) {
+        if (!scout || scout.isDead()) return;
+
+        scout.takeDamage(damage);
+        this.effects.spawnDamageNumber(scout.x, scout.y, damage);
+
+        // Check if scout died
+        if (scout.isDead()) {
+            // Will be cleaned up in handleCollisions
+        }
+    }
+
+    /**
+     * Update militia attack visuals
+     * @param {number} deltaTime - Time since last frame
+     */
+    updateMilitiaAttacks(deltaTime) {
+        for (let i = this.militiaAttacks.length - 1; i >= 0; i--) {
+            const attack = this.militiaAttacks[i];
+            attack.timer += deltaTime;
+
+            if (attack.timer >= attack.duration) {
+                this.militiaAttacks.splice(i, 1);
             }
         }
     }
@@ -596,7 +823,10 @@ export class Game {
      */
     updateUI() {
         if (this.heroGoldText) {
-            this.heroGoldText.textContent = this.hero.gold;
+            if (this.lastGold !== this.hero.gold) {
+                this.heroGoldText.textContent = this.hero.gold;
+                this.lastGold = this.hero.gold;
+            }
         }
     }
 
@@ -624,7 +854,9 @@ export class Game {
 
         // Attacks
         this.renderer.drawAttacks(this.attacks, viewBounds);
-        this.renderer.drawEnemyAttacks(this.enemyAttacks, viewBounds)
+        this.renderer.drawEnemyAttacks(this.enemyAttacks, viewBounds);
+        this.renderer.drawEnemyProjectiles(this.enemyProjectiles, viewBounds);
+        this.renderer.drawMilitiaAttacks(this.militiaAttacks, viewBounds);
 
         // Effects (world space)
         this.renderer.drawParticles(this.effects.particles, viewBounds);
@@ -709,14 +941,20 @@ export class Game {
         this.gameTime = 0;
         this.difficulty = 0;
 
+        // Reset shop timing
+        this.nextShopTime = 40;
+        this.shopOpenCount = 0;
+
         // Clear entities
         this.scouts = [];
         this.attacks = [];
         this.pickups = [];
         this.projectiles = [];
+        this.militiaAttacks = [];
         this.villages = [];
         this.forests = [];
         this.enemyAttacks = [];
+        this.enemyProjectiles = [];
 
         // Clear effects
         this.effects.clear();
@@ -724,8 +962,8 @@ export class Game {
         // Reset level up system
         this.levelUpSystem.reset();
 
-        // Reset camera
-        this.camera.setZoom(1);
+        // Reset camera - start zoomed all the way out
+        this.camera.setZoom(CONFIG.CAMERA.MIN_ZOOM);
 
         // Recreate world
         this.generateForests();
@@ -743,6 +981,7 @@ export class Game {
             CONFIG.WORLD.HEIGHT / 2 + 300
         );
         this.hero.addStartingWeapon('basic_sword');
+        this.lastGold = null;
 
         // Update level up system hero reference
         this.levelUpSystem.setHeroRef(this.hero);

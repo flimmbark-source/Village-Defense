@@ -4,6 +4,9 @@
  */
 
 export const CONFIG = {
+    DEBUG: {
+        DRAW_SCOUT_SIGHT: false
+    },
     // World & Camera
     WORLD: {
         WIDTH: 3000,
@@ -52,13 +55,22 @@ export const CONFIG = {
         VILLAGE_ATTACK_DAMAGE: 15,
         VILLAGE_ATTACK_COOLDOWN: 1.5,
         HERO_ATTACK_COOLDOWN: 1.5,
-        ATTACK_RANGE: 35,
+        ATTACK_RANGE: 135,
         ATTACK_WINDUP: 0.3,
         ATTACK_DURATION: 0.2,
-        XP_DROP: 10,
-        GOLD_DROP_MIN: 5,
-        GOLD_DROP_MAX: 15,
-        GOLD_DROP_CHANCE: 0.4
+        DASH_DISTANCE: 80,
+        DASH_DURATION: 0.12,
+        PROJECTILE_SPEED: 5,
+        PROJECTILE_RADIUS: 6,
+        PROJECTILE_COLOR: '#ff6666',
+        XP_DROP: 6,
+        GOLD_DROP_MIN: 6,
+        GOLD_DROP_MAX: 9,
+        GOLD_DROP_CHANCE: 0.4,
+        // Village priority - disengage from hero after X attacks
+        DISENGAGE_ATTACK_COUNT: 3,
+        DISENGAGE_DURATION: 3.0, // Seconds to move towards village before re-engaging
+        DISENGAGE_SPEED_MULTIPLIER: 1.05 // Move faster when disengaging
     },
 
     // Elite Scout - faster, more HP
@@ -72,10 +84,17 @@ export const CONFIG = {
         VILLAGE_ATTACK_COOLDOWN: 1.2,
         HERO_ATTACK_COOLDOWN: 1.2,
         ATTACK_RANGE: 40,
+        PROJECTILE_SPEED: 6,
+        PROJECTILE_RADIUS: 7,
+        PROJECTILE_COLOR: '#cc66ff',
         XP_DROP: 25,
         GOLD_DROP_MIN: 10,
         GOLD_DROP_MAX: 25,
-        GOLD_DROP_CHANCE: 0.6
+        GOLD_DROP_CHANCE: 0.6,
+        // Elites are more focused on the player
+        DISENGAGE_ATTACK_COUNT: 5,
+        DISENGAGE_DURATION: 2.5,
+        DISENGAGE_SPEED_MULTIPLIER: 1.3
     },
 
     // Brute - slow but tanky and hard-hitting
@@ -89,10 +108,17 @@ export const CONFIG = {
         VILLAGE_ATTACK_COOLDOWN: 2.0,
         HERO_ATTACK_COOLDOWN: 2.0,
         ATTACK_RANGE: 50,
+        PROJECTILE_SPEED: 4,
+        PROJECTILE_RADIUS: 10,
+        PROJECTILE_COLOR: '#8b0000',
         XP_DROP: 50,
         GOLD_DROP_MIN: 20,
         GOLD_DROP_MAX: 40,
-        GOLD_DROP_CHANCE: 0.8
+        GOLD_DROP_CHANCE: 0.8,
+        // Brutes are very village-focused
+        DISENGAGE_ATTACK_COUNT: 2,
+        DISENGAGE_DURATION: 4.0,
+        DISENGAGE_SPEED_MULTIPLIER: 1.1
     },
 
     // Swarm - weak but fast and numerous
@@ -106,10 +132,17 @@ export const CONFIG = {
         VILLAGE_ATTACK_COOLDOWN: 0.8,
         HERO_ATTACK_COOLDOWN: 0.8,
         ATTACK_RANGE: 25,
+        PROJECTILE_SPEED: 7,
+        PROJECTILE_RADIUS: 4,
+        PROJECTILE_COLOR: '#999999',
         XP_DROP: 5,
         GOLD_DROP_MIN: 1,
         GOLD_DROP_MAX: 5,
-        GOLD_DROP_CHANCE: 0.2
+        GOLD_DROP_CHANCE: 0.2,
+        // Swarm units are easily distracted but quick to refocus
+        DISENGAGE_ATTACK_COUNT: 4,
+        DISENGAGE_DURATION: 2.0,
+        DISENGAGE_SPEED_MULTIPLIER: 1.4
     },
 
     // Militia Stats
@@ -118,11 +151,16 @@ export const CONFIG = {
         HEIGHT: 20,
         COLOR: '#228B22',
         MAX_HP: 60,
-        DAMAGE: 8,
-        ATTACK_RANGE: 250,
-        ATTACK_COOLDOWN: 2.0,
+        DAMAGE: 12,
+        ATTACK_RANGE: 35, // Melee range for sword swipe
+        ATTACK_COOLDOWN: 1.0,
         SPEED: 2.0,
-        PROJECTILE_SPEED: 5
+        // Disengage system - return to village after attacking
+        DISENGAGE_ATTACK_COUNT: 2, // Attacks before disengaging
+        DISENGAGE_SPEED_MULTIPLIER: 1.2, // Speed boost when returning
+        // Sword swipe attack visuals
+        SWIPE_ARC: 90, // Degrees of sword arc
+        SWIPE_DURATION: 0.2 // Duration of swipe animation
     },
 
     // Village Settings
@@ -293,7 +331,7 @@ export const WEAPONS = {
     whip: {
         id: 'whip',
         name: 'Chain Whip',
-        description: 'Sweeps in front of you',
+        description: 'Sweeps in front of you. Enrages enemies (+1 attack before disengage)',
         icon: '⛓️',
         type: 'melee',
         damage: 12,
@@ -302,6 +340,7 @@ export const WEAPONS = {
         attackPattern: 'whip',
         cost: 60,
         upgradeCost: 35,
+        enrage: 1, // Adds +1 to enemy disengage attack count when hit
         effects: {
             segments: 8,
             color: '#8b4513',
@@ -431,6 +470,16 @@ export const PASSIVE_UPGRADES = [
         effect: { stat: 'thorns', value: 10 },
         cost: 70,
         maxStacks: 4,
+        rarity: 'uncommon'
+    },
+    {
+        id: 'taunt',
+        name: 'Taunt',
+        description: 'Enemies attack you +2 times before refocusing on villages',
+        icon: '🎭',
+        effect: { stat: 'taunt', value: 2 },
+        cost: 55,
+        maxStacks: 5,
         rarity: 'uncommon'
     }
 ];
