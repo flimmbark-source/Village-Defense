@@ -291,6 +291,89 @@ export class Renderer {
                 this.ctx.fillStyle = m.color;
                 this.ctx.fillRect(m.x, m.y, m.width, m.height);
             });
+
+            // Arrow Towers
+            v.arrowTowers.forEach(tower => {
+                if (tower.isDead()) {
+                    // Draw destroyed tower (rubble)
+                    this.ctx.fillStyle = '#4a4a4a';
+                    this.ctx.fillRect(tower.x + 5, tower.y + 10, tower.width - 10, tower.height - 10);
+                } else {
+                    // Draw tower base (stone)
+                    this.ctx.fillStyle = '#6a6a6a';
+                    this.ctx.fillRect(tower.x, tower.y + tower.height * 0.4, tower.width, tower.height * 0.6);
+
+                    // Draw tower top (wooden platform)
+                    this.ctx.fillStyle = '#8B4513';
+                    this.ctx.fillRect(tower.x - 3, tower.y, tower.width + 6, tower.height * 0.4);
+
+                    // Draw arrow slit
+                    this.ctx.fillStyle = '#2a2a2a';
+                    this.ctx.fillRect(tower.x + tower.width / 2 - 3, tower.y + tower.height * 0.5, 6, 8);
+
+                    // Health bar (only show if damaged)
+                    if (tower.hp < tower.maxHp) {
+                        const barWidth = tower.width;
+                        const barHeight = 4;
+                        const barX = tower.x;
+                        const barY = tower.y - 8;
+
+                        this.ctx.fillStyle = COLORS.HEALTH_BAR_BG;
+                        this.ctx.fillRect(barX, barY, barWidth, barHeight);
+
+                        const hpPercent = tower.hp / tower.maxHp;
+                        this.ctx.fillStyle = hpPercent > 0.5 ? '#4cd44c' : hpPercent > 0.25 ? '#d4a44c' : '#d44c4c';
+                        this.ctx.fillRect(barX, barY, barWidth * hpPercent, barHeight);
+                    }
+                }
+            });
+
+            // Barracks
+            v.barracks.forEach(barracks => {
+                if (barracks.isDead()) {
+                    // Draw destroyed barracks (rubble)
+                    this.ctx.fillStyle = '#4a3020';
+                    this.ctx.fillRect(barracks.x + 5, barracks.y + 10, barracks.width - 10, barracks.height - 10);
+                } else {
+                    // Draw barracks building
+                    this.ctx.fillStyle = '#5a4a3a';
+                    this.ctx.fillRect(barracks.x, barracks.y, barracks.width, barracks.height);
+
+                    // Draw roof
+                    this.ctx.fillStyle = '#4a3a2a';
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(barracks.x - 3, barracks.y);
+                    this.ctx.lineTo(barracks.x + barracks.width / 2, barracks.y - 12);
+                    this.ctx.lineTo(barracks.x + barracks.width + 3, barracks.y);
+                    this.ctx.closePath();
+                    this.ctx.fill();
+
+                    // Draw door
+                    this.ctx.fillStyle = '#2a1a1a';
+                    this.ctx.fillRect(barracks.x + barracks.width / 2 - 8, barracks.y + barracks.height - 15, 16, 15);
+
+                    // Draw shield icon
+                    this.ctx.fillStyle = '#228B22';
+                    this.ctx.beginPath();
+                    this.ctx.arc(barracks.x + barracks.width / 2, barracks.y + barracks.height / 2 - 3, 6, 0, Math.PI * 2);
+                    this.ctx.fill();
+
+                    // Health bar (only show if damaged)
+                    if (barracks.hp < barracks.maxHp) {
+                        const barWidth = barracks.width;
+                        const barHeight = 4;
+                        const barX = barracks.x;
+                        const barY = barracks.y - 18;
+
+                        this.ctx.fillStyle = COLORS.HEALTH_BAR_BG;
+                        this.ctx.fillRect(barX, barY, barWidth, barHeight);
+
+                        const hpPercent = barracks.hp / barracks.maxHp;
+                        this.ctx.fillStyle = hpPercent > 0.5 ? '#4cd44c' : hpPercent > 0.25 ? '#d4a44c' : '#d44c4c';
+                        this.ctx.fillRect(barX, barY, barWidth * hpPercent, barHeight);
+                    }
+                }
+            });
         });
     }
 

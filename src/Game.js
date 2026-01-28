@@ -17,6 +17,8 @@ import { Input } from './systems/Input.js';
 import { Renderer } from './systems/Renderer.js';
 import { LevelUpSystem } from './systems/LevelUp.js';
 import { EffectsSystem } from './systems/Effects.js';
+import { SkillTreeManager } from './systems/SkillTree.js';
+import { SkillTreeUI } from './ui/SkillTreeUI.js';
 
 export const GameState = {
     PLAYING: 'PLAYING',
@@ -35,6 +37,8 @@ export class Game {
         this.input = new Input(canvas, this.camera);
         this.levelUpSystem = new LevelUpSystem();
         this.effects = new EffectsSystem();
+        this.skillTreeManager = new SkillTreeManager();
+        this.skillTreeUI = new SkillTreeUI(this.skillTreeManager);
 
         // Game state
         this.state = GameState.PLAYING;
@@ -111,26 +115,23 @@ export class Game {
         this.levelUpSystem.initialize();
         this.levelUpSystem.setHeroRef(this.hero);
 
-        // Level up now shows choice popup (3 cards or skip for gold)
+        // Level up now opens skill tree instead of 3-choice panel
         this.levelUpSystem.setLevelUpHandler((level) => {
             this.state = GameState.PAUSED;
             this.difficulty++;
             this.showLevelUpAnimation();
             const heroCenter = this.hero.getCenter();
             this.effects.spawnLevelUp(heroCenter.x, heroCenter.y);
+
+            // Award skill point and open skill tree
+            this.skillTreeManager.addSkillPoints(1);
+            this.openSkillTree();
         });
 
-        // Handler for level up choice selection
-        this.levelUpSystem.setLevelUpChoiceHandler((choice) => {
-            this.handleLevelUpChoice(choice);
+        // Setup skill tree close callback
+        this.skillTreeUI.setCloseCallback(() => {
             this.state = GameState.PLAYING;
-        });
-
-        // Handler for skipping level up choice (get gold instead)
-        this.levelUpSystem.setSkipChoiceHandler(() => {
-            this.hero.addGold(30);
-            this.effects.spawnGoldPickup(this.hero.x, this.hero.y, 30);
-            this.state = GameState.PLAYING;
+            this.applySkillTreeEffects();
         });
 
         // Handler for shop purchases
@@ -267,6 +268,90 @@ export class Game {
                 onComplete();
             }
         }, animationDuration);
+    }
+
+    /**
+     * Open skill tree panel
+     */
+    openSkillTree() {
+        this.skillTreeUI.open();
+    }
+
+    /**
+     * Apply all skill tree effects to the game
+     */
+    applySkillTreeEffects() {
+        const effects = this.skillTreeManager.getAllActiveEffects();
+
+        // Apply hero bonuses
+        if (this.hero) {
+            // Reset hero to base values before reapplying (simplified approach)
+            // In a production game, you'd want a more robust system
+
+            // Apply stat bonuses
+            if (effects.maxHp) {
+                this.hero.maxHp = CONFIG.HERO.INITIAL_HP + effects.maxHp;
+                this.hero.hp = Math.min(this.hero.hp, this.hero.maxHp);
+            }
+
+            if (effects.damageMultiplier) {
+                this.hero.damageMultiplier = effects.damageMultiplier;
+            }
+
+            if (effects.speed) {
+                this.hero.speed = CONFIG.HERO.SPEED + effects.speed;
+            }
+
+            if (effects.cooldownMultiplier) {
+                this.hero.cooldownMultiplier = 1 + effects.cooldownMultiplier;
+            }
+
+            if (effects.attackRange) {
+                this.hero.attackRange = effects.attackRange;
+            }
+
+            if (effects.lifesteal) {
+                this.hero.lifesteal = effects.lifesteal;
+            }
+
+            if (effects.critChance) {
+                this.hero.critChance = effects.critChance;
+            }
+
+            if (effects.goldMultiplier) {
+                this.hero.goldMultiplier = effects.goldMultiplier;
+            }
+
+            if (effects.xpMultiplier) {
+                this.hero.xpMultiplier = effects.xpMultiplier;
+            }
+        }
+
+        // Apply village bonuses
+        for (const village of this.villages) {
+            village.applySkillBonuses(effects);
+        }
+
+        // Apply castle debuffs
+        if (this.castle && effects.castleHpReduction) {
+            const reduction = effects.castleHpReduction;
+            this.castle.maxHp = Math.max(1000, CONFIG.CASTLE.MAX_HP - reduction);
+            this.castle.hp = Math.min(this.castle.hp, this.castle.maxHp);
+        }
+
+        if (this.castle && effects.castleSpawnDelay) {
+            this.castle.spawnCooldownBonus = effects.castleSpawnDelay;
+        }
+
+        if (this.castle && effects.waveReduction) {
+            this.castle.waveReduction = Math.floor(effects.waveReduction);
+        }
+
+        // Apply shop timing bonuses
+        if (effects.shopTimeReduction) {
+            const reduction = effects.shopTimeReduction;
+            this.shopTimeIncrement = Math.max(5, 20 - reduction);
+        }
     }
 
     /**
@@ -441,18 +526,24 @@ export class Game {
 
         // Update villages and militia
         for (const village of this.villages) {
-            const militiaAttacks = village.update(
+            const attacks = village.update(
                 deltaTime,
                 this.scouts,
-                (scout, damage, militia) => this.handleMilitiaMeleeHit(scout, damage, militia)
+                (scout, damage, militia) => this.handleMilitiaMeleeHit(scout, damage, militia),
+                (target) => this.handleArrowTowerShot(target)
             );
-            // Store militia attack visuals
-            for (const attack of militiaAttacks) {
-                this.militiaAttacks.push({
-                    ...attack,
-                    timer: 0,
-                    duration: CONFIG.MILITIA.SWIPE_DURATION
-                });
+            // Store attack visuals
+            for (const attack of attacks) {
+                if (attack.type === 'militia_swipe') {
+                    this.militiaAttacks.push({
+                        ...attack,
+                        timer: 0,
+                        duration: CONFIG.MILITIA.SWIPE_DURATION
+                    });
+                } else if (attack.type === 'arrow_tower_shot') {
+                    // Arrow tower shots could be rendered as projectiles or instant damage
+                    // For simplicity, we'll handle damage instantly
+                }
             }
         }
 
@@ -731,6 +822,19 @@ export class Game {
     }
 
     /**
+     * Handle arrow tower shooting at an enemy
+     * @param {Object} target - The target scout
+     */
+    handleArrowTowerShot(target) {
+        if (!target || target.isDead()) return;
+
+        // Arrow towers deal fixed damage (defined in ArrowTower.js)
+        const damage = 15;
+        target.takeDamage(damage);
+        this.effects.spawnDamageNumber(target.x, target.y, damage);
+    }
+
+    /**
      * Update militia attack visuals
      * @param {number} deltaTime - Time since last frame
      */
@@ -961,6 +1065,14 @@ export class Game {
 
         // Reset level up system
         this.levelUpSystem.reset();
+
+        // Reset skill tree
+        this.skillTreeManager = new SkillTreeManager();
+        this.skillTreeUI = new SkillTreeUI(this.skillTreeManager);
+        this.skillTreeUI.setCloseCallback(() => {
+            this.state = GameState.PLAYING;
+            this.applySkillTreeEffects();
+        });
 
         // Reset camera - start zoomed all the way out
         this.camera.setZoom(CONFIG.CAMERA.MIN_ZOOM);

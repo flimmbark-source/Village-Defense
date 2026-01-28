@@ -34,6 +34,10 @@ export class Castle {
         // Time-based scaling
         this.gameTime = 0;
         this.currentWaveSize = 1;
+
+        // Skill tree bonuses
+        this.spawnCooldownBonus = 0; // Added delay from skill tree
+        this.waveReduction = 0; // Reduce wave size from skill tree
     }
 
     /**
@@ -66,14 +70,18 @@ export class Castle {
         this.gameTime += deltaTime;
         this.spawnTimer += deltaTime;
 
-        // Check if it's time to spawn a wave
-        if (this.spawnTimer >= this.spawnCooldown) {
+        // Check if it's time to spawn a wave (with skill tree bonus delay)
+        const effectiveCooldown = this.spawnCooldown + this.spawnCooldownBonus;
+        if (this.spawnTimer >= effectiveCooldown) {
             this.spawnTimer = 0;
             this.waveNumber++;
 
             // Calculate wave size based on game time
             const timeScaling = Math.floor(this.gameTime / CONFIG.CASTLE.SCALE_INTERVAL);
-            this.currentWaveSize = Math.min(1 + timeScaling, CONFIG.CASTLE.MAX_WAVE_SIZE);
+            const baseWaveSize = Math.min(1 + timeScaling, CONFIG.CASTLE.MAX_WAVE_SIZE);
+
+            // Apply wave reduction from skill tree
+            this.currentWaveSize = Math.max(1, baseWaveSize - this.waveReduction);
 
             return this.generateWave();
         }
@@ -160,6 +168,7 @@ export class Castle {
      * @returns {number} Progress to next spawn
      */
     getSpawnProgress() {
-        return this.spawnTimer / this.spawnCooldown;
+        const effectiveCooldown = this.spawnCooldown + this.spawnCooldownBonus;
+        return this.spawnTimer / effectiveCooldown;
     }
 }
