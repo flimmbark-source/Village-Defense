@@ -989,6 +989,103 @@ body {
     border-color: #ffd700;
 }
 
+/* Reward screen info button */
+.reward-info-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    padding: 6px 12px;
+    border: 2px solid rgba(255, 200, 100, 0.5);
+    background: linear-gradient(180deg, rgba(60, 40, 20, 0.9), rgba(30, 20, 10, 0.95));
+    color: #ffd700;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    cursor: pointer;
+    z-index: 5;
+    transition: all 0.2s ease;
+    border-radius: 6px;
+    font-weight: bold;
+}
+
+.reward-info-btn:hover {
+    border-color: #ffd700;
+    transform: scale(1.05);
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+}
+
+/* Expanded reward view */
+.expanded-reward-view {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    animation: expandIn 0.3s ease-out;
+}
+
+.expanded-reward-view.hidden {
+    display: none;
+}
+
+.expanded-reward-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    border-bottom: 2px solid rgba(139, 90, 43, 0.5);
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.4) 100%);
+}
+
+.reward-collapse-btn {
+    padding: 8px 16px;
+    border: 2px solid rgba(255, 200, 100, 0.5);
+    background: linear-gradient(180deg, rgba(60, 40, 20, 0.9), rgba(30, 20, 10, 0.95));
+    color: #ffd700;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-radius: 6px;
+    font-weight: bold;
+}
+
+.reward-collapse-btn:hover {
+    border-color: #ffd700;
+    transform: scale(1.05);
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+}
+
+.expanded-reward-title {
+    flex: 1;
+    text-align: center;
+    font-size: 1.8rem;
+    color: #ffd700;
+    text-shadow: 2px 2px 0 #5a3a1a, 0 0 20px rgba(255, 215, 0, 0.5);
+    margin: 0;
+}
+
+.expanded-reward-cards {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 12px;
+    overflow: hidden;
+    align-items: stretch;
+    justify-content: center;
+    padding: 20px;
+    flex: 1;
+}
+
+.levelup-skip-btn-expanded {
+    margin: 0 auto 16px auto;
+    padding: 12px 32px;
+    font-size: 1rem;
+    background: linear-gradient(180deg, #5a4a3a 0%, #3a2a1a 50%, #2a1a0a 100%);
+    border: 2px solid #7a5c4b;
+}
+
+.levelup-skip-btn-expanded:hover {
+    background: linear-gradient(180deg, #6a5a4a 0%, #4a3a2a 50%, #3a2a1a 100%);
+    border-color: #ffd700;
+}
+
 /* ========== SHOP INVENTORY SECTION ========== */
 .shop-inventory-section {
     margin-top: 12px;
@@ -1798,6 +1895,185 @@ body {
 
     .card-cost-extended .gold-icon,
     .card-cost-extended .cost-amount {
+        font-size: 0.7rem;
+    }
+}
+
+/* Mobile responsive styles for Reward Screen */
+@media (max-width: 768px) {
+    .levelup-choice-title {
+        font-size: 1.5rem;
+        margin: 0 0 16px 0;
+    }
+
+    .levelup-choice-content {
+        padding: 16px;
+    }
+
+    /* Keep cards at a reasonable size on mobile */
+    .levelup-choice-cards .shop-card {
+        width: 90px;
+        height: 125px;
+    }
+
+    /* Make skip button smaller on mobile */
+    .levelup-skip-btn {
+        padding: 8px 20px;
+        font-size: 0.85rem;
+    }
+
+    /* Info button smaller on mobile */
+    .reward-info-btn {
+        padding: 4px 10px;
+        font-size: 0.7rem;
+        top: 10px;
+        right: 10px;
+    }
+
+    /* Expanded view mobile styles */
+    .expanded-reward-header {
+        padding: 12px 16px;
+        gap: 12px;
+    }
+
+    .reward-collapse-btn {
+        padding: 6px 12px;
+        font-size: 0.75rem;
+    }
+
+    .expanded-reward-title {
+        font-size: 1.4rem;
+    }
+
+    .expanded-reward-cards {
+        padding: 12px;
+        gap: 10px;
+    }
+
+    .expanded-reward-cards .shop-card-extended {
+        flex: 1 1 0;
+        min-width: 0;
+        max-width: none;
+    }
+
+    .levelup-skip-btn-expanded {
+        padding: 8px 20px;
+        font-size: 0.85rem;
+    }
+}
+
+@media (max-width: 600px) {
+    .levelup-choice-title {
+        font-size: 1.2rem;
+        margin: 0 0 12px 0;
+    }
+
+    .levelup-choice-content {
+        padding: 12px;
+    }
+
+    /* Keep cards visible and readable on small screens */
+    .levelup-choice-cards .shop-card {
+        width: 85px;
+        height: 120px;
+    }
+
+    /* Smaller skip button */
+    .levelup-skip-btn {
+        padding: 6px 16px;
+        font-size: 0.75rem;
+    }
+
+    /* Info button smaller */
+    .reward-info-btn {
+        padding: 3px 8px;
+        font-size: 0.6rem;
+        top: 8px;
+        right: 8px;
+    }
+
+    /* Expanded view */
+    .expanded-reward-header {
+        padding: 8px 10px;
+        gap: 8px;
+    }
+
+    .reward-collapse-btn {
+        padding: 5px 10px;
+        font-size: 0.7rem;
+    }
+
+    .expanded-reward-title {
+        font-size: 1rem;
+    }
+
+    .expanded-reward-cards {
+        padding: 8px;
+        gap: 8px;
+    }
+
+    .levelup-skip-btn-expanded {
+        padding: 6px 16px;
+        font-size: 0.75rem;
+    }
+}
+
+@media (max-width: 400px) {
+    .levelup-choice-title {
+        font-size: 1rem;
+        margin: 0 0 10px 0;
+    }
+
+    .levelup-choice-content {
+        padding: 10px;
+    }
+
+    /* Maintain card size for readability */
+    .levelup-choice-cards .shop-card {
+        width: 80px;
+        height: 115px;
+    }
+
+    .levelup-choice-cards {
+        gap: 10px;
+    }
+
+    /* Very small skip button */
+    .levelup-skip-btn {
+        padding: 5px 14px;
+        font-size: 0.7rem;
+    }
+
+    /* Very small info button */
+    .reward-info-btn {
+        padding: 2px 6px;
+        font-size: 0.5rem;
+        top: 6px;
+        right: 6px;
+    }
+
+    /* Expanded view very small */
+    .expanded-reward-header {
+        padding: 6px 8px;
+        gap: 6px;
+    }
+
+    .reward-collapse-btn {
+        padding: 4px 8px;
+        font-size: 0.65rem;
+    }
+
+    .expanded-reward-title {
+        font-size: 0.85rem;
+    }
+
+    .expanded-reward-cards {
+        padding: 6px;
+        gap: 6px;
+    }
+
+    .levelup-skip-btn-expanded {
+        padding: 5px 14px;
         font-size: 0.7rem;
     }
 }

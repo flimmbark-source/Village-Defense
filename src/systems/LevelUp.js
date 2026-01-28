@@ -54,6 +54,15 @@ export class LevelUpSystem {
         this.expandedCards = null;
         this.expandedGoldDisplay = null;
         this.currentExpandedSection = null;
+
+        // Reward screen expanded view elements
+        this.normalRewardView = null;
+        this.expandedRewardView = null;
+        this.expandedRewardTitle = null;
+        this.expandedRewardCards = null;
+        this.rewardInfoBtn = null;
+        this.rewardCollapseBtn = null;
+        this.levelUpSkipBtnExpanded = null;
     }
 
     /**
@@ -80,12 +89,36 @@ export class LevelUpSystem {
         this.levelUpChoiceCards = document.getElementById('levelUpChoiceCards');
         this.levelUpSkipBtn = document.getElementById('levelUpSkipBtn');
 
+        // Reward screen expanded view elements
+        this.normalRewardView = document.getElementById('normalRewardView');
+        this.expandedRewardView = document.getElementById('expandedRewardView');
+        this.expandedRewardTitle = document.getElementById('expandedRewardTitle');
+        this.expandedRewardCards = document.getElementById('expandedRewardCards');
+        this.rewardInfoBtn = document.getElementById('rewardInfoBtn');
+        this.rewardCollapseBtn = document.getElementById('collapseRewardBtn');
+        this.levelUpSkipBtnExpanded = document.getElementById('levelUpSkipBtnExpanded');
+
         // Setup expand button listeners
         this.setupExpandButtons();
 
         // Setup level up skip button
         if (this.levelUpSkipBtn) {
             this.levelUpSkipBtn.onclick = () => this.skipLevelUpChoice();
+        }
+
+        // Setup reward info button
+        if (this.rewardInfoBtn) {
+            this.rewardInfoBtn.onclick = () => this.expandRewardView();
+        }
+
+        // Setup reward collapse button
+        if (this.rewardCollapseBtn) {
+            this.rewardCollapseBtn.onclick = () => this.collapseRewardView();
+        }
+
+        // Setup expanded skip button
+        if (this.levelUpSkipBtnExpanded) {
+            this.levelUpSkipBtnExpanded.onclick = () => this.skipLevelUpChoice();
         }
     }
 
@@ -451,6 +484,103 @@ export class LevelUpSystem {
         if (this.levelUpChoicePanel) {
             this.levelUpChoicePanel.classList.add('hidden');
         }
+        // Reset to normal view when hiding
+        this.collapseRewardView();
+    }
+
+    /**
+     * Expand reward view to show extended cards
+     */
+    expandRewardView() {
+        if (!this.normalRewardView || !this.expandedRewardView) return;
+
+        // Hide normal view
+        this.normalRewardView.classList.add('hidden');
+
+        // Show expanded view
+        this.expandedRewardView.classList.remove('hidden');
+
+        // Render extended cards
+        this.renderExtendedRewardCards();
+    }
+
+    /**
+     * Collapse reward view back to normal
+     */
+    collapseRewardView() {
+        if (!this.normalRewardView || !this.expandedRewardView) return;
+
+        // Show normal view
+        this.normalRewardView.classList.remove('hidden');
+
+        // Hide expanded view
+        this.expandedRewardView.classList.add('hidden');
+    }
+
+    /**
+     * Render extended reward cards
+     */
+    renderExtendedRewardCards() {
+        if (!this.expandedRewardCards) return;
+
+        this.expandedRewardCards.innerHTML = '';
+
+        this.levelUpChoices.forEach((item, index) => {
+            const card = this.createExtendedRewardCard(item, index);
+            this.expandedRewardCards.appendChild(card);
+        });
+    }
+
+    /**
+     * Create an extended card for reward choice
+     */
+    createExtendedRewardCard(item, index) {
+        const card = document.createElement('button');
+        card.className = 'shop-card-extended';
+
+        // Add rarity class if available
+        if (item.data.rarity) {
+            card.classList.add(`rarity-${item.data.rarity}`);
+        }
+
+        // Different styling based on type
+        if (item.type === 'weapon') {
+            card.classList.add('card-weapon');
+        } else if (item.type === 'weapon_upgrade') {
+            card.classList.add('card-weapon-upgrade');
+        } else if (item.type === 'passive') {
+            card.classList.add('card-passive');
+        } else {
+            card.classList.add('card-stat');
+        }
+
+        let name = item.data.name;
+        let description = this.getExtendedDescription(item);
+
+        if (item.type === 'weapon_upgrade') {
+            name = `${item.data.name} +1`;
+        }
+
+        // Show stack count for upgrades
+        let stackInfo = '';
+        if (item.currentStacks !== undefined && item.currentStacks > 0) {
+            stackInfo = `<span class="stack-count">${item.currentStacks}/${item.data.maxStacks}</span>`;
+        }
+
+        card.innerHTML = `
+            <div class="card-icon-extended">${item.data.icon}</div>
+            <div class="card-info-extended">
+                <div class="card-name-extended">${name}${stackInfo}</div>
+                <div class="card-desc-extended">${description}</div>
+            </div>
+            <div class="card-cost-extended">
+                <span class="cost-amount" style="color: #4ade80;">FREE</span>
+            </div>
+        `;
+
+        card.onclick = () => this.selectLevelUpChoice(item, index);
+
+        return card;
     }
 
     /**
