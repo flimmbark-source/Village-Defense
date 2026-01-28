@@ -279,6 +279,11 @@ export class Village {
         this.hasBarracks = false;
         this.barracksSpawnInterval = 30;
 
+        // Save reward nodes (per wave)
+        this.maxSaveNodes = 1; // Can be increased by skill tree
+        this.filledSaveNodes = 0; // Nodes filled this wave
+        this.saveGoldReward = 50; // Gold per node
+
         this.initialize();
     }
 
@@ -439,7 +444,7 @@ export class Village {
     /**
      * Remove an attacker from this village
      * @param {number} scoutId - Scout ID to remove
-     * @returns {Object|null} Result with heroHelped if attack ended
+     * @returns {Object|null} Result with heroHelped and goldAwarded if attack ended
      */
     removeAttacker(scoutId) {
         if (!this.attackers.has(scoutId)) return null;
@@ -450,7 +455,15 @@ export class Village {
             this.isUnderAttack = false;
             const heroHelped = this.heroHasHelped;
             this.heroHasHelped = false;
-            return { attackEnded: true, heroHelped };
+
+            // Check if we should award gold (hero helped and nodes available)
+            let goldAwarded = 0;
+            if (heroHelped && this.filledSaveNodes < this.maxSaveNodes) {
+                this.filledSaveNodes++;
+                goldAwarded = this.saveGoldReward;
+            }
+
+            return { attackEnded: true, heroHelped, goldAwarded };
         }
 
         return { attackEnded: false };
@@ -461,5 +474,12 @@ export class Village {
      */
     markHeroHelped() {
         this.heroHasHelped = true;
+    }
+
+    /**
+     * Reset save nodes for new wave
+     */
+    resetSaveNodes() {
+        this.filledSaveNodes = 0;
     }
 }

@@ -25,9 +25,9 @@ export class SkillTreeUI {
         this.selectedSkill = null;
 
         // Visual constants
-        this.NODE_RADIUS = 35;
+        this.NODE_RADIUS = 22;
         this.NODE_SPACING = 80;
-        this.CANVAS_PADDING = 80;
+        this.CANVAS_PADDING = 60;
 
         // Setup event listeners
         this.setupEventListeners();
