@@ -147,7 +147,7 @@ export class Hero {
 
         // HP Regeneration
         if (this.hpRegen > 0) {
-            this.regenTimer += deltaTime;
+            this.regenTimer += deltaTime * speedMult;
             if (this.regenTimer >= 1) {
                 this.regenTimer -= 1;
                 this.hp = Math.min(this.hp + this.hpRegen, this.maxHp);

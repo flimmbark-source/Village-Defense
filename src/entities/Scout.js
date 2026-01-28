@@ -301,7 +301,7 @@ export class Scout {
      * @param {Array} villages - Village entities
      */
     updateDisengaging(hero, deltaTime, villages) {
-        this.disengageTimer -= deltaTime;
+        this.disengageTimer -= deltaTime * CONFIG.SPEED_MULTIPLIER;
 
         // If timer expired, transition to village attack or resume chase
         if (this.disengageTimer <= 0) {
@@ -724,7 +724,7 @@ export class Scout {
             profile.preferredRange = profile.baseRange + randomRange(-10, 15);
             profile.strafeRadius = Math.max(15, profile.strafeRadius + randomRange(-10, 12));
         } else {
-            this.replanTimer -= deltaTime;
+            this.replanTimer -= deltaTime * CONFIG.SPEED_MULTIPLIER;
         }
 
         const leadTime = Math.min(0.8, Math.max(0.15, (dist / (this.projectileSpeed * CONFIG.SPEED_MULTIPLIER)) * profile.leadFactor));
