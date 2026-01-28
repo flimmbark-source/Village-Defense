@@ -13,6 +13,7 @@ export class LevelUpSystem {
 
         this.isLevelingUp = false;
         this.levelUpScreenTimeoutId = null;
+        this.levelUpRewardsEnabled = true;
 
         // Shop inventory (regenerated each level)
         this.shopWeapons = [];
@@ -120,6 +121,14 @@ export class LevelUpSystem {
         if (this.levelUpSkipBtnExpanded) {
             this.levelUpSkipBtnExpanded.onclick = () => this.skipLevelUpChoice();
         }
+    }
+
+    /**
+     * Enable or disable the level up reward popup.
+     * @param {boolean} enabled - True to show the popup.
+     */
+    setLevelUpRewardsEnabled(enabled) {
+        this.levelUpRewardsEnabled = enabled;
     }
 
     /**
@@ -293,6 +302,14 @@ export class LevelUpSystem {
 
         if (this.onLevelUp) {
             this.onLevelUp(this.level);
+        }
+
+        if (!this.levelUpRewardsEnabled) {
+            this.isLevelingUp = false;
+            if (this.xp >= this.xpToNextLevel) {
+                setTimeout(() => this.levelUp(), 300);
+            }
+            return;
         }
 
         // Show level up choice popup instead of shop
