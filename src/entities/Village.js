@@ -4,6 +4,8 @@
 
 import { CONFIG } from '../config.js';
 import { distance, generateId } from '../utils.js';
+import { ArrowTower } from './ArrowTower.js';
+import { Barracks } from './Barracks.js';
 
 export class Villager {
     constructor(x, y) {
@@ -91,6 +93,9 @@ export class Militia {
         this.swipeTimer = 0;
         this.swipeAngle = 0;
         this.swipeProgress = 0;
+
+        // Skill tree bonus
+        this.damageBonus = 0; // Multiplier (e.g., 0.25 = +25% damage)
     }
 
     /**
@@ -203,7 +208,8 @@ export class Militia {
 
             // Deal damage immediately (melee hit)
             if (onMeleeHit && this.targetScout && !this.targetScout.isDead()) {
-                onMeleeHit(this.targetScout, CONFIG.MILITIA.DAMAGE, this);
+                const damage = Math.floor(CONFIG.MILITIA.DAMAGE * (1 + this.damageBonus));
+                onMeleeHit(this.targetScout, damage, this);
             }
 
             // Return attack event for visual
@@ -258,10 +264,20 @@ export class Village {
         this.huts = [];
         this.villagers = [];
         this.militia = [];
+        this.arrowTowers = [];
+        this.barracks = [];
 
         this.isUnderAttack = false;
         this.attackers = new Set();
         this.heroHasHelped = false;
+
+        // Skill tree bonuses (set by game)
+        this.bonusMilitia = 0;
+        this.militiaDamageBonus = 0;
+        this.militiaHpBonus = 0;
+        this.hasArrowTower = false;
+        this.hasBarracks = false;
+        this.barracksSpawnInterval = 30;
 
         this.initialize();
     }
@@ -286,13 +302,59 @@ export class Village {
             ));
         }
 
-        // Create militia
-        for (let i = 0; i < CONFIG.VILLAGE.MILITIA_COUNT; i++) {
-            this.militia.push(new Militia(
+        // Create militia (base + bonus)
+        const totalMilitia = CONFIG.VILLAGE.MILITIA_COUNT + this.bonusMilitia;
+        for (let i = 0; i < totalMilitia; i++) {
+            const militia = new Militia(
                 this.x + (Math.random() - 0.5) * 80,
                 this.y + (Math.random() - 0.5) * 80
+            );
+
+            // Apply skill tree bonuses
+            militia.maxHp += this.militiaHpBonus;
+            militia.hp += this.militiaHpBonus;
+            militia.damageBonus = this.militiaDamageBonus;
+
+            this.militia.push(militia);
+        }
+
+        // Create arrow tower if unlocked
+        if (this.hasArrowTower) {
+            this.arrowTowers.push(new ArrowTower(
+                this.x - 60,
+                this.y - 70
             ));
         }
+
+        // Create barracks if unlocked
+        if (this.hasBarracks) {
+            this.barracks.push(new Barracks(
+                this.x + 60,
+                this.y - 70,
+                this.barracksSpawnInterval
+            ));
+        }
+    }
+
+    /**
+     * Apply skill tree bonuses to village (called when skills change)
+     * @param {Object} bonuses - Skill tree bonuses
+     */
+    applySkillBonuses(bonuses) {
+        this.bonusMilitia = bonuses.extraMilitiaPerVillage || 0;
+        this.militiaDamageBonus = bonuses.militiaDamageBonus || 0;
+        this.militiaHpBonus = bonuses.militiaHpBonus || 0;
+        this.hasArrowTower = bonuses.arrowTowerPerVillage > 0;
+        this.hasBarracks = bonuses.barracksPerVillage > 0;
+        this.barracksSpawnInterval = bonuses.barracksSpawnInterval || 30;
+
+        // Re-initialize to apply bonuses
+        this.huts = [];
+        this.villagers = [];
+        this.militia = [];
+        this.arrowTowers = [];
+        this.barracks = [];
+        this.initialize();
     }
 
     /**
@@ -300,9 +362,10 @@ export class Village {
      * @param {number} deltaTime - Time since last frame
      * @param {Array} scouts - All scouts
      * @param {Function} onMeleeHit - Callback when militia melee attack hits (scout, damage, militia)
-     * @returns {Array} Array of militia attack events for rendering
+     * @param {Function} onArrowShot - Callback when arrow tower shoots (target)
+     * @returns {Array} Array of attack events for rendering
      */
-    update(deltaTime, scouts, onMeleeHit) {
+    update(deltaTime, scouts, onMeleeHit, onArrowShot) {
         const attackEvents = [];
 
         // Update militia
@@ -313,11 +376,31 @@ export class Village {
             }
         }
 
-        // Clean up dead villagers
-        this.villagers = this.villagers.filter(v => !v.isDead());
+        // Update arrow towers
+        for (const tower of this.arrowTowers) {
+            const event = tower.update(deltaTime, scouts, onArrowShot);
+            if (event) {
+                attackEvents.push(event);
+            }
+        }
 
-        // Clean up dead militia
+        // Update barracks - spawn militia
+        for (const barracks of this.barracks) {
+            const newMilitia = barracks.update(deltaTime);
+            if (newMilitia) {
+                // Apply current bonuses to new militia
+                newMilitia.maxHp += this.militiaHpBonus;
+                newMilitia.hp += this.militiaHpBonus;
+                newMilitia.damageBonus = this.militiaDamageBonus;
+                this.militia.push(newMilitia);
+            }
+        }
+
+        // Clean up dead entities
+        this.villagers = this.villagers.filter(v => !v.isDead());
         this.militia = this.militia.filter(m => !m.isDead());
+        this.arrowTowers = this.arrowTowers.filter(t => !t.isDead());
+        this.barracks = this.barracks.filter(b => !b.isDead());
 
         // If all huts are destroyed, stop being under attack
         if (this.isDestroyed() && this.isUnderAttack) {

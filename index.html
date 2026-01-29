@@ -103,6 +103,39 @@
             </div>
         </div>
 
+        <!-- Skill Tree Panel -->
+        <div id="skillTreePanel" class="hidden">
+            <div class="shop-overlay"></div>
+            <div class="skill-tree-content">
+                <div class="skill-tree-header">
+                    <h2 class="font-medieval skill-tree-title">Skill Tree</h2>
+                    <div class="skill-points-display">
+                        <span class="skill-points-label">Skill Points:</span>
+                        <span id="skillPointsAmount" class="skill-points-amount">0</span>
+                    </div>
+                </div>
+
+                <div class="skill-tree-canvas-wrapper">
+                    <canvas id="skillTreeCanvas" width="1000" height="600"></canvas>
+                </div>
+
+                <div class="skill-tree-footer">
+                    <button id="skillTreeCloseBtn" class="game-button skill-tree-close-btn">Continue</button>
+                </div>
+
+                <!-- Skill Detail Tooltip -->
+                <div id="skillTooltip" class="skill-tooltip hidden">
+                    <div class="skill-tooltip-header">
+                        <span class="skill-tooltip-icon"></span>
+                        <span class="skill-tooltip-name"></span>
+                    </div>
+                    <div class="skill-tooltip-rank"></div>
+                    <div class="skill-tooltip-description"></div>
+                    <div class="skill-tooltip-requirements"></div>
+                </div>
+            </div>
+        </div>
+
         <!-- Shop Panel -->
         <div id="shopPanel" class="hidden">
             <div class="shop-overlay"></div>
