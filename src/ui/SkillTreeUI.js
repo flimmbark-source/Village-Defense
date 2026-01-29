@@ -37,6 +37,7 @@ export class SkillTreeUI {
         this.rankOffset = 15;
         this.baseScale = 1;
         this.fitScale = 1;
+        this.hitRadiusPadding = 0;
 
         this.updateResponsiveSettings();
 
@@ -48,13 +49,10 @@ export class SkillTreeUI {
      * Setup event listeners
      */
     setupEventListeners() {
-        // Canvas click to upgrade skill
-        this.canvas.addEventListener('click', (e) => {
-            if (!this.isOpen) return;
-
+        const handleCanvasPress = (clientX, clientY) => {
             const rect = this.canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+            const x = clientX - rect.left;
+            const y = clientY - rect.top;
 
             const skill = this.getSkillAtPosition(x, y);
             if (skill) {
@@ -63,8 +61,8 @@ export class SkillTreeUI {
                     this.attemptUpgrade(skill.id);
                 } else {
                     this.activeSkillId = skill.id;
-                    this.showTooltip(skill, e.clientX, e.clientY);
-                    this.lastTooltipPosition = { x: e.clientX, y: e.clientY };
+                    this.showTooltip(skill, clientX, clientY);
+                    this.lastTooltipPosition = { x: clientX, y: clientY };
                     this.render();
                 }
             } else {
@@ -72,7 +70,23 @@ export class SkillTreeUI {
                 this.hideTooltip();
                 this.render();
             }
-        });
+        };
+
+        // Canvas click to upgrade skill
+        if (window.PointerEvent) {
+            this.canvas.addEventListener('pointerdown', (e) => {
+                if (!this.isOpen) return;
+                if (e.pointerType === 'touch') {
+                    e.preventDefault();
+                }
+                handleCanvasPress(e.clientX, e.clientY);
+            });
+        } else {
+            this.canvas.addEventListener('click', (e) => {
+                if (!this.isOpen) return;
+                handleCanvasPress(e.clientX, e.clientY);
+            });
+        }
 
         // Canvas hover for tooltip
         this.canvas.addEventListener('mousemove', (e) => {
@@ -131,6 +145,7 @@ export class SkillTreeUI {
             this.rankFontSize = 9;
             this.rankOffset = 8;
             this.baseScale = 0.7;
+            this.hitRadiusPadding = 8;
         } else if (width <= 768) {
             this.NODE_RADIUS = 12;
             this.CANVAS_PADDING = 30;
@@ -138,6 +153,7 @@ export class SkillTreeUI {
             this.rankFontSize = 10;
             this.rankOffset = 9;
             this.baseScale = 0.8;
+            this.hitRadiusPadding = 6;
         } else {
             this.NODE_RADIUS = 22;
             this.CANVAS_PADDING = 60;
@@ -145,6 +161,7 @@ export class SkillTreeUI {
             this.rankFontSize = 14;
             this.rankOffset = 15;
             this.baseScale = 1;
+            this.hitRadiusPadding = 0;
         }
     }
 
@@ -222,7 +239,7 @@ export class SkillTreeUI {
             const dy = y - (scaled.y + this.positionOffset.y);
             const dist = Math.sqrt(dx * dx + dy * dy);
 
-            if (dist <= this.NODE_RADIUS) {
+            if (dist <= this.NODE_RADIUS + this.hitRadiusPadding) {
                 return skill;
             }
         }
