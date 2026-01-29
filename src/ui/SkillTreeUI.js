@@ -35,7 +35,8 @@ export class SkillTreeUI {
         this.iconFontSize = 24;
         this.rankFontSize = 14;
         this.rankOffset = 15;
-        this.positionScale = 1;
+        this.baseScale = 1;
+        this.fitScale = 1;
 
         this.updateResponsiveSettings();
 
@@ -129,28 +130,32 @@ export class SkillTreeUI {
             this.iconFontSize = 12;
             this.rankFontSize = 9;
             this.rankOffset = 8;
-            this.positionScale = 0.7;
+            this.baseScale = 0.7;
         } else if (width <= 768) {
             this.NODE_RADIUS = 12;
             this.CANVAS_PADDING = 30;
             this.iconFontSize = 14;
             this.rankFontSize = 10;
             this.rankOffset = 9;
-            this.positionScale = 0.8;
+            this.baseScale = 0.8;
         } else {
             this.NODE_RADIUS = 22;
             this.CANVAS_PADDING = 60;
             this.iconFontSize = 24;
             this.rankFontSize = 14;
             this.rankOffset = 15;
-            this.positionScale = 1;
+            this.baseScale = 1;
         }
     }
 
     getScaledPosition(skill) {
+        return this.getScaledPositionWithScale(skill, this.baseScale * this.fitScale);
+    }
+
+    getScaledPositionWithScale(skill, scale) {
         return {
-            x: skill.position.x * this.positionScale,
-            y: skill.position.y * this.positionScale
+            x: skill.position.x * scale,
+            y: skill.position.y * scale
         };
     }
 
@@ -160,41 +165,46 @@ export class SkillTreeUI {
     updateCanvasSize() {
         if (!this.canvasWrapper) return;
 
+        const baseBounds = this.getBoundsForScale(this.baseScale);
+        const requiredWidth = baseBounds.width + this.CANVAS_PADDING * 2;
+        const requiredHeight = baseBounds.height + this.CANVAS_PADDING * 2;
+        const wrapperWidth = this.canvasWrapper.clientWidth || requiredWidth;
+        const wrapperHeight = this.canvasWrapper.clientHeight || requiredHeight;
+        const widthScale = wrapperWidth / requiredWidth;
+        const heightScale = wrapperHeight / requiredHeight;
+        this.fitScale = Math.min(widthScale, heightScale, 1);
+
+        const scaledBounds = this.getBoundsForScale(this.baseScale * this.fitScale);
+        this.canvas.width = wrapperWidth;
+        this.canvas.height = wrapperHeight;
+
+        this.positionOffset = {
+            x: (this.canvas.width - scaledBounds.width) / 2 - scaledBounds.minX,
+            y: (this.canvas.height - scaledBounds.height) / 2 - scaledBounds.minY
+        };
+    }
+
+    getBoundsForScale(scale) {
         let minX = Infinity;
         let minY = Infinity;
         let maxX = -Infinity;
         let maxY = -Infinity;
+
         for (const skillId in SKILL_TREE) {
-            const { x, y } = this.getScaledPosition(SKILL_TREE[skillId]);
+            const { x, y } = this.getScaledPositionWithScale(SKILL_TREE[skillId], scale);
             minX = Math.min(minX, x);
             minY = Math.min(minY, y);
             maxX = Math.max(maxX, x);
             maxY = Math.max(maxY, y);
         }
 
-        const boundsWidth = maxX - minX;
-        const boundsHeight = maxY - minY;
-        const requiredWidth = boundsWidth + this.CANVAS_PADDING * 2;
-        const requiredHeight = boundsHeight + this.CANVAS_PADDING * 2;
-
-        const wrapperWidth = this.canvasWrapper.clientWidth || requiredWidth;
-        const wrapperHeight = this.canvasWrapper.clientHeight || requiredHeight;
-
-        // On mobile, ensure canvas fits within wrapper
-        const isMobile = window.innerWidth <= 768;
-        if (isMobile) {
-            // Use wrapper dimensions to constrain canvas on mobile
-            this.canvas.width = Math.min(wrapperWidth, requiredWidth);
-            this.canvas.height = Math.min(wrapperHeight, requiredHeight);
-        } else {
-            // On desktop, use full required size
-            this.canvas.width = Math.max(wrapperWidth, requiredWidth);
-            this.canvas.height = Math.max(wrapperHeight, requiredHeight);
-        }
-
-        this.positionOffset = {
-            x: (this.canvas.width - boundsWidth) / 2 - minX,
-            y: (this.canvas.height - boundsHeight) / 2 - minY
+        return {
+            minX,
+            minY,
+            maxX,
+            maxY,
+            width: maxX - minX,
+            height: maxY - minY
         };
     }
 
