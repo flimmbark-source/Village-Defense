@@ -98,17 +98,17 @@ export class SkillTreeUI {
         const width = window.innerWidth;
 
         if (width <= 600) {
-            this.NODE_RADIUS = 14;
-            this.CANVAS_PADDING = 30;
-            this.iconFontSize = 16;
-            this.rankFontSize = 10;
-            this.rankOffset = 10;
+            this.NODE_RADIUS = 10;
+            this.CANVAS_PADDING = 24;
+            this.iconFontSize = 12;
+            this.rankFontSize = 9;
+            this.rankOffset = 8;
         } else if (width <= 768) {
-            this.NODE_RADIUS = 16;
-            this.CANVAS_PADDING = 40;
-            this.iconFontSize = 18;
-            this.rankFontSize = 11;
-            this.rankOffset = 12;
+            this.NODE_RADIUS = 12;
+            this.CANVAS_PADDING = 30;
+            this.iconFontSize = 14;
+            this.rankFontSize = 10;
+            this.rankOffset = 9;
         } else {
             this.NODE_RADIUS = 22;
             this.CANVAS_PADDING = 60;
