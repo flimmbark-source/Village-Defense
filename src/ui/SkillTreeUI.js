@@ -32,6 +32,7 @@ export class SkillTreeUI {
         this.iconFontSize = 24;
         this.rankFontSize = 14;
         this.rankOffset = 15;
+        this.positionScale = 1;
 
         this.updateResponsiveSettings();
 
@@ -103,19 +104,29 @@ export class SkillTreeUI {
             this.iconFontSize = 12;
             this.rankFontSize = 9;
             this.rankOffset = 8;
+            this.positionScale = 0.7;
         } else if (width <= 768) {
             this.NODE_RADIUS = 12;
             this.CANVAS_PADDING = 30;
             this.iconFontSize = 14;
             this.rankFontSize = 10;
             this.rankOffset = 9;
+            this.positionScale = 0.8;
         } else {
             this.NODE_RADIUS = 22;
             this.CANVAS_PADDING = 60;
             this.iconFontSize = 24;
             this.rankFontSize = 14;
             this.rankOffset = 15;
+            this.positionScale = 1;
         }
+    }
+
+    getScaledPosition(skill) {
+        return {
+            x: skill.position.x * this.positionScale,
+            y: skill.position.y * this.positionScale
+        };
     }
 
     /**
@@ -129,7 +140,7 @@ export class SkillTreeUI {
         let maxX = -Infinity;
         let maxY = -Infinity;
         for (const skillId in SKILL_TREE) {
-            const { x, y } = SKILL_TREE[skillId].position;
+            const { x, y } = this.getScaledPosition(SKILL_TREE[skillId]);
             minX = Math.min(minX, x);
             minY = Math.min(minY, y);
             maxX = Math.max(maxX, x);
@@ -171,8 +182,9 @@ export class SkillTreeUI {
     getSkillAtPosition(x, y) {
         for (const skillId in SKILL_TREE) {
             const skill = SKILL_TREE[skillId];
-            const dx = x - (skill.position.x + this.positionOffset.x);
-            const dy = y - (skill.position.y + this.positionOffset.y);
+            const scaled = this.getScaledPosition(skill);
+            const dx = x - (scaled.x + this.positionOffset.x);
+            const dy = y - (scaled.y + this.positionOffset.y);
             const dist = Math.sqrt(dx * dx + dy * dy);
 
             if (dist <= this.NODE_RADIUS) {
@@ -293,13 +305,15 @@ export class SkillTreeUI {
                 ctx.lineWidth = reqRank > 0 ? 3 : 2;
 
                 ctx.beginPath();
+                const scaledReq = this.getScaledPosition(reqSkill);
+                const scaledSkill = this.getScaledPosition(skill);
                 ctx.moveTo(
-                    reqSkill.position.x + this.positionOffset.x,
-                    reqSkill.position.y + this.positionOffset.y
+                    scaledReq.x + this.positionOffset.x,
+                    scaledReq.y + this.positionOffset.y
                 );
                 ctx.lineTo(
-                    skill.position.x + this.positionOffset.x,
-                    skill.position.y + this.positionOffset.y
+                    scaledSkill.x + this.positionOffset.x,
+                    scaledSkill.y + this.positionOffset.y
                 );
                 ctx.stroke();
             }
@@ -318,8 +332,9 @@ export class SkillTreeUI {
         const isHovered = this.hoveredSkill && this.hoveredSkill.id === skillId;
         const isMaxed = rank >= skill.maxRank;
 
-        const x = skill.position.x + this.positionOffset.x;
-        const y = skill.position.y + this.positionOffset.y;
+        const scaled = this.getScaledPosition(skill);
+        const x = scaled.x + this.positionOffset.x;
+        const y = scaled.y + this.positionOffset.y;
 
         // Determine node color
         let nodeColor;
