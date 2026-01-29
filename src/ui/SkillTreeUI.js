@@ -303,10 +303,34 @@ export class SkillTreeUI {
             reqEl.classList.add('met');
         }
 
-        // Position tooltip
-        this.tooltip.style.left = `${screenX + 15}px`;
-        this.tooltip.style.top = `${screenY + 15}px`;
         this.tooltip.classList.remove('hidden');
+        this.positionTooltip(screenX, screenY);
+    }
+
+    positionTooltip(screenX, screenY) {
+        const containerRect = this.panel.getBoundingClientRect();
+        const tooltipRect = this.tooltip.getBoundingClientRect();
+        const padding = 12;
+
+        let left = screenX + 15;
+        let top = screenY + 15;
+
+        if (left + tooltipRect.width > containerRect.right - padding) {
+            left = containerRect.right - tooltipRect.width - padding;
+        }
+        if (left < containerRect.left + padding) {
+            left = containerRect.left + padding;
+        }
+
+        if (top + tooltipRect.height > containerRect.bottom - padding) {
+            top = containerRect.bottom - tooltipRect.height - padding;
+        }
+        if (top < containerRect.top + padding) {
+            top = containerRect.top + padding;
+        }
+
+        this.tooltip.style.left = `${left}px`;
+        this.tooltip.style.top = `${top}px`;
     }
 
     /**
