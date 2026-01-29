@@ -24,13 +24,34 @@ export class SkillTreeUI {
         this.hoveredSkill = null;
         this.selectedSkill = null;
 
-        // Visual constants
-        this.NODE_RADIUS = 35;
-        this.NODE_SPACING = 80;
-        this.CANVAS_PADDING = 80;
+        // Visual constants (will be updated based on screen size)
+        this.updateVisualConstants();
 
         // Setup event listeners
         this.setupEventListeners();
+    }
+
+    /**
+     * Update visual constants based on screen size
+     */
+    updateVisualConstants() {
+        const isMobile = window.innerWidth <= 768;
+
+        if (isMobile) {
+            this.NODE_RADIUS = 20;
+            this.NODE_SPACING = 50;
+            this.CANVAS_PADDING = 40;
+            this.ICON_FONT_SIZE = 16;
+            this.RANK_FONT_SIZE = 10;
+            this.RANK_OFFSET = 28;
+        } else {
+            this.NODE_RADIUS = 35;
+            this.NODE_SPACING = 80;
+            this.CANVAS_PADDING = 80;
+            this.ICON_FONT_SIZE = 24;
+            this.RANK_FONT_SIZE = 14;
+            this.RANK_OFFSET = 50;
+        }
     }
 
     /**
@@ -81,6 +102,7 @@ export class SkillTreeUI {
 
         window.addEventListener('resize', () => {
             if (this.isOpen) {
+                this.updateVisualConstants();
                 this.updateCanvasSize();
                 this.render();
             }
@@ -307,7 +329,7 @@ export class SkillTreeUI {
         ctx.fill();
 
         // Draw icon
-        ctx.font = '24px Arial';
+        ctx.font = `${this.ICON_FONT_SIZE}px Arial`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillStyle = '#fff';
@@ -315,9 +337,9 @@ export class SkillTreeUI {
 
         // Draw rank indicator if invested
         if (rank > 0) {
-            ctx.font = 'bold 14px Arial';
+            ctx.font = `bold ${this.RANK_FONT_SIZE}px Arial`;
             ctx.fillStyle = '#d4af37';
-            ctx.fillText(`${rank}/${skill.maxRank}`, x, y + this.NODE_RADIUS + 15);
+            ctx.fillText(`${rank}/${skill.maxRank}`, x, y + this.RANK_OFFSET);
         }
     }
 
@@ -327,6 +349,7 @@ export class SkillTreeUI {
     open() {
         this.isOpen = true;
         this.panel.classList.remove('hidden');
+        this.updateVisualConstants();
         this.updateCanvasSize();
         this.updateSkillPoints();
         this.render();
