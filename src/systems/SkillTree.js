@@ -29,7 +29,7 @@ export const SKILL_TREE = {
             extraMilitiaPerVillage: 1
         },
         requires: ['extra_militia_1'],
-        position: { x: 0, y: 140 }
+        position: { x: 0, y: 92 }
     },
     arrow_tower: {
         id: 'arrow_tower',
@@ -67,7 +67,7 @@ export const SKILL_TREE = {
             barracksSpawnInterval: 30
         },
         requires: ['extra_militia_2', 'arrow_tower'],
-        position: { x: -92, y: 222 }
+        position: { x: 0, y: 222 }
     },
 
     // Economic Branch (Top-Right)
@@ -117,7 +117,7 @@ export const SKILL_TREE = {
             xpMultiplier: 0.15
         },
         requires: ['gold_boost'],
-        position: { x: 92, y: 222 }
+        position: { x: 292, y: 0 }
     },
 
     // Castle Assault Branch (Right)
@@ -181,7 +181,7 @@ export const SKILL_TREE = {
             damageMultiplier: 0.10
         },
         requires: ['extra_militia_1'],
-        position: { x: -140, y: 0 }
+        position: { x: -222, y: -92 }
     },
     hero_hp: {
         id: 'hero_hp',
@@ -217,7 +217,7 @@ export const SKILL_TREE = {
             cooldownMultiplier: -0.10
         },
         requires: ['extra_militia_1'],
-        position: { x: -222, y: -92 }
+        position: { x: -222, y: 0 }
     },
     hero_range: {
         id: 'hero_range',
@@ -241,7 +241,7 @@ export const SKILL_TREE = {
             lifesteal: 0.05
         },
         requires: ['hero_damage', 'hero_hp'],
-        position: { x: -277, y: -160 }
+        position: { x: -222, y: -222 }
     },
     crit_chance: {
         id: 'crit_chance',
@@ -253,7 +253,7 @@ export const SKILL_TREE = {
             critChance: 0.10
         },
         requires: ['hero_damage'],
-        position: { x: -277, y: 160 }
+        position: { x: -350, y: -92 }
     }
 };
 
