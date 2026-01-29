@@ -17,13 +17,16 @@ export class SkillTreeUI {
         this.canvasWrapper = this.panel.querySelector('.skill-tree-canvas-wrapper');
         this.skillPointsDisplay = document.getElementById('skillPointsAmount');
         this.closeButton = document.getElementById('skillTreeCloseBtn');
+        this.resetButton = document.getElementById('skillTreeResetBtn');
         this.tooltip = document.getElementById('skillTooltip');
 
         // State
         this.isOpen = false;
         this.hoveredSkill = null;
         this.selectedSkill = null;
+        this.activeSkillId = null;
         this.positionOffset = { x: 0, y: 0 };
+        this.lastTooltipPosition = null;
 
         // Visual constants
         this.NODE_RADIUS = 22;
@@ -54,7 +57,19 @@ export class SkillTreeUI {
 
             const skill = this.getSkillAtPosition(x, y);
             if (skill) {
-                this.attemptUpgrade(skill.id);
+                const check = this.manager.canUpgradeSkill(skill.id);
+                if (this.activeSkillId === skill.id && check.canUpgrade) {
+                    this.attemptUpgrade(skill.id);
+                } else {
+                    this.activeSkillId = skill.id;
+                    this.showTooltip(skill, e.clientX, e.clientY);
+                    this.lastTooltipPosition = { x: e.clientX, y: e.clientY };
+                    this.render();
+                }
+            } else {
+                this.activeSkillId = null;
+                this.hideTooltip();
+                this.render();
             }
         });
 
@@ -85,6 +100,16 @@ export class SkillTreeUI {
         this.closeButton.addEventListener('click', () => {
             this.close();
         });
+
+        if (this.resetButton) {
+            this.resetButton.addEventListener('click', () => {
+                this.manager.reset();
+                this.activeSkillId = null;
+                this.hideTooltip();
+                this.updateSkillPoints();
+                this.render();
+            });
+        }
 
         window.addEventListener('resize', () => {
             if (this.isOpen) {
@@ -205,6 +230,12 @@ export class SkillTreeUI {
             // Play upgrade sound/animation here if desired
             this.updateSkillPoints();
             this.render();
+            if (this.activeSkillId === skillId && this.lastTooltipPosition) {
+                const skill = SKILL_TREE[skillId];
+                if (skill) {
+                    this.showTooltip(skill, this.lastTooltipPosition.x, this.lastTooltipPosition.y);
+                }
+            }
         } else {
             // Show error feedback (skill node will flash red in render)
             this.selectedSkill = skillId;
@@ -331,6 +362,7 @@ export class SkillTreeUI {
         const check = this.manager.canUpgradeSkill(skillId);
         const isHovered = this.hoveredSkill && this.hoveredSkill.id === skillId;
         const isMaxed = rank >= skill.maxRank;
+        const isActive = this.activeSkillId === skillId;
 
         const scaled = this.getScaledPosition(skill);
         const x = scaled.x + this.positionOffset.x;
@@ -366,8 +398,8 @@ export class SkillTreeUI {
         ctx.arc(x, y, this.NODE_RADIUS, 0, Math.PI * 2);
         ctx.fillStyle = nodeColor;
         ctx.fill();
-        ctx.strokeStyle = isHovered ? '#d4af37' : '#7a5c4b';
-        ctx.lineWidth = isHovered ? 4 : 2;
+        ctx.strokeStyle = isHovered || isActive ? '#d4af37' : '#7a5c4b';
+        ctx.lineWidth = isHovered || isActive ? 4 : 2;
         ctx.stroke();
 
         ctx.shadowBlur = 0;
@@ -412,6 +444,7 @@ export class SkillTreeUI {
         this.isOpen = false;
         this.panel.classList.add('hidden');
         this.hideTooltip();
+        this.activeSkillId = null;
 
         // Trigger callback if set
         if (this.onClose) {

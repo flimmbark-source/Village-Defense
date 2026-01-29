@@ -2330,6 +2330,11 @@ body {
     justify-content: center;
 }
 
+.skill-tree-reset-btn {
+    padding: 8px 20px;
+    font-size: 0.95rem;
+}
+
 .skill-tree-close-btn {
     padding: 12px 40px;
     font-size: 1.2rem;
@@ -2454,6 +2459,11 @@ body {
         font-size: 0.9rem;
     }
 
+    .skill-tree-reset-btn {
+        padding: 5px 14px;
+        font-size: 0.8rem;
+    }
+
     .skill-tooltip {
         max-width: 250px;
         font-size: 0.9rem;
@@ -2498,6 +2508,11 @@ body {
     .skill-tree-close-btn {
         padding: 4px 14px;
         font-size: 0.8rem;
+    }
+
+    .skill-tree-reset-btn {
+        padding: 4px 12px;
+        font-size: 0.75rem;
     }
 
     .skill-tooltip {
