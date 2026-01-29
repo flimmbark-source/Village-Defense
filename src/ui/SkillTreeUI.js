@@ -17,18 +17,29 @@ export class SkillTreeUI {
         this.canvasWrapper = this.panel.querySelector('.skill-tree-canvas-wrapper');
         this.skillPointsDisplay = document.getElementById('skillPointsAmount');
         this.closeButton = document.getElementById('skillTreeCloseBtn');
+        this.resetButton = document.getElementById('skillTreeResetBtn');
         this.tooltip = document.getElementById('skillTooltip');
 
         // State
         this.isOpen = false;
         this.hoveredSkill = null;
         this.selectedSkill = null;
+        this.activeSkillId = null;
         this.positionOffset = { x: 0, y: 0 };
+        this.lastTooltipPosition = null;
 
         // Visual constants
         this.NODE_RADIUS = 22;
         this.NODE_SPACING = 80;
         this.CANVAS_PADDING = 60;
+        this.iconFontSize = 24;
+        this.rankFontSize = 14;
+        this.rankOffset = 15;
+        this.baseScale = 1;
+        this.fitScale = 1;
+        this.hitRadiusPadding = 0;
+
+        this.updateResponsiveSettings();
 
         // Setup event listeners
         this.setupEventListeners();
@@ -38,19 +49,44 @@ export class SkillTreeUI {
      * Setup event listeners
      */
     setupEventListeners() {
-        // Canvas click to upgrade skill
-        this.canvas.addEventListener('click', (e) => {
-            if (!this.isOpen) return;
-
+        const handleCanvasPress = (clientX, clientY) => {
             const rect = this.canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+            const x = clientX - rect.left;
+            const y = clientY - rect.top;
 
             const skill = this.getSkillAtPosition(x, y);
             if (skill) {
-                this.attemptUpgrade(skill.id);
+                const check = this.manager.canUpgradeSkill(skill.id);
+                if (this.activeSkillId === skill.id && check.canUpgrade) {
+                    this.attemptUpgrade(skill.id);
+                } else {
+                    this.activeSkillId = skill.id;
+                    this.showTooltip(skill, clientX, clientY);
+                    this.lastTooltipPosition = { x: clientX, y: clientY };
+                    this.render();
+                }
+            } else {
+                this.activeSkillId = null;
+                this.hideTooltip();
+                this.render();
             }
-        });
+        };
+
+        // Canvas click to upgrade skill
+        if (window.PointerEvent) {
+            this.canvas.addEventListener('pointerdown', (e) => {
+                if (!this.isOpen) return;
+                if (e.pointerType === 'touch') {
+                    e.preventDefault();
+                }
+                handleCanvasPress(e.clientX, e.clientY);
+            });
+        } else {
+            this.canvas.addEventListener('click', (e) => {
+                if (!this.isOpen) return;
+                handleCanvasPress(e.clientX, e.clientY);
+            });
+        }
 
         // Canvas hover for tooltip
         this.canvas.addEventListener('mousemove', (e) => {
@@ -80,12 +116,64 @@ export class SkillTreeUI {
             this.close();
         });
 
+        if (this.resetButton) {
+            this.resetButton.addEventListener('click', () => {
+                this.manager.reset();
+                this.activeSkillId = null;
+                this.hideTooltip();
+                this.updateSkillPoints();
+                this.render();
+            });
+        }
+
         window.addEventListener('resize', () => {
             if (this.isOpen) {
+                this.updateResponsiveSettings();
                 this.updateCanvasSize();
                 this.render();
             }
         });
+    }
+
+    updateResponsiveSettings() {
+        const width = window.innerWidth;
+
+        if (width <= 600) {
+            this.NODE_RADIUS = 10;
+            this.CANVAS_PADDING = 24;
+            this.iconFontSize = 12;
+            this.rankFontSize = 9;
+            this.rankOffset = 8;
+            this.baseScale = 0.7;
+            this.hitRadiusPadding = 8;
+        } else if (width <= 768) {
+            this.NODE_RADIUS = 12;
+            this.CANVAS_PADDING = 30;
+            this.iconFontSize = 14;
+            this.rankFontSize = 10;
+            this.rankOffset = 9;
+            this.baseScale = 0.8;
+            this.hitRadiusPadding = 6;
+        } else {
+            this.NODE_RADIUS = 22;
+            this.CANVAS_PADDING = 60;
+            this.iconFontSize = 24;
+            this.rankFontSize = 14;
+            this.rankOffset = 15;
+            this.baseScale = 1;
+            this.hitRadiusPadding = 0;
+        }
+    }
+
+    getScaledPosition(skill) {
+        return this.getScaledPositionWithScale(skill, this.baseScale * this.fitScale);
+    }
+
+    getScaledPositionWithScale(skill, scale) {
+        return {
+            x: skill.position.x * scale,
+            y: skill.position.y * scale
+        };
     }
 
     /**
@@ -94,41 +182,46 @@ export class SkillTreeUI {
     updateCanvasSize() {
         if (!this.canvasWrapper) return;
 
+        const baseBounds = this.getBoundsForScale(this.baseScale);
+        const requiredWidth = baseBounds.width + this.CANVAS_PADDING * 2;
+        const requiredHeight = baseBounds.height + this.CANVAS_PADDING * 2;
+        const wrapperWidth = this.canvasWrapper.clientWidth || requiredWidth;
+        const wrapperHeight = this.canvasWrapper.clientHeight || requiredHeight;
+        const widthScale = wrapperWidth / requiredWidth;
+        const heightScale = wrapperHeight / requiredHeight;
+        this.fitScale = Math.min(widthScale, heightScale, 1);
+
+        const scaledBounds = this.getBoundsForScale(this.baseScale * this.fitScale);
+        this.canvas.width = wrapperWidth;
+        this.canvas.height = wrapperHeight;
+
+        this.positionOffset = {
+            x: (this.canvas.width - scaledBounds.width) / 2 - scaledBounds.minX,
+            y: (this.canvas.height - scaledBounds.height) / 2 - scaledBounds.minY
+        };
+    }
+
+    getBoundsForScale(scale) {
         let minX = Infinity;
         let minY = Infinity;
         let maxX = -Infinity;
         let maxY = -Infinity;
+
         for (const skillId in SKILL_TREE) {
-            const { x, y } = SKILL_TREE[skillId].position;
+            const { x, y } = this.getScaledPositionWithScale(SKILL_TREE[skillId], scale);
             minX = Math.min(minX, x);
             minY = Math.min(minY, y);
             maxX = Math.max(maxX, x);
             maxY = Math.max(maxY, y);
         }
 
-        const boundsWidth = maxX - minX;
-        const boundsHeight = maxY - minY;
-        const requiredWidth = boundsWidth + this.CANVAS_PADDING * 2;
-        const requiredHeight = boundsHeight + this.CANVAS_PADDING * 2;
-
-        const wrapperWidth = this.canvasWrapper.clientWidth || requiredWidth;
-        const wrapperHeight = this.canvasWrapper.clientHeight || requiredHeight;
-
-        // On mobile, ensure canvas fits within wrapper
-        const isMobile = window.innerWidth <= 768;
-        if (isMobile) {
-            // Use wrapper dimensions to constrain canvas on mobile
-            this.canvas.width = Math.min(wrapperWidth, requiredWidth);
-            this.canvas.height = Math.min(wrapperHeight, requiredHeight);
-        } else {
-            // On desktop, use full required size
-            this.canvas.width = Math.max(wrapperWidth, requiredWidth);
-            this.canvas.height = Math.max(wrapperHeight, requiredHeight);
-        }
-
-        this.positionOffset = {
-            x: (this.canvas.width - boundsWidth) / 2 - minX,
-            y: (this.canvas.height - boundsHeight) / 2 - minY
+        return {
+            minX,
+            minY,
+            maxX,
+            maxY,
+            width: maxX - minX,
+            height: maxY - minY
         };
     }
 
@@ -141,11 +234,12 @@ export class SkillTreeUI {
     getSkillAtPosition(x, y) {
         for (const skillId in SKILL_TREE) {
             const skill = SKILL_TREE[skillId];
-            const dx = x - (skill.position.x + this.positionOffset.x);
-            const dy = y - (skill.position.y + this.positionOffset.y);
+            const scaled = this.getScaledPosition(skill);
+            const dx = x - (scaled.x + this.positionOffset.x);
+            const dy = y - (scaled.y + this.positionOffset.y);
             const dist = Math.sqrt(dx * dx + dy * dy);
 
-            if (dist <= this.NODE_RADIUS) {
+            if (dist <= this.NODE_RADIUS + this.hitRadiusPadding) {
                 return skill;
             }
         }
@@ -163,6 +257,12 @@ export class SkillTreeUI {
             // Play upgrade sound/animation here if desired
             this.updateSkillPoints();
             this.render();
+            if (this.activeSkillId === skillId && this.lastTooltipPosition) {
+                const skill = SKILL_TREE[skillId];
+                if (skill) {
+                    this.showTooltip(skill, this.lastTooltipPosition.x, this.lastTooltipPosition.y);
+                }
+            }
         } else {
             // Show error feedback (skill node will flash red in render)
             this.selectedSkill = skillId;
@@ -203,10 +303,34 @@ export class SkillTreeUI {
             reqEl.classList.add('met');
         }
 
-        // Position tooltip
-        this.tooltip.style.left = `${screenX + 15}px`;
-        this.tooltip.style.top = `${screenY + 15}px`;
         this.tooltip.classList.remove('hidden');
+        this.positionTooltip(screenX, screenY);
+    }
+
+    positionTooltip(screenX, screenY) {
+        const containerRect = this.panel.getBoundingClientRect();
+        const tooltipRect = this.tooltip.getBoundingClientRect();
+        const padding = 12;
+
+        let left = screenX + 15;
+        let top = screenY + 15;
+
+        if (left + tooltipRect.width > containerRect.right - padding) {
+            left = containerRect.right - tooltipRect.width - padding;
+        }
+        if (left < containerRect.left + padding) {
+            left = containerRect.left + padding;
+        }
+
+        if (top + tooltipRect.height > containerRect.bottom - padding) {
+            top = containerRect.bottom - tooltipRect.height - padding;
+        }
+        if (top < containerRect.top + padding) {
+            top = containerRect.top + padding;
+        }
+
+        this.tooltip.style.left = `${left}px`;
+        this.tooltip.style.top = `${top}px`;
     }
 
     /**
@@ -263,13 +387,15 @@ export class SkillTreeUI {
                 ctx.lineWidth = reqRank > 0 ? 3 : 2;
 
                 ctx.beginPath();
+                const scaledReq = this.getScaledPosition(reqSkill);
+                const scaledSkill = this.getScaledPosition(skill);
                 ctx.moveTo(
-                    reqSkill.position.x + this.positionOffset.x,
-                    reqSkill.position.y + this.positionOffset.y
+                    scaledReq.x + this.positionOffset.x,
+                    scaledReq.y + this.positionOffset.y
                 );
                 ctx.lineTo(
-                    skill.position.x + this.positionOffset.x,
-                    skill.position.y + this.positionOffset.y
+                    scaledSkill.x + this.positionOffset.x,
+                    scaledSkill.y + this.positionOffset.y
                 );
                 ctx.stroke();
             }
@@ -287,9 +413,11 @@ export class SkillTreeUI {
         const check = this.manager.canUpgradeSkill(skillId);
         const isHovered = this.hoveredSkill && this.hoveredSkill.id === skillId;
         const isMaxed = rank >= skill.maxRank;
+        const isActive = this.activeSkillId === skillId;
 
-        const x = skill.position.x + this.positionOffset.x;
-        const y = skill.position.y + this.positionOffset.y;
+        const scaled = this.getScaledPosition(skill);
+        const x = scaled.x + this.positionOffset.x;
+        const y = scaled.y + this.positionOffset.y;
 
         // Determine node color
         let nodeColor;
@@ -321,8 +449,8 @@ export class SkillTreeUI {
         ctx.arc(x, y, this.NODE_RADIUS, 0, Math.PI * 2);
         ctx.fillStyle = nodeColor;
         ctx.fill();
-        ctx.strokeStyle = isHovered ? '#d4af37' : '#7a5c4b';
-        ctx.lineWidth = isHovered ? 4 : 2;
+        ctx.strokeStyle = isHovered || isActive ? '#d4af37' : '#7a5c4b';
+        ctx.lineWidth = isHovered || isActive ? 4 : 2;
         ctx.stroke();
 
         ctx.shadowBlur = 0;
@@ -334,7 +462,7 @@ export class SkillTreeUI {
         ctx.fill();
 
         // Draw icon
-        ctx.font = '24px Arial';
+        ctx.font = `${this.iconFontSize}px Arial`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillStyle = '#fff';
@@ -342,9 +470,9 @@ export class SkillTreeUI {
 
         // Draw rank indicator if invested
         if (rank > 0) {
-            ctx.font = 'bold 14px Arial';
+            ctx.font = `bold ${this.rankFontSize}px Arial`;
             ctx.fillStyle = '#d4af37';
-            ctx.fillText(`${rank}/${skill.maxRank}`, x, y + this.NODE_RADIUS + 15);
+            ctx.fillText(`${rank}/${skill.maxRank}`, x, y + this.NODE_RADIUS + this.rankOffset);
         }
     }
 
@@ -354,6 +482,7 @@ export class SkillTreeUI {
     open() {
         this.isOpen = true;
         this.panel.classList.remove('hidden');
+        this.updateResponsiveSettings();
         this.updateCanvasSize();
         this.updateSkillPoints();
         this.render();
@@ -366,6 +495,7 @@ export class SkillTreeUI {
         this.isOpen = false;
         this.panel.classList.add('hidden');
         this.hideTooltip();
+        this.activeSkillId = null;
 
         // Trigger callback if set
         if (this.onClose) {
