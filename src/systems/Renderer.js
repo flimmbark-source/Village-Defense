@@ -12,6 +12,7 @@ export class Renderer {
         this.camera = camera;
         this.time = 0;
         this.pickupSpriteCache = new Map();
+        this.fastForwardButtonBounds = null;
     }
 
     isRectVisible(bounds, x, y, width, height) {
@@ -374,6 +375,40 @@ export class Renderer {
                     }
                 }
             });
+
+            // Save nodes (displayed above village)
+            if (v.maxSaveNodes > 0) {
+                const nodeSize = 12;
+                const nodeSpacing = 18;
+                const totalWidth = (v.maxSaveNodes * nodeSpacing) - 6;
+                const startX = v.x - totalWidth / 2;
+                const nodeY = v.y - 130;
+
+                for (let i = 0; i < v.maxSaveNodes; i++) {
+                    const nodeX = startX + (i * nodeSpacing);
+                    const filled = i < v.filledSaveNodes;
+
+                    // Draw node circle
+                    this.ctx.beginPath();
+                    this.ctx.arc(nodeX, nodeY, nodeSize / 2, 0, Math.PI * 2);
+
+                    if (filled) {
+                        // Filled node (gold)
+                        this.ctx.fillStyle = '#ffd700';
+                        this.ctx.fill();
+                        this.ctx.strokeStyle = '#cc9900';
+                        this.ctx.lineWidth = 2;
+                        this.ctx.stroke();
+                    } else {
+                        // Empty node (dark outline)
+                        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+                        this.ctx.fill();
+                        this.ctx.strokeStyle = '#666';
+                        this.ctx.lineWidth = 2;
+                        this.ctx.stroke();
+                    }
+                }
+            }
         });
     }
 
@@ -584,19 +619,6 @@ export class Renderer {
             if (!this.isCircleVisible(viewBounds, proj.x, proj.y, proj.radius * 2)) {
                 continue;
             }
-
-            // Simple trail using velocity (no gradients)
-            const trailX = proj.x - proj.vx * 2;
-            const trailY = proj.y - proj.vy * 2;
-
-            ctx.beginPath();
-            ctx.moveTo(trailX, trailY);
-            ctx.lineTo(proj.x, proj.y);
-            ctx.strokeStyle = proj.color;
-            ctx.lineWidth = proj.radius;
-            ctx.globalAlpha = 0.4;
-            ctx.stroke();
-            ctx.globalAlpha = 1;
 
             // Outer glow (simple circle, no gradient)
             ctx.beginPath();
@@ -1013,16 +1035,51 @@ export class Renderer {
     }
 
     /**
+     * Draw wave announcement in center of screen
+     * @param {number} waveNumber - Current wave number
+     */
+    drawWaveAnnouncement(waveNumber) {
+        const ctx = this.ctx;
+        const centerX = this.canvas.width / 2;
+        const centerY = this.canvas.height / 2;
+
+        // Draw big "Wave X" text
+        ctx.font = 'bold 72px Inter';
+        ctx.fillStyle = '#ffd700';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        // Add text shadow for better visibility
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetX = 3;
+        ctx.shadowOffsetY = 3;
+
+        ctx.fillText(`Wave ${waveNumber}`, centerX, centerY);
+
+        // Reset shadow
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+
+        ctx.textBaseline = 'alphabetic';
+    }
+
+    /**
      * Draw HUD elements (screen space)
      * @param {Object} hero - Hero entity
      * @param {Object} levelUpSystem - Level up system
      * @param {Object} castle - Castle entity
      * @param {Array} villages - Village entities
      * @param {number} gameTime - Current game time
+     * @param {Object} waveInfo - Wave info {waveNumber, waveTimer}
+     * @param {number} speedMultiplier - Current speed multiplier
      */
-    drawHUD(hero, levelUpSystem, castle, villages, gameTime) {
+    drawHUD(hero, levelUpSystem, castle, villages, gameTime, waveInfo, speedMultiplier) {
         const ctx = this.ctx;
         const padding = 20;
+        this.fastForwardButtonBounds = null;
 
         // XP Bar at top
         const xpBarWidth = 400;
@@ -1080,16 +1137,60 @@ export class Renderer {
             ctx.fillText(`Buildings: ${totalHuts}`, statusX, statusY + lineHeight);
         }
 
-        // Game time (top right)
-        if (gameTime !== undefined) {
-            const minutes = Math.floor(gameTime / 60);
-            const seconds = Math.floor(gameTime % 60);
+        // Wave info (top right)
+        if (waveInfo) {
+            // Wave number
+            ctx.font = 'bold 18px Inter';
+            ctx.fillStyle = '#ffd700';
+            ctx.textAlign = 'right';
+            ctx.fillText(`Wave ${waveInfo.waveNumber}`, this.canvas.width - padding, padding + 16);
+
+            // Wave timer (countdown)
+            const minutes = Math.floor(waveInfo.waveTimer / 60);
+            const seconds = Math.floor(waveInfo.waveTimer % 60);
             const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
 
             ctx.font = 'bold 16px Inter';
+            ctx.fillStyle = waveInfo.waveTimer <= 10 ? '#ff4444' : '#fff';
+            ctx.fillText(timeStr, this.canvas.width - padding, padding + 38);
+
+            const buttonWidth = 96;
+            const buttonHeight = 22;
+            const buttonX = this.canvas.width - padding - buttonWidth;
+            const buttonY = padding + 46;
+            const buttonRadius = 4;
+            const speedLabel = `Speed x${speedMultiplier}`;
+
+            ctx.fillStyle = '#2d2d44';
+            ctx.strokeStyle = '#555';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(buttonX + buttonRadius, buttonY);
+            ctx.lineTo(buttonX + buttonWidth - buttonRadius, buttonY);
+            ctx.quadraticCurveTo(buttonX + buttonWidth, buttonY, buttonX + buttonWidth, buttonY + buttonRadius);
+            ctx.lineTo(buttonX + buttonWidth, buttonY + buttonHeight - buttonRadius);
+            ctx.quadraticCurveTo(buttonX + buttonWidth, buttonY + buttonHeight, buttonX + buttonWidth - buttonRadius, buttonY + buttonHeight);
+            ctx.lineTo(buttonX + buttonRadius, buttonY + buttonHeight);
+            ctx.quadraticCurveTo(buttonX, buttonY + buttonHeight, buttonX, buttonY + buttonHeight - buttonRadius);
+            ctx.lineTo(buttonX, buttonY + buttonRadius);
+            ctx.quadraticCurveTo(buttonX, buttonY, buttonX + buttonRadius, buttonY);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.font = 'bold 12px Inter';
             ctx.fillStyle = '#fff';
-            ctx.textAlign = 'right';
-            ctx.fillText(timeStr, this.canvas.width - padding, padding + 16);
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(speedLabel, buttonX + buttonWidth / 2, buttonY + buttonHeight / 2);
+            ctx.textBaseline = 'alphabetic';
+
+            this.fastForwardButtonBounds = {
+                x: buttonX,
+                y: buttonY,
+                width: buttonWidth,
+                height: buttonHeight
+            };
         }
 
         // Weapon inventory (bottom center)

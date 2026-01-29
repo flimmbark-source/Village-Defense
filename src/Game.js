@@ -46,11 +46,21 @@ export class Game {
         this.gameTime = 0;
         this.difficulty = 0; // Increases by 1 each level up
 
-        // Shop timing (opens at time thresholds, not level up)
-        this.nextShopTime = 40; // First shop at 40 seconds
-        this.shopOpenCount = 0;
-        this.shopTimeIncrement = 20; // Add 20 seconds each time
-        this.maxShopInterval = 120; // Cap at 2 minutes
+        // Wave-based gameplay
+        this.waveNumber = 1;
+        this.waveTimer = 40; // Countdown timer (starts at 40s for wave 1)
+        this.waveSpawningActive = true; // Whether enemies can spawn
+        this.waveLevelUps = 0; // Track level-ups during current wave
+        this.waveAnnouncementTimer = 0; // For displaying "Wave X" announcement
+        this.waveAnnouncementDuration = 2; // Show announcement for 2 seconds
+        this.showingWaveAnnouncement = false;
+
+        // Speed controls
+        this.speedOptions = [1, 1.5, 2];
+        const initialSpeedIndex = this.speedOptions.indexOf(CONFIG.SPEED_MULTIPLIER);
+        this.speedIndex = initialSpeedIndex >= 0 ? initialSpeedIndex : 0;
+        CONFIG.SPEED_MULTIPLIER = this.speedOptions[this.speedIndex];
+        this.fastForwardButtonBounds = null;
 
         // Entities
         this.hero = null;
@@ -116,23 +126,27 @@ export class Game {
         this.levelUpSystem.setHeroRef(this.hero);
         this.levelUpSystem.setLevelUpRewardsEnabled(false);
 
-        // Level up now opens skill tree instead of 3-choice panel
+        // Level up during wave - just track it, don't open skill tree yet
         this.levelUpSystem.setLevelUpHandler((level) => {
-            this.state = GameState.PAUSED;
             this.difficulty++;
+            this.waveLevelUps++; // Track level-ups during this wave
             this.showLevelUpAnimation();
             const heroCenter = this.hero.getCenter();
             this.effects.spawnLevelUp(heroCenter.x, heroCenter.y);
 
-            // Award skill point and open skill tree
-            this.skillTreeManager.addSkillPoints(1);
-            this.openSkillTree();
+            // Don't open skill tree yet - wait for wave end
+            // Skill points will be awarded at wave end
         });
 
-        // Setup skill tree close callback
+        // Setup skill tree close callback - open shop after skill tree
         this.skillTreeUI.setCloseCallback(() => {
-            this.state = GameState.PLAYING;
             this.applySkillTreeEffects();
+            // Ensure skill tree is fully closed before opening shop
+            this.skillTreeUI.panel.classList.add('hidden');
+            // Open shop after skill tree
+            this.levelUpSystem.generateShopInventory();
+            this.levelUpSystem.showShopUI();
+            // State stays PAUSED for shop
         });
 
         // Handler for shop purchases
@@ -147,11 +161,11 @@ export class Game {
             this.effects.spawnGoldPickup(this.hero.x, this.hero.y, goldValue);
         });
 
-        // Setup shop done button
+        // Setup shop done button - start next wave
         if (this.shopDoneButton) {
             this.shopDoneButton.onclick = () => {
                 this.levelUpSystem.closeShop();
-                this.state = GameState.PLAYING;
+                this.startNextWave();
             };
         }
 
@@ -165,6 +179,10 @@ export class Game {
 
         // Initial resize
         this.resize();
+
+        // Show Wave 1 announcement at game start
+        this.showingWaveAnnouncement = true;
+        this.waveAnnouncementTimer = this.waveAnnouncementDuration;
 
         // Start game loop
         requestAnimationFrame((t) => this.gameLoop(t));
@@ -180,6 +198,8 @@ export class Game {
                 this.hero.setTarget(x, y);
             }
         });
+
+        this.input.setUIClickHandler((x, y) => this.handleUIClick(x, y));
 
         // Mouse wheel to zoom
         this.canvas.addEventListener('wheel', (e) => {
@@ -229,25 +249,44 @@ export class Game {
     }
 
     /**
-     * Open shop based on time threshold
+     * End the current wave and open skill tree + shop
      */
-    openTimedShop() {
+    endWave() {
         this.state = GameState.PAUSED;
-        this.shopOpenCount++;
 
-        // Calculate next shop time
-        // Start at 40s, add 20s each time, cap at 2 minutes between openings
-        const interval = Math.min(
-            40 + this.shopOpenCount * this.shopTimeIncrement,
-            this.maxShopInterval
-        );
-        this.nextShopTime = this.gameTime + interval;
+        // Award skill points for level-ups during wave
+        if (this.waveLevelUps > 0) {
+            this.skillTreeManager.addSkillPoints(this.waveLevelUps);
+        }
 
-        // Open the shop (after tavern animation)
+        // Show tavern animation, then open skill tree
         this.showTavernAnimation(() => {
-            this.levelUpSystem.generateShopInventory();
-            this.levelUpSystem.showShopUI();
+            this.openSkillTree();
         });
+    }
+
+    /**
+     * Start the next wave
+     */
+    startNextWave() {
+        this.waveNumber++;
+        this.waveLevelUps = 0; // Reset level-up counter for new wave
+
+        // Add 20 seconds to timer for each wave
+        this.waveTimer = 40 + (this.waveNumber - 1) * 5;
+        this.waveSpawningActive = true;
+
+        // Reset village save nodes for new wave
+        for (const village of this.villages) {
+            village.resetSaveNodes();
+        }
+
+        // Show wave announcement
+        this.showingWaveAnnouncement = true;
+        this.waveAnnouncementTimer = this.waveAnnouncementDuration;
+
+        // Resume game
+        this.state = GameState.PLAYING;
     }
 
     /**
@@ -412,6 +451,9 @@ export class Game {
         // Calculate bonus scouts from difficulty (every 3 difficulty = +1 scout)
         const bonusScouts = Math.floor(this.difficulty / 3);
 
+        // Get list of alive villages to target
+        const aliveVillages = this.villages.filter(v => !v.isDestroyed());
+
         // Spawn base wave enemies
         for (const enemyType of wave) {
             // Spawn at random position around castle
@@ -420,7 +462,15 @@ export class Game {
             const x = center.x + Math.cos(angle) * dist;
             const y = center.y + Math.sin(angle) * dist;
 
-            this.scouts.push(new Scout(x, y, enemyType));
+            const scout = new Scout(x, y, enemyType);
+
+            // Assign a random village as initial target
+            if (aliveVillages.length > 0) {
+                const targetVillage = aliveVillages[Math.floor(Math.random() * aliveVillages.length)];
+                scout.setInitialVillageTarget(targetVillage);
+            }
+
+            this.scouts.push(scout);
         }
 
         // Spawn bonus scouts from difficulty
@@ -431,7 +481,15 @@ export class Game {
             const y = center.y + Math.sin(angle) * dist;
 
             // Bonus scouts are always basic scouts
-            this.scouts.push(new Scout(x, y, EnemyType.SCOUT));
+            const scout = new Scout(x, y, EnemyType.SCOUT);
+
+            // Assign a random village as initial target
+            if (aliveVillages.length > 0) {
+                const targetVillage = aliveVillages[Math.floor(Math.random() * aliveVillages.length)];
+                scout.setInitialVillageTarget(targetVillage);
+            }
+
+            this.scouts.push(scout);
         }
     }
 
@@ -491,18 +549,40 @@ export class Game {
             return;
         }
 
-        this.gameTime += deltaTime;
+        const speedMult = CONFIG.SPEED_MULTIPLIER;
+        const scaledDelta = deltaTime * speedMult;
+        this.gameTime += scaledDelta;
 
-        // Check if it's time to open the shop
-        if (this.gameTime >= this.nextShopTime) {
-            this.openTimedShop();
+        // Update wave timer (countdown)
+        if (this.waveSpawningActive) {
+            this.waveTimer -= scaledDelta;
+
+            // When timer reaches 0, stop spawning
+            if (this.waveTimer <= 0) {
+                this.waveTimer = 0;
+                this.waveSpawningActive = false;
+            }
+        }
+
+        // Check if wave is complete (timer at 0 and all enemies dead)
+        if (!this.waveSpawningActive && this.scouts.length === 0) {
+            this.endWave();
+            return; // Don't process rest of update during wave end
+        }
+
+        // Update wave announcement timer
+        if (this.showingWaveAnnouncement) {
+            this.waveAnnouncementTimer -= scaledDelta;
+            if (this.waveAnnouncementTimer <= 0) {
+                this.showingWaveAnnouncement = false;
+            }
         }
 
         // Update camera zoom
-        this.camera.update(deltaTime);
+        this.camera.update(scaledDelta);
 
         // Update renderer time
-        this.renderer.update(deltaTime);
+        this.renderer.update(scaledDelta);
 
         // Update hero
         const movementInput = this.input.getMovementVector();
@@ -515,8 +595,8 @@ export class Game {
             movementInput
         );
 
-        // Update castle and spawn waves
-        if (this.castle && !this.castle.isDestroyed()) {
+        // Update castle and spawn waves (only if spawning is active)
+        if (this.castle && !this.castle.isDestroyed() && this.waveSpawningActive) {
             const wave = this.castle.update(deltaTime);
             if (wave) {
                 this.spawnWave(wave);
@@ -531,10 +611,9 @@ export class Game {
             const attacks = village.update(
                 deltaTime,
                 this.scouts,
-                (scout, damage, militia) => this.handleMilitiaMeleeHit(scout, damage, militia),
-                (target) => this.handleArrowTowerShot(target)
+                (scout, damage, militia) => this.handleMilitiaMeleeHit(scout, damage, militia)
             );
-            // Store attack visuals
+            // Store attack visuals and create projectiles
             for (const attack of attacks) {
                 if (attack.type === 'militia_swipe') {
                     this.militiaAttacks.push({
@@ -542,9 +621,21 @@ export class Game {
                         timer: 0,
                         duration: CONFIG.MILITIA.SWIPE_DURATION
                     });
-                } else if (attack.type === 'arrow_tower_shot') {
-                    // Arrow tower shots could be rendered as projectiles or instant damage
-                    // For simplicity, we'll handle damage instantly
+                } else if (attack.type === 'arrow_projectile') {
+                    // Create arrow tower projectile
+                    this.enemyProjectiles.push({
+                        x: attack.x,
+                        y: attack.y,
+                        vx: attack.vx,
+                        vy: attack.vy,
+                        damage: attack.damage,
+                        targetRef: attack.targetRef,
+                        radius: attack.radius,
+                        color: attack.color,
+                        isArrow: true, // Flag to identify arrow projectiles
+                        lifetime: 5.0,
+                        age: 0
+                    });
                 }
             }
         }
@@ -565,13 +656,13 @@ export class Game {
         this.updateMilitiaAttacks(deltaTime);
 
         // Update pickups
-        this.updatePickups(deltaTime);
+        this.updatePickups(scaledDelta);
 
         // Handle collisions
         this.handleCollisions();
 
         // Update effects
-        this.effects.update(deltaTime);
+        this.effects.update(scaledDelta);
 
         // Update camera
         this.camera.follow(this.hero);
@@ -667,9 +758,10 @@ export class Game {
      * @param {number} deltaTime - Time since last frame
      */
     updateEnemyAttacks(deltaTime) {
+        const speedMult = CONFIG.SPEED_MULTIPLIER;
         for (let i = this.enemyAttacks.length - 1; i >= 0; i--) {
             const attack = this.enemyAttacks[i];
-            attack.timer += deltaTime;
+            attack.timer += deltaTime * speedMult;
 
             if (attack.timer >= attack.duration) {
                 this.enemyAttacks.splice(i, 1);
@@ -683,21 +775,72 @@ export class Game {
      * @param {number} deltaTime - Time since last frame
      */
     updateEnemyProjectiles(deltaTime) {
+        const speedMult = CONFIG.SPEED_MULTIPLIER;
         const heroCenter = this.hero.getCenter();
         const heroRadiusSq = (this.hero.width / 2) * (this.hero.width / 2);
 
-        const moveScale = deltaTime * 60;
         for (let i = this.enemyProjectiles.length - 1; i >= 0; i--) {
             const proj = this.enemyProjectiles[i];
 
-            // Move projectile
-            proj.x += proj.vx * moveScale;
-            proj.y += proj.vy * moveScale;
-            proj.age += deltaTime;
+            // Move projectile (velocities are in pixels per second)
+            proj.x += proj.vx * deltaTime * speedMult;
+            proj.y += proj.vy * deltaTime * speedMult;
+            proj.age += deltaTime * speedMult;
 
             // Check if expired
             if (proj.age >= proj.lifetime) {
                 this.enemyProjectiles.splice(i, 1);
+                continue;
+            }
+
+            // Arrow projectiles hit scouts (enemies)
+            if (proj.isArrow) {
+                let hit = false;
+
+                // Check collision with target scout
+                if (proj.targetRef && !proj.targetRef.isDead()) {
+                    const dx = proj.x - proj.targetRef.x;
+                    const dy = proj.y - proj.targetRef.y;
+                    const distSq = dx * dx + dy * dy;
+                    const collisionDist = proj.radius + proj.targetRef.radius;
+
+                    if (distSq < collisionDist * collisionDist) {
+                        // Hit target
+                        proj.targetRef.takeDamage(proj.damage);
+                        this.effects.spawnDamageNumber(proj.targetRef.x, proj.targetRef.y, proj.damage);
+                        hit = true;
+                    }
+                }
+
+                // Check collision with any scout if target is dead or missed
+                if (!hit) {
+                    for (const scout of this.scouts) {
+                        if (scout.isDead()) continue;
+
+                        const dx = proj.x - scout.x;
+                        const dy = proj.y - scout.y;
+                        const distSq = dx * dx + dy * dy;
+                        const collisionDist = proj.radius + scout.radius;
+
+                        if (distSq < collisionDist * collisionDist) {
+                            scout.takeDamage(proj.damage);
+                            this.effects.spawnDamageNumber(scout.x, scout.y, proj.damage);
+                            hit = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (hit) {
+                    this.enemyProjectiles.splice(i, 1);
+                    continue;
+                }
+
+                // Check if out of bounds
+                if (proj.x < -100 || proj.x > CONFIG.WORLD.WIDTH + 100 ||
+                    proj.y < -100 || proj.y > CONFIG.WORLD.HEIGHT + 100) {
+                    this.enemyProjectiles.splice(i, 1);
+                }
                 continue;
             }
 
@@ -824,26 +967,14 @@ export class Game {
     }
 
     /**
-     * Handle arrow tower shooting at an enemy
-     * @param {Object} target - The target scout
-     */
-    handleArrowTowerShot(target) {
-        if (!target || target.isDead()) return;
-
-        // Arrow towers deal fixed damage (defined in ArrowTower.js)
-        const damage = 15;
-        target.takeDamage(damage);
-        this.effects.spawnDamageNumber(target.x, target.y, damage);
-    }
-
-    /**
      * Update militia attack visuals
      * @param {number} deltaTime - Time since last frame
      */
     updateMilitiaAttacks(deltaTime) {
+        const speedMult = CONFIG.SPEED_MULTIPLIER;
         for (let i = this.militiaAttacks.length - 1; i >= 0; i--) {
             const attack = this.militiaAttacks[i];
-            attack.timer += deltaTime;
+            attack.timer += deltaTime * speedMult;
 
             if (attack.timer >= attack.duration) {
                 this.militiaAttacks.splice(i, 1);
@@ -903,9 +1034,15 @@ export class Game {
                     const result = village.removeAttacker(deadScout.id);
                     if (result && result.attackEnded) {
                         if (result.heroHelped) {
-                            // Bonus gold for saving village
-                            const bonusGold = 50;
-                            this.spawnPickup(village.x, village.y, 'gold', bonusGold);
+                            if (result.goldAwarded > 0) {
+                                // Award gold for saving village
+                                this.hero.addGold(result.goldAwarded);
+                                this.effects.addFloatingText(village.x, village.y - 40, `+${result.goldAwarded} 🪙`, {
+                                    color: '#ffd700',
+                                    font: 'bold 24px MedievalSharp',
+                                    lifetime: 1.5
+                                });
+                            }
                             this.effects.addFloatingText(village.x, village.y - 30, 'Village Saved!', {
                                 color: '#4cd44c',
                                 font: 'bold 20px MedievalSharp',
@@ -972,7 +1109,47 @@ export class Game {
 
         // Screen-space UI
         this.renderer.drawAttackIndicators(this.villages);
-        this.renderer.drawHUD(this.hero, this.levelUpSystem, this.castle, this.villages, this.gameTime);
+        this.renderer.drawHUD(
+            this.hero,
+            this.levelUpSystem,
+            this.castle,
+            this.villages,
+            this.gameTime,
+            { waveNumber: this.waveNumber, waveTimer: this.waveTimer },
+            CONFIG.SPEED_MULTIPLIER
+        );
+        this.fastForwardButtonBounds = this.renderer.fastForwardButtonBounds;
+
+        // Draw wave announcement if active
+        if (this.showingWaveAnnouncement) {
+            this.renderer.drawWaveAnnouncement(this.waveNumber);
+        }
+    }
+
+    /**
+     * Handle UI clicks
+     * @param {number} x - Canvas X
+     * @param {number} y - Canvas Y
+     * @returns {boolean} True if handled
+     */
+    handleUIClick(x, y) {
+        const bounds = this.fastForwardButtonBounds;
+        if (!bounds) {
+            return false;
+        }
+
+        const isInside = x >= bounds.x &&
+            x <= bounds.x + bounds.width &&
+            y >= bounds.y &&
+            y <= bounds.y + bounds.height;
+
+        if (isInside) {
+            this.speedIndex = (this.speedIndex + 1) % this.speedOptions.length;
+            CONFIG.SPEED_MULTIPLIER = this.speedOptions[this.speedIndex];
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -1047,9 +1224,13 @@ export class Game {
         this.gameTime = 0;
         this.difficulty = 0;
 
-        // Reset shop timing
-        this.nextShopTime = 40;
-        this.shopOpenCount = 0;
+        // Reset wave state
+        this.waveNumber = 1;
+        this.waveTimer = 40;
+        this.waveSpawningActive = true;
+        this.waveLevelUps = 0;
+        this.waveAnnouncementTimer = this.waveAnnouncementDuration;
+        this.showingWaveAnnouncement = true; // Show Wave 1 announcement
 
         // Clear entities
         this.scouts = [];

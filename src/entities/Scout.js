@@ -192,7 +192,8 @@ export class Scout {
      * @returns {Object|null} Attack event if attack connects
      */
     update(deltaTime, hero, forests, villages, castle = null) {
-        this.attackCooldownTimer -= deltaTime;
+        const speedMult = CONFIG.SPEED_MULTIPLIER;
+        this.attackCooldownTimer -= deltaTime * speedMult;
         this.updateHeroTracking(hero, deltaTime);
 
         let attackEvent = null;
@@ -300,7 +301,7 @@ export class Scout {
      * @param {Array} villages - Village entities
      */
     updateDisengaging(hero, deltaTime, villages) {
-        this.disengageTimer -= deltaTime;
+        this.disengageTimer -= deltaTime * CONFIG.SPEED_MULTIPLIER;
 
         // If timer expired, transition to village attack or resume chase
         if (this.disengageTimer <= 0) {
@@ -471,7 +472,7 @@ export class Scout {
         const dy = this.targetY - this.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         const speedMult = isDisengaging ? this.disengageSpeedMultiplier : 1.0;
-        const step = this.speed * speedMult * deltaTime * 60;
+        const step = this.speed * speedMult * deltaTime * 60 * CONFIG.SPEED_MULTIPLIER;
 
         if (dist > step) {
             this.x += (dx / dist) * step;
@@ -545,7 +546,8 @@ export class Scout {
      * @returns {Object|null} Projectile data when attack fires
      */
     updateAttack(deltaTime) {
-        this.attackTimer += deltaTime;
+        const scaledDelta = deltaTime * CONFIG.SPEED_MULTIPLIER;
+        this.attackTimer += scaledDelta;
 
         if (this.attackPhase === AttackPhase.WINDUP) {
             this.attackProgress = this.attackTimer / this.attackWindup;
@@ -575,7 +577,7 @@ export class Scout {
                 }
                 this.attackAngle = Math.atan2(aimTargetY - this.y, aimTargetX - this.x);
                 this.attackHasFired = true;
-                const speed = this.projectileSpeed;
+                const speed = this.projectileSpeed * 60 * CONFIG.SPEED_MULTIPLIER;
                 return {
                     isProjectile: true,
                     x: this.x,
@@ -638,7 +640,8 @@ export class Scout {
         if (!this.attackHasDashed || this.dashTimer >= this.dashDuration) {
             return false;
         }
-        this.dashTimer = Math.min(this.dashDuration, this.dashTimer + deltaTime);
+        const scaledDelta = deltaTime * CONFIG.SPEED_MULTIPLIER;
+        this.dashTimer = Math.min(this.dashDuration, this.dashTimer + scaledDelta);
         const t = this.dashDuration > 0 ? this.dashTimer / this.dashDuration : 1;
         this.x = this.dashStartX + (this.dashTargetX - this.dashStartX) * t;
         this.y = this.dashStartY + (this.dashTargetY - this.dashStartY) * t;
@@ -721,10 +724,10 @@ export class Scout {
             profile.preferredRange = profile.baseRange + randomRange(-10, 15);
             profile.strafeRadius = Math.max(15, profile.strafeRadius + randomRange(-10, 12));
         } else {
-            this.replanTimer -= deltaTime;
+            this.replanTimer -= deltaTime * CONFIG.SPEED_MULTIPLIER;
         }
 
-        const leadTime = Math.min(0.8, Math.max(0.15, (dist / this.projectileSpeed) * profile.leadFactor));
+        const leadTime = Math.min(0.8, Math.max(0.15, (dist / (this.projectileSpeed * CONFIG.SPEED_MULTIPLIER)) * profile.leadFactor));
         const predictedX = heroCenter.x + this.heroVelocityX * leadTime;
         const predictedY = heroCenter.y + this.heroVelocityY * leadTime;
 
@@ -826,5 +829,34 @@ export class Scout {
         }
 
         return drops;
+    }
+
+    /**
+     * Set initial village target when spawning
+     * @param {Object} village - Village to target
+     */
+    setInitialVillageTarget(village) {
+        if (!village || village.isDestroyed()) return;
+
+        // Change state to move towards village
+        this.state = ScoutState.ATTACKING_VILLAGE;
+        this.attackingVillage = village;
+
+        // Find a target within the village (militia first, then huts)
+        const validMilitia = village.militia.filter(m => !m.isDead());
+        const validHuts = village.huts.filter(h => !h.isDead());
+
+        if (validMilitia.length > 0) {
+            this.villageAttackTarget = validMilitia[0];
+            this.currentTarget = validMilitia[0];
+        } else if (validHuts.length > 0) {
+            this.villageAttackTarget = validHuts[0];
+            this.currentTarget = validHuts[0];
+        }
+
+        // Mark village as under attack
+        village.isUnderAttack = true;
+        village.attackers.add(this.id);
+        this.applyBuff();
     }
 }

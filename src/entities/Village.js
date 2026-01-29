@@ -127,12 +127,13 @@ export class Militia {
     update(deltaTime, village, scouts, onMeleeHit) {
         if (this.isDead()) return null;
 
-        this.attackTimer -= deltaTime;
+        const speedMult = CONFIG.SPEED_MULTIPLIER;
+        this.attackTimer -= deltaTime * speedMult;
         let attackEvent = null;
 
         // Update swipe animation
         if (this.isAttacking) {
-            this.swipeTimer += deltaTime;
+            this.swipeTimer += deltaTime * speedMult;
             this.swipeProgress = this.swipeTimer / CONFIG.MILITIA.SWIPE_DURATION;
             if (this.swipeTimer >= CONFIG.MILITIA.SWIPE_DURATION) {
                 this.isAttacking = false;
@@ -192,7 +193,7 @@ export class Militia {
         const dist = Math.sqrt(dx * dx + dy * dy);
 
         if (dist > CONFIG.MILITIA.ATTACK_RANGE) {
-            const step = CONFIG.MILITIA.SPEED * deltaTime * 60;
+            const step = CONFIG.MILITIA.SPEED * deltaTime * 60 * CONFIG.SPEED_MULTIPLIER;
             this.x += (dx / dist) * step;
             this.y += (dy / dist) * step;
         }
@@ -235,7 +236,7 @@ export class Militia {
 
         // Move back to home position with speed boost
         const speed = CONFIG.MILITIA.SPEED * CONFIG.MILITIA.DISENGAGE_SPEED_MULTIPLIER;
-        const step = speed * deltaTime * 60;
+        const step = speed * deltaTime * 60 * CONFIG.SPEED_MULTIPLIER;
 
         if (dist > step) {
             this.x += (dx / dist) * step;
@@ -278,6 +279,11 @@ export class Village {
         this.hasArrowTower = false;
         this.hasBarracks = false;
         this.barracksSpawnInterval = 30;
+
+        // Save reward nodes (per wave)
+        this.maxSaveNodes = 1; // Can be increased by skill tree
+        this.filledSaveNodes = 0; // Nodes filled this wave
+        this.saveGoldReward = 50; // Gold per node
 
         this.initialize();
     }
@@ -362,10 +368,9 @@ export class Village {
      * @param {number} deltaTime - Time since last frame
      * @param {Array} scouts - All scouts
      * @param {Function} onMeleeHit - Callback when militia melee attack hits (scout, damage, militia)
-     * @param {Function} onArrowShot - Callback when arrow tower shoots (target)
-     * @returns {Array} Array of attack events for rendering
+     * @returns {Array} Array of attack events (including arrow projectiles)
      */
-    update(deltaTime, scouts, onMeleeHit, onArrowShot) {
+    update(deltaTime, scouts, onMeleeHit) {
         const attackEvents = [];
 
         // Update militia
@@ -378,8 +383,9 @@ export class Village {
 
         // Update arrow towers
         for (const tower of this.arrowTowers) {
-            const event = tower.update(deltaTime, scouts, onArrowShot);
+            const event = tower.update(deltaTime, scouts);
             if (event) {
+                // Arrow projectile creation event
                 attackEvents.push(event);
             }
         }
@@ -439,7 +445,7 @@ export class Village {
     /**
      * Remove an attacker from this village
      * @param {number} scoutId - Scout ID to remove
-     * @returns {Object|null} Result with heroHelped if attack ended
+     * @returns {Object|null} Result with heroHelped and goldAwarded if attack ended
      */
     removeAttacker(scoutId) {
         if (!this.attackers.has(scoutId)) return null;
@@ -450,7 +456,15 @@ export class Village {
             this.isUnderAttack = false;
             const heroHelped = this.heroHasHelped;
             this.heroHasHelped = false;
-            return { attackEnded: true, heroHelped };
+
+            // Check if we should award gold (hero helped and nodes available)
+            let goldAwarded = 0;
+            if (heroHelped && this.filledSaveNodes < this.maxSaveNodes) {
+                this.filledSaveNodes++;
+                goldAwarded = this.saveGoldReward;
+            }
+
+            return { attackEnded: true, heroHelped, goldAwarded };
         }
 
         return { attackEnded: false };
@@ -461,5 +475,12 @@ export class Village {
      */
     markHeroHelped() {
         this.heroHasHelped = true;
+    }
+
+    /**
+     * Reset save nodes for new wave
+     */
+    resetSaveNodes() {
+        this.filledSaveNodes = 0;
     }
 }

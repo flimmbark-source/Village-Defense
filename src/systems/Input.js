@@ -9,6 +9,7 @@ export class Input {
         this.camera = camera;
 
         this.onClick = null;
+        this.onUIClick = null;
         this.onMouseMove = null;
         this.onZoom = null;
         this.keysDown = new Set();
@@ -53,6 +54,11 @@ export class Input {
         // Check if click is on a UI element
         const shopPanel = document.getElementById('shopPanel');
         if (shopPanel && shopPanel.contains(e.target)) {
+            return;
+        }
+
+        const canvasPos = this.getCanvasCoordinates(e.clientX, e.clientY);
+        if (this.onUIClick && this.onUIClick(canvasPos.x, canvasPos.y)) {
             return;
         }
 
@@ -125,6 +131,13 @@ export class Input {
             const shopPanel = document.getElementById('shopPanel');
             const touchTarget = document.elementFromPoint(touch.clientX, touch.clientY);
             if (shopPanel && shopPanel.contains(touchTarget)) {
+                this.touches = [];
+                this.lastPinchDist = 0;
+                return;
+            }
+
+            const canvasPos = this.getCanvasCoordinates(touch.clientX, touch.clientY);
+            if (this.onUIClick && this.onUIClick(canvasPos.x, canvasPos.y)) {
                 this.touches = [];
                 this.lastPinchDist = 0;
                 return;
@@ -219,6 +232,30 @@ export class Input {
      */
     setClickHandler(callback) {
         this.onClick = callback;
+    }
+
+    /**
+     * Set UI click handler
+     * @param {Function} callback - Handler that returns true if click is handled
+     */
+    setUIClickHandler(callback) {
+        this.onUIClick = callback;
+    }
+
+    /**
+     * Convert client coordinates to canvas coordinates
+     * @param {number} clientX
+     * @param {number} clientY
+     * @returns {{x: number, y: number}}
+     */
+    getCanvasCoordinates(clientX, clientY) {
+        const rect = this.canvas.getBoundingClientRect();
+        const scaleX = this.canvas.width / rect.width;
+        const scaleY = this.canvas.height / rect.height;
+        return {
+            x: (clientX - rect.left) * scaleX,
+            y: (clientY - rect.top) * scaleY
+        };
     }
 
     /**

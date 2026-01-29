@@ -2309,8 +2309,8 @@ body {
 .skill-tree-canvas-wrapper {
     flex: 1;
     display: flex;
-    justify-content: flex-start;
-    align-items: flex-start;
+    justify-content: center;
+    align-items: center;
     padding: 20px;
     overflow: auto;
     position: relative;
@@ -2427,13 +2427,74 @@ body {
         font-size: 1.2rem;
     }
 
+    .skill-tree-content {
+        width: 95%;
+        height: 90%;
+        max-height: none;
+    }
+
+    .skill-tree-canvas-wrapper {
+        padding: 10px;
+        overflow: auto;
+    }
+
     #skillTreeCanvas {
-        width: 800px;
-        height: 480px;
+        max-width: 100%;
+        max-height: 100%;
+    }
+
+    .skill-tree-footer {
+        padding: 12px 20px;
+    }
+
+    .skill-tree-close-btn {
+        padding: 10px 30px;
+        font-size: 1rem;
     }
 
     .skill-tooltip {
         max-width: 250px;
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 600px) {
+    .skill-tree-content {
+        width: 98%;
+        height: 92%;
+    }
+
+    .skill-tree-header {
+        padding: 10px;
+        gap: 10px;
+    }
+
+    .skill-tree-title {
+        font-size: 1.2rem;
+    }
+
+    .skill-points-display {
+        padding: 6px 12px;
+    }
+
+    .skill-points-label {
+        font-size: 0.8rem;
+    }
+
+    .skill-points-amount {
+        font-size: 1rem;
+    }
+
+    .skill-tree-canvas-wrapper {
+        padding: 5px;
+    }
+
+    .skill-tree-footer {
+        padding: 10px 15px;
+    }
+
+    .skill-tree-close-btn {
+        padding: 8px 24px;
         font-size: 0.9rem;
     }
 }

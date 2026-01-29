@@ -67,8 +67,9 @@ export class Castle {
     update(deltaTime) {
         if (this.hp <= 0) return null;
 
-        this.gameTime += deltaTime;
-        this.spawnTimer += deltaTime;
+        const speedMult = CONFIG.SPEED_MULTIPLIER;
+        this.gameTime += deltaTime * speedMult;
+        this.spawnTimer += deltaTime * speedMult;
 
         // Check if it's time to spawn a wave (with skill tree bonus delay)
         const effectiveCooldown = this.spawnCooldown + this.spawnCooldownBonus;
