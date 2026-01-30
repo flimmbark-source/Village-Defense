@@ -103,6 +103,54 @@ export class Renderer {
         return color;
     }
 
+    /**
+     * Check if device is in portrait orientation
+     * @returns {boolean}
+     */
+    isPortrait() {
+        return window.matchMedia && window.matchMedia('(orientation: portrait)').matches;
+    }
+
+    /**
+     * Draw a horizontal bar that stays upright in portrait mode
+     * @param {number} x - Center X position
+     * @param {number} y - Top Y position
+     * @param {number} width - Bar width
+     * @param {number} height - Bar height
+     * @param {string} bgColor - Background color
+     * @param {string} fillColor - Fill color
+     * @param {number} fillPercent - Fill percentage (0-1)
+     */
+    drawUprightBar(x, y, width, height, bgColor, fillColor, fillPercent) {
+        const ctx = this.ctx;
+        const isPortrait = this.isPortrait();
+
+        if (isPortrait) {
+            ctx.save();
+            ctx.translate(x, y + height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.translate(-width / 2, -height / 2);
+
+            // Background
+            ctx.fillStyle = bgColor;
+            ctx.fillRect(0, 0, width, height);
+
+            // Fill
+            ctx.fillStyle = fillColor;
+            ctx.fillRect(0, 0, width * fillPercent, height);
+
+            ctx.restore();
+        } else {
+            // Background
+            ctx.fillStyle = bgColor;
+            ctx.fillRect(x - width / 2, y, width, height);
+
+            // Fill
+            ctx.fillStyle = fillColor;
+            ctx.fillRect(x - width / 2, y, width * fillPercent, height);
+        }
+    }
+
     getPickupSprite(pickup) {
         const key = `${pickup.type}-${pickup.radius}-${pickup.color}-${pickup.glowColor}`;
         if (this.pickupSpriteCache.has(key)) {
@@ -207,21 +255,33 @@ export class Renderer {
         // Spawn progress bar (above castle)
         const barWidth = castle.width;
         const barHeight = 6;
+        const castleCenterX = castle.x + castle.width / 2;
         const spawnBarY = castle.y - 18;
         const spawnProgress = castle.getSpawnProgress();
 
-        this.ctx.fillStyle = COLORS.HEALTH_BAR_BG;
-        this.ctx.fillRect(castle.x, spawnBarY, barWidth, barHeight);
-        this.ctx.fillStyle = COLORS.SPAWN_BAR;
-        this.ctx.fillRect(castle.x, spawnBarY, barWidth * spawnProgress, barHeight);
+        this.drawUprightBar(
+            castleCenterX,
+            spawnBarY,
+            barWidth,
+            barHeight,
+            COLORS.HEALTH_BAR_BG,
+            COLORS.SPAWN_BAR,
+            spawnProgress
+        );
 
         // Castle HP bar (below castle)
         const hpBarY = castle.y + castle.height + 12;
         const hpPercent = castle.getHPPercent();
-        this.ctx.fillStyle = COLORS.HEALTH_BAR_BG;
-        this.ctx.fillRect(castle.x, hpBarY, barWidth, barHeight);
-        this.ctx.fillStyle = COLORS.HEALTH_BAR_HERO;
-        this.ctx.fillRect(castle.x, hpBarY, barWidth * hpPercent, barHeight);
+
+        this.drawUprightBar(
+            castleCenterX,
+            hpBarY,
+            barWidth,
+            barHeight,
+            COLORS.HEALTH_BAR_BG,
+            COLORS.HEALTH_BAR_HERO,
+            hpPercent
+        );
     }
 
     /**
@@ -266,15 +326,21 @@ export class Renderer {
                     if (h.hp < h.maxHp) {
                         const barWidth = h.width;
                         const barHeight = 5;
-                        const barX = h.x;
+                        const barCenterX = h.x + h.width / 2;
                         const barY = h.y - 22;
 
-                        this.ctx.fillStyle = COLORS.HEALTH_BAR_BG;
-                        this.ctx.fillRect(barX, barY, barWidth, barHeight);
-
                         const hpPercent = h.hp / h.maxHp;
-                        this.ctx.fillStyle = hpPercent > 0.5 ? '#4cd44c' : hpPercent > 0.25 ? '#d4a44c' : '#d44c4c';
-                        this.ctx.fillRect(barX, barY, barWidth * hpPercent, barHeight);
+                        const barColor = hpPercent > 0.5 ? '#4cd44c' : hpPercent > 0.25 ? '#d4a44c' : '#d44c4c';
+
+                        this.drawUprightBar(
+                            barCenterX,
+                            barY,
+                            barWidth,
+                            barHeight,
+                            COLORS.HEALTH_BAR_BG,
+                            barColor,
+                            hpPercent
+                        );
                     }
                 }
             });
@@ -316,15 +382,21 @@ export class Renderer {
                     if (tower.hp < tower.maxHp) {
                         const barWidth = tower.width;
                         const barHeight = 4;
-                        const barX = tower.x;
+                        const barCenterX = tower.x + tower.width / 2;
                         const barY = tower.y - 8;
 
-                        this.ctx.fillStyle = COLORS.HEALTH_BAR_BG;
-                        this.ctx.fillRect(barX, barY, barWidth, barHeight);
-
                         const hpPercent = tower.hp / tower.maxHp;
-                        this.ctx.fillStyle = hpPercent > 0.5 ? '#4cd44c' : hpPercent > 0.25 ? '#d4a44c' : '#d44c4c';
-                        this.ctx.fillRect(barX, barY, barWidth * hpPercent, barHeight);
+                        const barColor = hpPercent > 0.5 ? '#4cd44c' : hpPercent > 0.25 ? '#d4a44c' : '#d44c4c';
+
+                        this.drawUprightBar(
+                            barCenterX,
+                            barY,
+                            barWidth,
+                            barHeight,
+                            COLORS.HEALTH_BAR_BG,
+                            barColor,
+                            hpPercent
+                        );
                     }
                 }
             });
@@ -363,15 +435,21 @@ export class Renderer {
                     if (barracks.hp < barracks.maxHp) {
                         const barWidth = barracks.width;
                         const barHeight = 4;
-                        const barX = barracks.x;
+                        const barCenterX = barracks.x + barracks.width / 2;
                         const barY = barracks.y - 18;
 
-                        this.ctx.fillStyle = COLORS.HEALTH_BAR_BG;
-                        this.ctx.fillRect(barX, barY, barWidth, barHeight);
-
                         const hpPercent = barracks.hp / barracks.maxHp;
-                        this.ctx.fillStyle = hpPercent > 0.5 ? '#4cd44c' : hpPercent > 0.25 ? '#d4a44c' : '#d44c4c';
-                        this.ctx.fillRect(barX, barY, barWidth * hpPercent, barHeight);
+                        const barColor = hpPercent > 0.5 ? '#4cd44c' : hpPercent > 0.25 ? '#d4a44c' : '#d44c4c';
+
+                        this.drawUprightBar(
+                            barCenterX,
+                            barY,
+                            barWidth,
+                            barHeight,
+                            COLORS.HEALTH_BAR_BG,
+                            barColor,
+                            hpPercent
+                        );
                     }
                 }
             });
@@ -539,10 +617,19 @@ export class Renderer {
 
             // Health bar
             const barWidth = scout.radius * 2.5;
-            this.ctx.fillStyle = COLORS.HEALTH_BAR_BG;
-            this.ctx.fillRect(scout.x - barWidth / 2, scout.y - scout.radius - 10, barWidth, 5);
-            this.ctx.fillStyle = COLORS.HEALTH_BAR_ENEMY;
-            this.ctx.fillRect(scout.x - barWidth / 2, scout.y - scout.radius - 10, barWidth * (scout.hp / scout.maxHp), 5);
+            const barHeight = 5;
+            const barY = scout.y - scout.radius - 10;
+            const hpPercent = scout.hp / scout.maxHp;
+
+            this.drawUprightBar(
+                scout.x,
+                barY,
+                barWidth,
+                barHeight,
+                COLORS.HEALTH_BAR_BG,
+                COLORS.HEALTH_BAR_ENEMY,
+                hpPercent
+            );
         });
     }
 
@@ -977,6 +1064,7 @@ export class Renderer {
      */
     drawFloatingTexts(texts, viewBounds = null) {
         const ctx = this.ctx;
+        const isPortrait = this.isPortrait();
 
         texts.forEach(t => {
             if (!this.isPointVisible(viewBounds, t.x, t.y, 20)) {
@@ -986,7 +1074,17 @@ export class Renderer {
             ctx.fillStyle = t.color;
             ctx.globalAlpha = t.alpha;
             ctx.textAlign = 'center';
-            ctx.fillText(t.text, t.x, t.y);
+
+            if (isPortrait) {
+                ctx.save();
+                ctx.translate(t.x, t.y);
+                ctx.rotate(-Math.PI / 2);
+                ctx.fillText(t.text, 0, 0);
+                ctx.restore();
+            } else {
+                ctx.fillText(t.text, t.x, t.y);
+            }
+
             ctx.globalAlpha = 1;
         });
     }
@@ -996,6 +1094,8 @@ export class Renderer {
      * @param {Array} villages - Village entities
      */
     drawAttackIndicators(villages) {
+        const isPortrait = this.isPortrait();
+
         villages.forEach(v => {
             if (!v.isUnderAttack) return;
 
@@ -1003,11 +1103,37 @@ export class Renderer {
             const remainingAttackers = v.attackers.size;
 
             // Help text
-            this.ctx.fillStyle = 'white';
-            this.ctx.font = 'bold 16px Inter';
-            this.ctx.textAlign = 'center';
             if (remainingAttackers > 0) {
-                this.ctx.fillText('Help Needed!', screenPos.x * this.camera.zoom, screenPos.y * this.camera.zoom - 50);
+                this.ctx.save();
+
+                if (isPortrait) {
+                    const canvasCenterX = this.canvas.width / 2;
+                    const canvasCenterY = this.canvas.height / 2;
+                    const uiWidth = this.canvas.height;
+                    const uiHeight = this.canvas.width;
+                    const uiCenterX = uiWidth / 2;
+                    const uiCenterY = uiHeight / 2;
+
+                    this.ctx.translate(canvasCenterX, canvasCenterY);
+                    this.ctx.rotate(-Math.PI / 2);
+                    this.ctx.translate(-uiCenterX, -uiCenterY);
+
+                    // Transform screen position to UI coordinates
+                    const uiX = screenPos.y * this.camera.zoom;
+                    const uiY = (this.canvas.width - screenPos.x * this.camera.zoom);
+
+                    this.ctx.fillStyle = 'white';
+                    this.ctx.font = 'bold 16px Inter';
+                    this.ctx.textAlign = 'center';
+                    this.ctx.fillText('Help Needed!', uiX, uiY - 50);
+                } else {
+                    this.ctx.fillStyle = 'white';
+                    this.ctx.font = 'bold 16px Inter';
+                    this.ctx.textAlign = 'center';
+                    this.ctx.fillText('Help Needed!', screenPos.x * this.camera.zoom, screenPos.y * this.camera.zoom - 50);
+                }
+
+                this.ctx.restore();
             }
 
             // Off-screen indicator
@@ -1019,16 +1145,42 @@ export class Renderer {
                     screenPos.y - scaledHeight / 2,
                     screenPos.x - scaledWidth / 2
                 );
-                const distFromCenter = Math.min(this.canvas.width / 2 - 30, this.canvas.height / 2 - 30);
-                const indicatorX = this.canvas.width / 2 + distFromCenter * Math.cos(angle);
-                const indicatorY = this.canvas.height / 2 + distFromCenter * Math.sin(angle);
 
                 this.ctx.save();
-                this.ctx.translate(indicatorX, indicatorY);
-                this.ctx.rotate(angle + Math.PI / 2);
-                this.ctx.font = '30px Inter';
-                this.ctx.fillStyle = 'red';
-                this.ctx.fillText('!', 0, 0);
+
+                if (isPortrait) {
+                    const canvasCenterX = this.canvas.width / 2;
+                    const canvasCenterY = this.canvas.height / 2;
+                    const uiWidth = this.canvas.height;
+                    const uiHeight = this.canvas.width;
+                    const uiCenterX = uiWidth / 2;
+                    const uiCenterY = uiHeight / 2;
+
+                    this.ctx.translate(canvasCenterX, canvasCenterY);
+                    this.ctx.rotate(-Math.PI / 2);
+                    this.ctx.translate(-uiCenterX, -uiCenterY);
+
+                    const distFromCenter = Math.min(uiWidth / 2 - 30, uiHeight / 2 - 30);
+                    const indicatorX = uiCenterX + distFromCenter * Math.cos(angle);
+                    const indicatorY = uiCenterY + distFromCenter * Math.sin(angle);
+
+                    this.ctx.translate(indicatorX, indicatorY);
+                    this.ctx.rotate(angle + Math.PI / 2);
+                    this.ctx.font = '30px Inter';
+                    this.ctx.fillStyle = 'red';
+                    this.ctx.fillText('!', 0, 0);
+                } else {
+                    const distFromCenter = Math.min(this.canvas.width / 2 - 30, this.canvas.height / 2 - 30);
+                    const indicatorX = this.canvas.width / 2 + distFromCenter * Math.cos(angle);
+                    const indicatorY = this.canvas.height / 2 + distFromCenter * Math.sin(angle);
+
+                    this.ctx.translate(indicatorX, indicatorY);
+                    this.ctx.rotate(angle + Math.PI / 2);
+                    this.ctx.font = '30px Inter';
+                    this.ctx.fillStyle = 'red';
+                    this.ctx.fillText('!', 0, 0);
+                }
+
                 this.ctx.restore();
             }
         });
@@ -1040,8 +1192,26 @@ export class Renderer {
      */
     drawWaveAnnouncement(waveNumber) {
         const ctx = this.ctx;
+        const isPortrait = this.isPortrait();
         const centerX = this.canvas.width / 2;
         const centerY = this.canvas.height / 2;
+
+        ctx.save();
+
+        // Counter-rotate in portrait mode
+        if (isPortrait) {
+            const uiWidth = this.canvas.height;
+            const uiHeight = this.canvas.width;
+            const uiCenterX = uiWidth / 2;
+            const uiCenterY = uiHeight / 2;
+
+            ctx.translate(centerX, centerY);
+            ctx.rotate(-Math.PI / 2);
+            ctx.translate(-uiCenterX, -uiCenterY);
+        }
+
+        const textX = isPortrait ? this.canvas.height / 2 : centerX;
+        const textY = isPortrait ? this.canvas.width / 2 : centerY;
 
         // Draw big "Wave X" text
         ctx.font = 'bold 72px Inter';
@@ -1055,7 +1225,7 @@ export class Renderer {
         ctx.shadowOffsetX = 3;
         ctx.shadowOffsetY = 3;
 
-        ctx.fillText(`Wave ${waveNumber}`, centerX, centerY);
+        ctx.fillText(`Wave ${waveNumber}`, textX, textY);
 
         // Reset shadow
         ctx.shadowColor = 'transparent';
@@ -1064,6 +1234,7 @@ export class Renderer {
         ctx.shadowOffsetY = 0;
 
         ctx.textBaseline = 'alphabetic';
+        ctx.restore();
     }
 
     /**
