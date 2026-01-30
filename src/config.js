@@ -17,6 +17,7 @@ export const CONFIG = {
         DEFAULT_WIDTH: 1280,
         DEFAULT_HEIGHT: 720,
         MIN_ZOOM: 0.5,
+        MOBILE_MIN_ZOOM: 0.35,
         MAX_ZOOM: 2.0,
         ZOOM_SPEED: 0.1
     },
