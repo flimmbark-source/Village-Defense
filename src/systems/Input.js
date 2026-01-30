@@ -278,8 +278,8 @@ export class Input {
             const centerY = bounds.height / 2;
             const dx = localX - centerX;
             const dy = localY - centerY;
-            const unrotatedX = -dy;
-            const unrotatedY = dx;
+            const unrotatedX = dy;
+            const unrotatedY = -dx;
             localX = unrotatedX + centerX;
             localY = unrotatedY + centerY;
         }

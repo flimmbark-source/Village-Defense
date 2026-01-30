@@ -51,9 +51,30 @@
             left: 0;
             width: 100%;
             height: 100%;
+            z-index: 1;
+        }
+        #uiContainer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+        }
+        #uiContainer * {
+            pointer-events: auto;
         }
         @media (orientation: portrait) {
             #gameCanvas {
+                width: 100vh;
+                height: 100vw;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%) rotate(90deg);
+                transform-origin: center;
+            }
+            #uiContainer {
                 width: 100vh;
                 height: 100vw;
                 top: 50%;
@@ -68,6 +89,7 @@
     <!-- Game Container -->
     <div id="gameContainer">
         <canvas id="gameCanvas"></canvas>
+        <div id="uiContainer">
 
         <!-- Hero UI (Bottom Left) -->
         <div id="heroPanel">
@@ -244,6 +266,7 @@
             <h2 class="font-medieval victory-title">Victory!</h2>
             <p>You have destroyed the Dark Castle and saved the realm!</p>
             <button id="victoryRestartButton" class="game-button victory-button">Play Again</button>
+        </div>
         </div>
     </div>
 
