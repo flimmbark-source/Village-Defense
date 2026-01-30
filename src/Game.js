@@ -1179,13 +1179,18 @@ export class Game {
      */
     resize() {
         const isPortrait = window.matchMedia && window.matchMedia('(orientation: portrait)').matches;
+
+        // Use visual viewport if available for mobile browsers
+        const viewportWidth = window.visualViewport ? window.visualViewport.width : window.innerWidth;
+        const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+
         if (isPortrait) {
-            this.canvas.width = window.innerHeight;
-            this.canvas.height = window.innerWidth;
+            this.canvas.width = viewportHeight;
+            this.canvas.height = viewportWidth;
         } else {
-            // Landscape mode - use full window size
-            this.canvas.width = window.innerWidth;
-            this.canvas.height = window.innerHeight;
+            // Landscape mode - use full viewport size
+            this.canvas.width = viewportWidth;
+            this.canvas.height = viewportHeight;
         }
         this.camera.resize(this.canvas.width, this.canvas.height);
 
