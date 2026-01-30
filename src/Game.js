@@ -665,15 +665,8 @@ export class Game {
         // Update effects
         this.effects.update(scaledDelta);
 
-        // Update camera
-        if (this.isMobileViewport && this.castle) {
-            this.camera.follow({
-                x: this.castle.x + this.castle.width / 2,
-                y: this.castle.y + this.castle.height / 2
-            });
-        } else {
-            this.camera.follow(this.hero);
-        }
+        // Update camera - always follow hero (player)
+        this.camera.follow(this.hero);
 
         // Update UI
         this.updateUI();
