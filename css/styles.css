@@ -2243,6 +2243,94 @@ body {
     }
 }
 
+/* General landscape mode for mobile devices */
+@media (orientation: landscape) and (max-height: 768px) {
+    /* Ensure full screen usage */
+    body, html {
+        height: 100vh;
+        height: 100svh;
+        height: 100dvh;
+        width: 100vw;
+        overflow: hidden;
+    }
+
+    /* Game over screen adjustments */
+    #gameOverScreen h2 {
+        font-size: 2.5rem;
+        margin-bottom: 8px;
+    }
+
+    #gameOverScreen p {
+        font-size: 1rem;
+        margin-top: 8px;
+    }
+
+    #gameOverScreen button {
+        margin-top: 16px;
+        padding: 10px 24px;
+        font-size: 0.9rem;
+    }
+
+    /* Victory screen adjustments */
+    #victoryScreen h2.victory-title {
+        font-size: 3rem;
+        margin-bottom: 8px;
+    }
+
+    #victoryScreen p {
+        font-size: 1.1rem;
+        margin-top: 10px;
+    }
+
+    #victoryScreen button {
+        margin-top: 16px;
+        padding: 10px 24px;
+        font-size: 0.9rem;
+    }
+
+    /* Level up choice panel */
+    .levelup-choice-content {
+        max-width: 95%;
+        max-height: 90vh;
+        padding: 12px;
+    }
+
+    .levelup-choice-title {
+        font-size: 1.5rem;
+        margin-bottom: 10px;
+    }
+
+    .levelup-choice-cards {
+        gap: 10px;
+    }
+
+    .choice-card {
+        padding: 8px;
+    }
+
+    /* Hero panel adjustments */
+    #heroPanel {
+        bottom: 8px;
+        left: 8px;
+    }
+
+    .hero-stats {
+        padding: 8px 10px;
+    }
+
+    /* Shop content for landscape */
+    .shop-content {
+        max-height: 95vh;
+        overflow-y: auto;
+    }
+
+    /* Skill tree for landscape */
+    .skill-tree-content {
+        max-height: 95vh;
+        height: 95%;
+    }
+}
+
 /* ==========================================
    SKILL TREE STYLES
    ========================================== */
