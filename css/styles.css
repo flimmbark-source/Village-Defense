@@ -63,6 +63,7 @@ body {
 #gameContainer {
     position: relative;
     width: 100%;
+    height: 100%;
     max-width: 1920px;
     margin: 0 auto;
 }
@@ -70,8 +71,8 @@ body {
 /* Hero UI Panel */
 #heroPanel {
     position: absolute;
-    bottom: 20px;
-    left: 20px;
+    bottom: calc(20px + env(safe-area-inset-bottom));
+    left: calc(20px + env(safe-area-inset-left));
     transform: none;
     display: flex;
     align-items: center;
@@ -1341,8 +1342,8 @@ body {
 /* Controls Hint */
 #controlsHint {
     position: absolute;
-    bottom: 16px;
-    right: 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    right: calc(16px + env(safe-area-inset-right));
     padding: 8px 16px;
     border-radius: 6px;
     font-size: 0.75rem;
@@ -1388,6 +1389,10 @@ body {
 
 /* Tablet and smaller */
 @media (max-width: 900px) {
+    #gameContainer {
+        border-radius: 0;
+    }
+
     /* Shop adjustments for tablet */
     .shop-content {
         padding: 14px 16px;
@@ -1529,8 +1534,8 @@ body {
 
     /* Controls hint */
     #controlsHint {
-        bottom: 8px;
-        right: 8px;
+        bottom: calc(8px + env(safe-area-inset-bottom));
+        right: calc(8px + env(safe-area-inset-right));
         padding: 6px 10px;
         font-size: 0.65rem;
     }
@@ -1613,11 +1618,12 @@ body {
         font-size: 0.9rem;
     }
 
-    /* Hero panel smaller */
+    /* Hero panel stays in landscape position */
     #heroPanel {
-        top: 52px;
-        left: 50%;
-        transform: translateX(-50%);
+        top: auto;
+        bottom: calc(12px + env(safe-area-inset-bottom));
+        left: calc(12px + env(safe-area-inset-left));
+        transform: none;
     }
 
     .hero-stats {
@@ -1667,9 +1673,9 @@ body {
         font-size: 1rem;
     }
 
-    /* Hide controls hint on small mobile */
+    /* Keep controls hint visible in landscape layout */
     #controlsHint {
-        display: none;
+        display: block;
     }
 }
 

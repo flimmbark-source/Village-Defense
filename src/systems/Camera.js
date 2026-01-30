@@ -16,8 +16,10 @@ export class Camera {
         this.height = this.baseHeight;
 
         // Zoom - start fully zoomed out
-        this.zoom = CONFIG.CAMERA.MIN_ZOOM;
-        this.targetZoom = CONFIG.CAMERA.MIN_ZOOM;
+        this.minZoom = CONFIG.CAMERA.MIN_ZOOM;
+        this.maxZoom = CONFIG.CAMERA.MAX_ZOOM;
+        this.zoom = this.minZoom;
+        this.targetZoom = this.minZoom;
         this.zoomSpeed = 0.1; // Smoothing speed
 
         // Update viewport for initial zoom
@@ -33,9 +35,11 @@ export class Camera {
         this.x = target.x - this.width / 2;
         this.y = target.y - this.height / 2;
 
-        // Clamp to world bounds
-        this.x = clamp(this.x, 0, CONFIG.WORLD.WIDTH - this.width);
-        this.y = clamp(this.y, 0, CONFIG.WORLD.HEIGHT - this.height);
+        // Clamp to world bounds (center if viewport exceeds world size)
+        const maxX = CONFIG.WORLD.WIDTH - this.width;
+        const maxY = CONFIG.WORLD.HEIGHT - this.height;
+        this.x = maxX < 0 ? maxX / 2 : clamp(this.x, 0, maxX);
+        this.y = maxY < 0 ? maxY / 2 : clamp(this.y, 0, maxY);
     }
 
     /**
@@ -63,7 +67,20 @@ export class Camera {
      * @param {number} zoom - New zoom level
      */
     setZoom(zoom) {
-        this.targetZoom = clamp(zoom, CONFIG.CAMERA.MIN_ZOOM, CONFIG.CAMERA.MAX_ZOOM);
+        this.targetZoom = clamp(zoom, this.minZoom, this.maxZoom);
+    }
+
+    /**
+     * Update zoom limits
+     * @param {number} minZoom - Minimum zoom level
+     * @param {number} maxZoom - Maximum zoom level
+     */
+    setZoomLimits(minZoom, maxZoom) {
+        this.minZoom = minZoom;
+        this.maxZoom = maxZoom;
+        this.zoom = clamp(this.zoom, this.minZoom, this.maxZoom);
+        this.targetZoom = clamp(this.targetZoom, this.minZoom, this.maxZoom);
+        this.updateViewport();
     }
 
     /**

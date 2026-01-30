@@ -17,14 +17,20 @@
             margin: 0;
             padding: 0;
             height: 100%;
+            width: 100%;
             background-color: #1a1a2e;
             color: #e5e7eb;
         }
         body {
             display: flex;
             flex-direction: column;
-            padding: 8px;
-            padding: env(safe-area-inset-top, 8px) env(safe-area-inset-right, 8px) env(safe-area-inset-bottom, 8px) env(safe-area-inset-left, 8px);
+            min-height: 100vh;
+            height: 100svh;
+            height: 100dvh;
+            width: 100vw;
+            padding: 0;
+            align-items: center;
+            justify-content: center;
             font-family: 'Inter', sans-serif;
             overflow: hidden;
             touch-action: none;
@@ -33,8 +39,9 @@
             user-select: none;
         }
         #gameContainer {
-            flex-grow: 1;
             position: relative;
+            width: 100%;
+            height: 100%;
             border-radius: 8px;
             overflow: hidden;
         }
@@ -44,6 +51,16 @@
             left: 0;
             width: 100%;
             height: 100%;
+        }
+        @media (orientation: portrait) {
+            #gameCanvas {
+                width: 100vh;
+                height: 100vw;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%) rotate(90deg);
+                transform-origin: center;
+            }
         }
     </style>
 </head>

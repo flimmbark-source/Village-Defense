@@ -61,6 +61,7 @@ export class Game {
         this.speedIndex = initialSpeedIndex >= 0 ? initialSpeedIndex : 0;
         CONFIG.SPEED_MULTIPLIER = this.speedOptions[this.speedIndex];
         this.fastForwardButtonBounds = null;
+        this.isMobileViewport = false;
 
         // Entities
         this.hero = null;
@@ -665,7 +666,14 @@ export class Game {
         this.effects.update(scaledDelta);
 
         // Update camera
-        this.camera.follow(this.hero);
+        if (this.isMobileViewport && this.castle) {
+            this.camera.follow({
+                x: this.castle.x + this.castle.width / 2,
+                y: this.castle.y + this.castle.height / 2
+            });
+        } else {
+            this.camera.follow(this.hero);
+        }
 
         // Update UI
         this.updateUI();
@@ -1178,9 +1186,42 @@ export class Game {
      */
     resize() {
         const container = document.getElementById('gameContainer');
-        this.canvas.width = container.clientWidth;
-        this.canvas.height = container.clientHeight;
+        const isPortrait = window.matchMedia && window.matchMedia('(orientation: portrait)').matches;
+        if (isPortrait) {
+            this.canvas.width = window.innerHeight;
+            this.canvas.height = window.innerWidth;
+        } else {
+            this.canvas.width = container.clientWidth;
+            this.canvas.height = container.clientHeight;
+        }
         this.camera.resize(this.canvas.width, this.canvas.height);
+
+        const fitZoom = Math.min(
+            this.canvas.width / CONFIG.CAMERA.DEFAULT_WIDTH,
+            this.canvas.height / CONFIG.CAMERA.DEFAULT_HEIGHT,
+            1
+        );
+        const isMobileViewport = this.canvas.width < CONFIG.CAMERA.DEFAULT_WIDTH ||
+            this.canvas.height < CONFIG.CAMERA.DEFAULT_HEIGHT;
+        this.isMobileViewport = isMobileViewport;
+        const fitWorldZoom = Math.min(
+            this.canvas.width / CONFIG.WORLD.WIDTH,
+            this.canvas.height / CONFIG.WORLD.HEIGHT
+        );
+        const minZoom = isMobileViewport
+            ? Math.min(CONFIG.CAMERA.MOBILE_MIN_ZOOM, fitWorldZoom)
+            : CONFIG.CAMERA.MIN_ZOOM;
+        this.camera.setZoomLimits(minZoom, CONFIG.CAMERA.MAX_ZOOM);
+        const targetZoom = isMobileViewport
+            ? minZoom
+            : Math.max(minZoom, fitZoom);
+        this.camera.setZoom(targetZoom);
+        if (isMobileViewport && this.castle) {
+            this.camera.follow({
+                x: this.castle.x + this.castle.width / 2,
+                y: this.castle.y + this.castle.height / 2
+            });
+        }
 
         // Reset hero target to prevent weird movement
         if (this.hero) {
@@ -1258,7 +1299,7 @@ export class Game {
         });
 
         // Reset camera - start zoomed all the way out
-        this.camera.setZoom(CONFIG.CAMERA.MIN_ZOOM);
+        this.camera.setZoom(this.camera.minZoom);
 
         // Recreate world
         this.generateForests();

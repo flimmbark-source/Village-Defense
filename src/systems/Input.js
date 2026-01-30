@@ -62,7 +62,8 @@ export class Input {
             return;
         }
 
-        const worldPos = this.camera.screenToWorld(e.clientX, e.clientY, this.canvas);
+        const adjusted = this.getAdjustedClientCoordinates(e.clientX, e.clientY);
+        const worldPos = this.camera.screenToWorld(adjusted.clientX, adjusted.clientY, this.canvas);
 
         if (this.onClick) {
             this.onClick(worldPos.x, worldPos.y);
@@ -143,7 +144,8 @@ export class Input {
                 return;
             }
 
-            const worldPos = this.camera.screenToWorld(touch.clientX, touch.clientY, this.canvas);
+            const adjusted = this.getAdjustedClientCoordinates(touch.clientX, touch.clientY);
+            const worldPos = this.camera.screenToWorld(adjusted.clientX, adjusted.clientY, this.canvas);
 
             if (this.onClick) {
                 this.onClick(worldPos.x, worldPos.y);
@@ -250,12 +252,52 @@ export class Input {
      */
     getCanvasCoordinates(clientX, clientY) {
         const rect = this.canvas.getBoundingClientRect();
+        const adjusted = this.getAdjustedClientCoordinates(clientX, clientY, rect);
         const scaleX = this.canvas.width / rect.width;
         const scaleY = this.canvas.height / rect.height;
         return {
-            x: (clientX - rect.left) * scaleX,
-            y: (clientY - rect.top) * scaleY
+            x: adjusted.localX * scaleX,
+            y: adjusted.localY * scaleY
         };
+    }
+
+    /**
+     * Adjust client coordinates when the canvas is rotated in portrait mode.
+     * @param {number} clientX
+     * @param {number} clientY
+     * @param {DOMRect} [rect]
+     * @returns {{clientX: number, clientY: number, localX: number, localY: number}}
+     */
+    getAdjustedClientCoordinates(clientX, clientY, rect = null) {
+        const bounds = rect ?? this.canvas.getBoundingClientRect();
+        let localX = clientX - bounds.left;
+        let localY = clientY - bounds.top;
+
+        if (this.isPortraitRotated()) {
+            const centerX = bounds.width / 2;
+            const centerY = bounds.height / 2;
+            const dx = localX - centerX;
+            const dy = localY - centerY;
+            const unrotatedX = -dy;
+            const unrotatedY = dx;
+            localX = unrotatedX + centerX;
+            localY = unrotatedY + centerY;
+        }
+
+        return {
+            clientX: bounds.left + localX,
+            clientY: bounds.top + localY,
+            localX,
+            localY
+        };
+    }
+
+    /**
+     * Check if the canvas is rotated for portrait layout.
+     * @returns {boolean}
+     */
+    isPortraitRotated() {
+        return window.matchMedia && window.matchMedia('(orientation: portrait)').matches;
     }
 
     /**
