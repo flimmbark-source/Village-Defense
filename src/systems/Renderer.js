@@ -1094,6 +1094,8 @@ export class Renderer {
      * @param {Array} villages - Village entities
      */
     drawAttackIndicators(villages) {
+        const isPortrait = this.isPortrait();
+
         villages.forEach(v => {
             if (!v.isUnderAttack) return;
 
@@ -1101,11 +1103,37 @@ export class Renderer {
             const remainingAttackers = v.attackers.size;
 
             // Help text
-            this.ctx.fillStyle = 'white';
-            this.ctx.font = 'bold 16px Inter';
-            this.ctx.textAlign = 'center';
             if (remainingAttackers > 0) {
-                this.ctx.fillText('Help Needed!', screenPos.x * this.camera.zoom, screenPos.y * this.camera.zoom - 50);
+                this.ctx.save();
+
+                if (isPortrait) {
+                    const canvasCenterX = this.canvas.width / 2;
+                    const canvasCenterY = this.canvas.height / 2;
+                    const uiWidth = this.canvas.height;
+                    const uiHeight = this.canvas.width;
+                    const uiCenterX = uiWidth / 2;
+                    const uiCenterY = uiHeight / 2;
+
+                    this.ctx.translate(canvasCenterX, canvasCenterY);
+                    this.ctx.rotate(-Math.PI / 2);
+                    this.ctx.translate(-uiCenterX, -uiCenterY);
+
+                    // Transform screen position to UI coordinates
+                    const uiX = screenPos.y * this.camera.zoom;
+                    const uiY = (this.canvas.width - screenPos.x * this.camera.zoom);
+
+                    this.ctx.fillStyle = 'white';
+                    this.ctx.font = 'bold 16px Inter';
+                    this.ctx.textAlign = 'center';
+                    this.ctx.fillText('Help Needed!', uiX, uiY - 50);
+                } else {
+                    this.ctx.fillStyle = 'white';
+                    this.ctx.font = 'bold 16px Inter';
+                    this.ctx.textAlign = 'center';
+                    this.ctx.fillText('Help Needed!', screenPos.x * this.camera.zoom, screenPos.y * this.camera.zoom - 50);
+                }
+
+                this.ctx.restore();
             }
 
             // Off-screen indicator
@@ -1117,16 +1145,42 @@ export class Renderer {
                     screenPos.y - scaledHeight / 2,
                     screenPos.x - scaledWidth / 2
                 );
-                const distFromCenter = Math.min(this.canvas.width / 2 - 30, this.canvas.height / 2 - 30);
-                const indicatorX = this.canvas.width / 2 + distFromCenter * Math.cos(angle);
-                const indicatorY = this.canvas.height / 2 + distFromCenter * Math.sin(angle);
 
                 this.ctx.save();
-                this.ctx.translate(indicatorX, indicatorY);
-                this.ctx.rotate(angle + Math.PI / 2);
-                this.ctx.font = '30px Inter';
-                this.ctx.fillStyle = 'red';
-                this.ctx.fillText('!', 0, 0);
+
+                if (isPortrait) {
+                    const canvasCenterX = this.canvas.width / 2;
+                    const canvasCenterY = this.canvas.height / 2;
+                    const uiWidth = this.canvas.height;
+                    const uiHeight = this.canvas.width;
+                    const uiCenterX = uiWidth / 2;
+                    const uiCenterY = uiHeight / 2;
+
+                    this.ctx.translate(canvasCenterX, canvasCenterY);
+                    this.ctx.rotate(-Math.PI / 2);
+                    this.ctx.translate(-uiCenterX, -uiCenterY);
+
+                    const distFromCenter = Math.min(uiWidth / 2 - 30, uiHeight / 2 - 30);
+                    const indicatorX = uiCenterX + distFromCenter * Math.cos(angle);
+                    const indicatorY = uiCenterY + distFromCenter * Math.sin(angle);
+
+                    this.ctx.translate(indicatorX, indicatorY);
+                    this.ctx.rotate(angle + Math.PI / 2);
+                    this.ctx.font = '30px Inter';
+                    this.ctx.fillStyle = 'red';
+                    this.ctx.fillText('!', 0, 0);
+                } else {
+                    const distFromCenter = Math.min(this.canvas.width / 2 - 30, this.canvas.height / 2 - 30);
+                    const indicatorX = this.canvas.width / 2 + distFromCenter * Math.cos(angle);
+                    const indicatorY = this.canvas.height / 2 + distFromCenter * Math.sin(angle);
+
+                    this.ctx.translate(indicatorX, indicatorY);
+                    this.ctx.rotate(angle + Math.PI / 2);
+                    this.ctx.font = '30px Inter';
+                    this.ctx.fillStyle = 'red';
+                    this.ctx.fillText('!', 0, 0);
+                }
+
                 this.ctx.restore();
             }
         });
@@ -1138,8 +1192,26 @@ export class Renderer {
      */
     drawWaveAnnouncement(waveNumber) {
         const ctx = this.ctx;
+        const isPortrait = this.isPortrait();
         const centerX = this.canvas.width / 2;
         const centerY = this.canvas.height / 2;
+
+        ctx.save();
+
+        // Counter-rotate in portrait mode
+        if (isPortrait) {
+            const uiWidth = this.canvas.height;
+            const uiHeight = this.canvas.width;
+            const uiCenterX = uiWidth / 2;
+            const uiCenterY = uiHeight / 2;
+
+            ctx.translate(centerX, centerY);
+            ctx.rotate(-Math.PI / 2);
+            ctx.translate(-uiCenterX, -uiCenterY);
+        }
+
+        const textX = isPortrait ? this.canvas.height / 2 : centerX;
+        const textY = isPortrait ? this.canvas.width / 2 : centerY;
 
         // Draw big "Wave X" text
         ctx.font = 'bold 72px Inter';
@@ -1153,7 +1225,7 @@ export class Renderer {
         ctx.shadowOffsetX = 3;
         ctx.shadowOffsetY = 3;
 
-        ctx.fillText(`Wave ${waveNumber}`, centerX, centerY);
+        ctx.fillText(`Wave ${waveNumber}`, textX, textY);
 
         // Reset shadow
         ctx.shadowColor = 'transparent';
@@ -1162,6 +1234,7 @@ export class Renderer {
         ctx.shadowOffsetY = 0;
 
         ctx.textBaseline = 'alphabetic';
+        ctx.restore();
     }
 
     /**
