@@ -15,11 +15,11 @@ export class Camera {
         this.width = this.baseWidth;
         this.height = this.baseHeight;
 
-        // Zoom - start fully zoomed out
+        // Zoom - start zoomed in at 1.5x
         this.minZoom = CONFIG.CAMERA.MIN_ZOOM;
         this.maxZoom = CONFIG.CAMERA.MAX_ZOOM;
-        this.zoom = this.minZoom;
-        this.targetZoom = this.minZoom;
+        this.zoom = 1.5;
+        this.targetZoom = 1.5;
         this.zoomSpeed = 0.1; // Smoothing speed
 
         // Update viewport for initial zoom
