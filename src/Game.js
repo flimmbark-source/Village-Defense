@@ -1178,22 +1178,18 @@ export class Game {
      * Handle window resize
      */
     resize() {
-        const container = document.getElementById('gameContainer');
         const isPortrait = window.matchMedia && window.matchMedia('(orientation: portrait)').matches;
         if (isPortrait) {
             this.canvas.width = window.innerHeight;
             this.canvas.height = window.innerWidth;
         } else {
-            this.canvas.width = container.clientWidth;
-            this.canvas.height = container.clientHeight;
+            // Landscape mode - use full window size
+            this.canvas.width = window.innerWidth;
+            this.canvas.height = window.innerHeight;
         }
         this.camera.resize(this.canvas.width, this.canvas.height);
 
-        const fitZoom = Math.min(
-            this.canvas.width / CONFIG.CAMERA.DEFAULT_WIDTH,
-            this.canvas.height / CONFIG.CAMERA.DEFAULT_HEIGHT,
-            1
-        );
+        // Update zoom limits based on viewport size
         const isMobileViewport = this.canvas.width < CONFIG.CAMERA.DEFAULT_WIDTH ||
             this.canvas.height < CONFIG.CAMERA.DEFAULT_HEIGHT;
         this.isMobileViewport = isMobileViewport;
@@ -1205,16 +1201,6 @@ export class Game {
             ? Math.min(CONFIG.CAMERA.MOBILE_MIN_ZOOM, fitWorldZoom)
             : CONFIG.CAMERA.MIN_ZOOM;
         this.camera.setZoomLimits(minZoom, CONFIG.CAMERA.MAX_ZOOM);
-        const targetZoom = isMobileViewport
-            ? minZoom
-            : Math.max(minZoom, fitZoom);
-        this.camera.setZoom(targetZoom);
-        if (isMobileViewport && this.castle) {
-            this.camera.follow({
-                x: this.castle.x + this.castle.width / 2,
-                y: this.castle.y + this.castle.height / 2
-            });
-        }
 
         // Reset hero target to prevent weird movement
         if (this.hero) {
