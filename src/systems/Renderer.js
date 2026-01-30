@@ -1080,11 +1080,34 @@ export class Renderer {
         const ctx = this.ctx;
         const padding = 20;
         this.fastForwardButtonBounds = null;
+        const isPortrait = window.matchMedia && window.matchMedia('(orientation: portrait)').matches;
+        let uiWidth = this.canvas.width;
+        let uiHeight = this.canvas.height;
+        let toCanvasPoint = null;
+
+        if (isPortrait) {
+            const canvasCenterX = this.canvas.width / 2;
+            const canvasCenterY = this.canvas.height / 2;
+            uiWidth = this.canvas.height;
+            uiHeight = this.canvas.width;
+            const uiCenterX = uiWidth / 2;
+            const uiCenterY = uiHeight / 2;
+
+            toCanvasPoint = (x, y) => ({
+                x: (y - uiCenterY) + canvasCenterX,
+                y: -(x - uiCenterX) + canvasCenterY
+            });
+
+            ctx.save();
+            ctx.translate(canvasCenterX, canvasCenterY);
+            ctx.rotate(-Math.PI / 2);
+            ctx.translate(-uiCenterX, -uiCenterY);
+        }
 
         // XP Bar at top
         const xpBarWidth = 400;
         const xpBarHeight = 12;
-        const xpBarX = (this.canvas.width - xpBarWidth) / 2;
+        const xpBarX = (uiWidth - xpBarWidth) / 2;
         const xpBarY = padding;
 
 
@@ -1104,7 +1127,7 @@ export class Renderer {
         // Hero health bar (below XP bar)
         const healthBarWidth = xpBarWidth / 2;
         const healthBarHeight = xpBarHeight;
-        const healthBarX = (this.canvas.width - healthBarWidth) / 2;
+        const healthBarX = (uiWidth - healthBarWidth) / 2;
         const healthBarY = xpBarY + xpBarHeight + 10;
         const healthProgress = hero.maxHp > 0 ? hero.hp / hero.maxHp : 0;
 
@@ -1112,7 +1135,7 @@ export class Renderer {
         ctx.font = 'bold 14px Inter';
         ctx.fillStyle = '#fff';
         ctx.textAlign = 'center';
-        ctx.fillText(`Level ${levelUpSystem.level}`, this.canvas.width / 2, healthBarY + healthBarHeight - 32);
+        ctx.fillText(`Level ${levelUpSystem.level}`, uiWidth / 2, healthBarY + healthBarHeight - 32);
 
         ctx.fillStyle = COLORS.XP_BAR_BG;
         ctx.fillRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
@@ -1143,7 +1166,7 @@ export class Renderer {
             ctx.font = 'bold 18px Inter';
             ctx.fillStyle = '#ffd700';
             ctx.textAlign = 'right';
-            ctx.fillText(`Wave ${waveInfo.waveNumber}`, this.canvas.width - padding, padding + 16);
+            ctx.fillText(`Wave ${waveInfo.waveNumber}`, uiWidth - padding, padding + 16);
 
             // Wave timer (countdown)
             const minutes = Math.floor(waveInfo.waveTimer / 60);
@@ -1152,11 +1175,11 @@ export class Renderer {
 
             ctx.font = 'bold 16px Inter';
             ctx.fillStyle = waveInfo.waveTimer <= 10 ? '#ff4444' : '#fff';
-            ctx.fillText(timeStr, this.canvas.width - padding, padding + 38);
+            ctx.fillText(timeStr, uiWidth - padding, padding + 38);
 
             const buttonWidth = 96;
             const buttonHeight = 22;
-            const buttonX = this.canvas.width - padding - buttonWidth;
+            const buttonX = uiWidth - padding - buttonWidth;
             const buttonY = padding + 46;
             const buttonRadius = 4;
             const speedLabel = `Speed x${speedMultiplier}`;
@@ -1185,12 +1208,27 @@ export class Renderer {
             ctx.fillText(speedLabel, buttonX + buttonWidth / 2, buttonY + buttonHeight / 2);
             ctx.textBaseline = 'alphabetic';
 
-            this.fastForwardButtonBounds = {
-                x: buttonX,
-                y: buttonY,
-                width: buttonWidth,
-                height: buttonHeight
-            };
+            if (isPortrait && toCanvasPoint) {
+                const topLeft = toCanvasPoint(buttonX, buttonY);
+                const topRight = toCanvasPoint(buttonX + buttonWidth, buttonY);
+                const bottomLeft = toCanvasPoint(buttonX, buttonY + buttonHeight);
+                const bottomRight = toCanvasPoint(buttonX + buttonWidth, buttonY + buttonHeight);
+                const xs = [topLeft.x, topRight.x, bottomLeft.x, bottomRight.x];
+                const ys = [topLeft.y, topRight.y, bottomLeft.y, bottomRight.y];
+                this.fastForwardButtonBounds = {
+                    x: Math.min(...xs),
+                    y: Math.min(...ys),
+                    width: Math.max(...xs) - Math.min(...xs),
+                    height: Math.max(...ys) - Math.min(...ys)
+                };
+            } else {
+                this.fastForwardButtonBounds = {
+                    x: buttonX,
+                    y: buttonY,
+                    width: buttonWidth,
+                    height: buttonHeight
+                };
+            }
         }
 
         // Weapon inventory (bottom center)
@@ -1198,8 +1236,8 @@ export class Renderer {
         const iconPadding = 8;
         const slotCount = CONFIG.INVENTORY_SIZE;
         const totalWidth = iconSize * slotCount + iconPadding * (slotCount - 1);
-        const startX = (this.canvas.width - totalWidth) / 2;
-        const startY = this.canvas.height - padding - iconSize;
+        const startX = (uiWidth - totalWidth) / 2;
+        const startY = uiHeight - padding - iconSize;
 
         for (let i = 0; i < slotCount; i++) {
             const x = startX + i * (iconSize + iconPadding);
@@ -1236,6 +1274,10 @@ export class Renderer {
                     ctx.fillRect(x, y + iconSize * (1 - cooldownRatio), iconSize, iconSize * cooldownRatio);
                 }
             }
+        }
+
+        if (isPortrait) {
+            ctx.restore();
         }
     }
 }
