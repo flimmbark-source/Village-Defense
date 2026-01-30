@@ -145,6 +145,20 @@
                 height: 100%;
             }
         }
+        /* Fullscreen mode styles */
+        html:fullscreen, html:-webkit-full-screen, html:-moz-full-screen, html:-ms-fullscreen {
+            width: 100%;
+            height: 100%;
+        }
+        html:fullscreen body,
+        html:-webkit-full-screen body,
+        html:-moz-full-screen body,
+        html:-ms-fullscreen body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
     </style>
 </head>
 <body>
@@ -341,8 +355,38 @@
             const canvas = document.getElementById('gameCanvas');
             const game = new Game(canvas);
 
-            // Handle window resize
-            window.addEventListener('resize', () => game.resize());
+            let fullscreenRequested = false;
+
+            // Fullscreen API helper
+            function enterFullscreen() {
+                const elem = document.documentElement;
+                if (elem.requestFullscreen) {
+                    elem.requestFullscreen();
+                } else if (elem.webkitRequestFullscreen) {
+                    elem.webkitRequestFullscreen();
+                } else if (elem.mozRequestFullScreen) {
+                    elem.mozRequestFullScreen();
+                } else if (elem.msRequestFullscreen) {
+                    elem.msRequestFullscreen();
+                }
+            }
+
+            function isLandscape() {
+                return window.matchMedia && window.matchMedia('(orientation: landscape)').matches;
+            }
+
+            // Handle orientation change to request fullscreen in landscape
+            function handleOrientationChange() {
+                if (isLandscape() && !fullscreenRequested) {
+                    enterFullscreen();
+                    fullscreenRequested = true;
+                }
+                game.resize();
+            }
+
+            // Listen for orientation changes
+            window.addEventListener('orientationchange', handleOrientationChange);
+            window.addEventListener('resize', handleOrientationChange);
 
             // Handle mobile browser address bar showing/hiding
             if (window.visualViewport) {
@@ -350,8 +394,29 @@
                 window.visualViewport.addEventListener('scroll', () => game.resize());
             }
 
+            // Request fullscreen on first user interaction (required by browsers)
+            function requestFullscreenOnInteraction() {
+                if (isLandscape()) {
+                    enterFullscreen();
+                    fullscreenRequested = true;
+                }
+                // Remove listeners after first interaction
+                document.removeEventListener('touchstart', requestFullscreenOnInteraction);
+                document.removeEventListener('click', requestFullscreenOnInteraction);
+            }
+
+            document.addEventListener('touchstart', requestFullscreenOnInteraction);
+            document.addEventListener('click', requestFullscreenOnInteraction);
+
             // Force initial resize after a brief delay for mobile browsers
-            setTimeout(() => game.resize(), 100);
+            setTimeout(() => {
+                game.resize();
+                // Try to enter fullscreen if already in landscape
+                if (isLandscape() && !fullscreenRequested) {
+                    enterFullscreen();
+                    fullscreenRequested = true;
+                }
+            }, 100);
         });
     </script>
 </body>
